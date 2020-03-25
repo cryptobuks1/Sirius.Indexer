@@ -1,2 +1,2 @@
-# Service.Sirius.Indexer
+# Sirius.Indexer
 Sirius blockchains indexer
