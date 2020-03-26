@@ -10,6 +10,7 @@ using Microsoft.Extensions.Logging;
 using Indexer.Common.Configuration;
 using Indexer.Common.HostedServices;
 using Indexer.Common.Persistence;
+using Indexer.Common.ServiceFunctions;
 using Indexer.GrpcServices;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using Swisschain.Sdk.Server.Common;
@@ -31,7 +32,8 @@ namespace Indexer
             services.AddMassTransit(x =>
             {
                 // TODO: Register commands recipient endpoints. It's just an example.
-                //EndpointConvention.Map<ExecuteSomething>(new Uri("queue:sirius-indexer-something-execution"));
+                EndpointConvention.Map<PublishAllAssets>(new Uri("queue:sirius-indexer-publish-all-assets"));
+                EndpointConvention.Map<PublishAsset>(new Uri("queue:sirius-indexer-publish-asset"));
 
                 x.AddBus(provider => Bus.Factory.CreateUsingRabbitMq(cfg =>
                 {
@@ -46,15 +48,6 @@ namespace Indexer
 
                 services.AddHostedService<BusHost>();
             });
-        }
-
-        protected override void ConfigureSwaggerGen(SwaggerGenOptions swaggerGenOptions)
-        {
-            base.ConfigureSwaggerGen(swaggerGenOptions);
-
-            var binPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-
-            swaggerGenOptions.IncludeXmlComments($"{binPath}/Indexer.xml", includeControllerXmlComments: true);
         }
 
         protected override void RegisterEndpoints(IEndpointRouteBuilder endpoints)

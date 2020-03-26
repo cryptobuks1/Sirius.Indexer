@@ -6,7 +6,7 @@ namespace Indexer.Common.Persistence
     {
         public static IServiceCollection AddPersistence(this IServiceCollection services, string connectionString)
         {
-            // TODO: Register repositories
+            services.AddSingleton<IAssetsRepository, AssetsRepository>();
 
             return services;
         }
