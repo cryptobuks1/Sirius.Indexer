@@ -5,7 +5,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Indexer.Common.Configuration;
-using Indexer.Common.Domain.AppFeatureExample;
 using Indexer.Common.HostedServices;
 using Indexer.Common.Persistence;
 using Indexer.Worker.MessageConsumers;
@@ -25,7 +24,6 @@ namespace Indexer.Worker
 
             services.AddHttpClient();
             services.AddPersistence(Config.Db.ConnectionString);
-            services.AddAppFeatureExample();
             services.AddMessageConsumers();
 
             services.AddMassTransit(x =>
@@ -47,10 +45,10 @@ namespace Indexer.Worker
                     cfg.SetLoggerFactory(provider.GetRequiredService<ILoggerFactory>());
 
                     // TODO: Define your receive endpoints. It's just an example:
-                    cfg.ReceiveEndpoint("sirius-indexer-something-execution", e =>
-                    {
-                        e.Consumer(provider.GetRequiredService<ExecuteSomethingConsumer>);
-                    });
+                    //cfg.ReceiveEndpoint("sirius-indexer-something-execution", e =>
+                    //{
+                    //    e.Consumer(provider.GetRequiredService<ExecuteSomethingConsumer>);
+                    //});
                 }));
 
                 services.AddHostedService<BusHost>();

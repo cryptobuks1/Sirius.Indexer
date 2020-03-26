@@ -8,7 +8,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Indexer.Common.Configuration;
-using Indexer.Common.Domain.AppFeatureExample;
 using Indexer.Common.HostedServices;
 using Indexer.Common.Persistence;
 using Indexer.GrpcServices;
@@ -28,12 +27,11 @@ namespace Indexer
             base.ConfigureServicesExt(services);
 
             services.AddPersistence(Config.Db.ConnectionString);
-            services.AddAppFeatureExample();
 
             services.AddMassTransit(x =>
             {
                 // TODO: Register commands recipient endpoints. It's just an example.
-                EndpointConvention.Map<ExecuteSomething>(new Uri("queue:sirius-indexer-something-execution"));
+                //EndpointConvention.Map<ExecuteSomething>(new Uri("queue:sirius-indexer-something-execution"));
 
                 x.AddBus(provider => Bus.Factory.CreateUsingRabbitMq(cfg =>
                 {

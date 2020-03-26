@@ -7,7 +7,7 @@ namespace Indexer.Worker.MessageConsumers
         public static IServiceCollection AddMessageConsumers(this IServiceCollection services)
         {
             // TODO: Just an example
-            services.AddTransient<ExecuteSomethingConsumer>();
+            //services.AddTransient<ExecuteSomethingConsumer>();
 
             return services;
         }
