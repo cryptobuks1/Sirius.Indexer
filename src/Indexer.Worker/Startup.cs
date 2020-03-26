@@ -44,11 +44,15 @@ namespace Indexer.Worker
 
                     cfg.SetLoggerFactory(provider.GetRequiredService<ILoggerFactory>());
 
-                    // TODO: Define your receive endpoints. It's just an example:
-                    //cfg.ReceiveEndpoint("sirius-indexer-something-execution", e =>
-                    //{
-                    //    e.Consumer(provider.GetRequiredService<ExecuteSomethingConsumer>);
-                    //});
+                    cfg.ReceiveEndpoint("sirius-indexer-publish-all-assets", e =>
+                    {
+                        e.Consumer(provider.GetRequiredService<PublishAllAssetsConsumer>);
+                    });
+
+                    cfg.ReceiveEndpoint("sirius-indexer-publish-asset", e =>
+                    {
+                        e.Consumer(provider.GetRequiredService<PublishAssetConsumer>);
+                    });
                 }));
 
                 services.AddHostedService<BusHost>();
