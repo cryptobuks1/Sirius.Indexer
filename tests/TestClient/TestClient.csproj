@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <AssemblyName>Sirius.Indexer.TestClient</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Indexer.ApiClient\Indexer.ApiClient.csproj" />
+    <ProjectReference Include="..\..\src\Indexer.ApiContract\Indexer.ApiContract.csproj" />
+  </ItemGroup>
+
+</Project>

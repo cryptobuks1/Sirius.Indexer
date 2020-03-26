@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <AssemblyName>Swisschain.Sirius.Indexer.MessagingContract</AssemblyName>
+    <PackageId>Swisschain.Sirius.Indexer.MessagingContract</PackageId>
+    <RootNamespace>Swisschain.Sirius.Indexer.MessagingContract</RootNamespace>
+    <Authors>Swisschain</Authors>
+    <Product>Sirius</Product>
+  </PropertyGroup>
+
+</Project>

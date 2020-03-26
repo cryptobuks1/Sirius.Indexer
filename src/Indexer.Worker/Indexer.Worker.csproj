@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <AssemblyName>Swisschain.Sirius.Indexer.Worker</AssemblyName>
+    <RootNamespace>Indexer.Worker</RootNamespace>
+    <UserSecretsId>14fcbda7-d1ae-4c8e-91bc-c47b1bf428a0</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MassTransit.Extensions.DependencyInjection" Version="6.2.2" />
+    <PackageReference Include="MassTransit.RabbitMQ" Version="6.2.2" />
+    <PackageReference Include="Swisschain.Sdk.Server" Version="2.5.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Indexer.Common\Indexer.Common.csproj" />
+    <ProjectReference Include="..\Indexer.MessagingContract\Indexer.MessagingContract.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Dockerfile">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+</Project>
