@@ -28,7 +28,7 @@ jobs:
     - name: Check worker dir
       run: ls ./publish-worker
     - name: Publish API to Registry
-      uses: SC-Poc/Publish-Docker-Github-Action@master
+      uses: swisschain/Publish-Docker-Github-Action@master
       with:
         name: swisschains/sirius-indexer
         username: ${{ secrets.DOCKER_USERNAME }}
@@ -38,7 +38,7 @@ jobs:
         tag_names: true  
         tag_name_skip: service-    
     - name: Publish worker to Registry
-      uses: SC-Poc/Publish-Docker-Github-Action@master
+      uses: swisschain/Publish-Docker-Github-Action@master
       with:
         name: swisschains/sirius-indexer-worker
         username: ${{ secrets.DOCKER_USERNAME }}

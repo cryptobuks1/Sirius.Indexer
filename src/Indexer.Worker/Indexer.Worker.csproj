@@ -11,7 +11,7 @@
   <ItemGroup>
     <PackageReference Include="MassTransit.Extensions.DependencyInjection" Version="6.2.2" />
     <PackageReference Include="MassTransit.RabbitMQ" Version="6.2.2" />
-    <PackageReference Include="Swisschain.Sdk.Server" Version="2.5.0" />
+    <PackageReference Include="Swisschain.Sdk.Server" Version="3.0.0" />
   </ItemGroup>
 
   <ItemGroup>

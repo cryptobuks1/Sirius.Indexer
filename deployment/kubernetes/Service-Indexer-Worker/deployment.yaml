@@ -62,8 +62,9 @@ spec:
         env:
         - name: SeqUrl
           value: "http://seq.common"
-        - name: RemoteSettingsUrl
-          valueFrom:
-            secretKeyRef:
-              name: indexer
-              key: RemoteSettingsUrl
+        - name: RemoteSettingsUrls__0 
+          value: "http://settings.common.svc.cluster.local/common"
+        - name: RemoteSettingsUrls__1 
+          value: "http://settings.common.svc.cluster.local/sirius/common"
+        - name: RemoteSettingsUrls__2
+          value: "http://settings.common.svc.cluster.local/sirius/indexer"
