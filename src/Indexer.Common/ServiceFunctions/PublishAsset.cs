@@ -2,7 +2,7 @@
 {
     public class PublishAsset
     {
-        public string AssetId { get; set; }
+        public long AssetId { get; set; }
         public string BlockchainId { get; set; }
         public string Symbol { get; set; }
         /// <summary>

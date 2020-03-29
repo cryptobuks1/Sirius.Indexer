@@ -5,7 +5,7 @@ namespace Indexer.WebApi.Models.ServiceFunctions
     public class PublishAssetRequest
     {
         [Required]
-        public string AssetId { get; set; }
+        public long AssetId { get; set; }
         [Required]
         public string BlockchainId { get; set; }
         [Required]

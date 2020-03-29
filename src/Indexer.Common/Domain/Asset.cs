@@ -4,7 +4,7 @@ namespace Indexer.Common.Domain
 {
     public class Asset
     {
-        public Asset(AssetId assetId, BlockId blockchainId, Symbol symbol, Address address, int accuracy)
+        public Asset(long assetId, BlockId blockchainId, Symbol symbol, Address address, int accuracy)
         {
             AssetId = assetId;
             BlockchainId = blockchainId;
@@ -13,7 +13,7 @@ namespace Indexer.Common.Domain
             Accuracy = accuracy;
         }
 
-        public AssetId AssetId { get; }
+        public long AssetId { get; }
         public BlockId BlockchainId { get; }
         public Symbol Symbol { get; }
         public Address Address { get; }

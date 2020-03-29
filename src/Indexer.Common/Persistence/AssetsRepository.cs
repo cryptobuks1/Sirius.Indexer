@@ -15,17 +15,17 @@ namespace Indexer.Common.Persistence
         {
             _store = new Dictionary<AssetId, Asset>
             {
-                ["100000"] = new Asset("100000",
+                ["100000"] = new Asset(100000,
                     "bitcoin-regtest",
                     "BTC",
                     null,
                     8),
-                ["100001"] = new Asset("100001",
+                ["100001"] = new Asset(100001,
                     "ethereum-ropsten",
                     "ETH",
                     null,
                     18),
-                ["100002"] = new Asset("100002",
+                ["100002"] = new Asset(100002,
                     "ethereum-ropsten",
                     "TST",
                     "0x722dd3f80bac40c951b51bdd28dd19d435762180",
