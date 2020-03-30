@@ -12,7 +12,7 @@ namespace Swisschain.Sirius.Indexer.MessagingContract
         public int TransactionNumber { get; set; }
         public IReadOnlyCollection<BalanceUpdate> BalanceUpdates { get; set; }
         public string ErrorMessage { get; set; }
-        public TransactionErrorCode ErrorCode { get; set; }
+        public TransactionErrorCode? ErrorCode { get; set; }
         public IReadOnlyCollection<Fee> Fees { get; set; }
     }
 }
