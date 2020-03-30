@@ -1,0 +1,18 @@
+﻿using System.Collections.Generic;
+using Swisschain.Sirius.Sdk.Primitives;
+
+namespace Swisschain.Sirius.Indexer.MessagingContract
+{
+    public class TransactionDetected
+    {
+        public string BlockchainId { get; set; }
+        public string BlockId { get; set; }
+        public long BlockNumber { get; set; }
+        public string TransactionId { get; set; }
+        public int TransactionNumber { get; set; }
+        public IReadOnlyCollection<BalanceUpdate> BalanceUpdates { get; set; }
+        public string ErrorMessage { get; set; }
+        public TransactionErrorCode? ErrorCode { get; set; }
+        public IReadOnlyCollection<Fee> Fees { get; set; }
+    }
+}
