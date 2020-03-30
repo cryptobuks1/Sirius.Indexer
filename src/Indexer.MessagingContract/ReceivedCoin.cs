@@ -3,6 +3,6 @@
     public class ReceivedCoin
     {
         public int CoinNumber { get; set; }
-        public string Value { get; set; }
+        public decimal Value { get; set; }
     }
 }
