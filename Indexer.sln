@@ -11,7 +11,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		.editorconfig = .editorconfig
 		.gitattributes = .gitattributes
 		.gitignore = .gitignore
-		appsettings.format.json = appsettings.format.json
 		LICENSE = LICENSE
 	EndProjectSection
 EndProject
@@ -47,9 +46,34 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Documentation", "Documentat
 		README.md = README.md
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Kubernetes", "Kubernetes", "{EE2AA4BB-1E67-4074-B371-2C84F6469A72}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Settings", "Settings", "{AD4D20EE-C574-4F47-BD41-ECE62C1B27C0}"
+	ProjectSection(SolutionItems) = preProject
+		deployment\settings\common.json = deployment\settings\common.json
+	EndProjectSection
+EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Deployment", "Deployment", "{AD37D2C5-7CE6-41CD-9515-B65E5A46B96C}"
 	ProjectSection(SolutionItems) = preProject
-		deployment\kubernetes\readme.md = deployment\kubernetes\readme.md
+		deployment\readme.md = deployment\readme.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Service-Indexer", "Service-Indexer", "{E892D1F5-DC4C-4D13-8B62-5D182B2A676C}"
+	ProjectSection(SolutionItems) = preProject
+		deployment\kubernetes\Service-Indexer\deployment.yaml = deployment\kubernetes\Service-Indexer\deployment.yaml
+		deployment\kubernetes\Service-Indexer\service.yaml = deployment\kubernetes\Service-Indexer\service.yaml
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Service-Indexer-Worker", "Service-Indexer-Worker", "{C58C8AEC-FB40-42A5-9E74-98BB95045A24}"
+	ProjectSection(SolutionItems) = preProject
+		deployment\kubernetes\Service-Indexer-Worker\deployment.yaml = deployment\kubernetes\Service-Indexer-Worker\deployment.yaml
+		deployment\kubernetes\Service-Indexer-Worker\service.yaml = deployment\kubernetes\Service-Indexer-Worker\service.yaml
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "product-name", "product-name", "{1A5AA860-E0C0-4BB4-91DD-3AF1A7ED74E2}"
+	ProjectSection(SolutionItems) = preProject
+		deployment\settings\product-name\common.json = deployment\settings\product-name\common.json
+		deployment\settings\product-name\service-name.json = deployment\settings\product-name\service-name.json
 	EndProjectSection
 EndProject
 Global
@@ -103,6 +127,11 @@ Global
 		{54F26A6C-5B76-40E5-8E9C-2FA0551BC226} = {85EB7950-61F2-4B83-9F3E-F74ECCE0D3C8}
 		{DB08FC9E-A784-4D4D-932C-DA320E3C5091} = {85EB7950-61F2-4B83-9F3E-F74ECCE0D3C8}
 		{AD37D2C5-7CE6-41CD-9515-B65E5A46B96C} = {DB08FC9E-A784-4D4D-932C-DA320E3C5091}
+		{EE2AA4BB-1E67-4074-B371-2C84F6469A72} = {AD37D2C5-7CE6-41CD-9515-B65E5A46B96C}
+		{AD4D20EE-C574-4F47-BD41-ECE62C1B27C0} = {AD37D2C5-7CE6-41CD-9515-B65E5A46B96C}
+		{E892D1F5-DC4C-4D13-8B62-5D182B2A676C} = {EE2AA4BB-1E67-4074-B371-2C84F6469A72}
+		{C58C8AEC-FB40-42A5-9E74-98BB95045A24} = {EE2AA4BB-1E67-4074-B371-2C84F6469A72}
+		{1A5AA860-E0C0-4BB4-91DD-3AF1A7ED74E2} = {AD4D20EE-C574-4F47-BD41-ECE62C1B27C0}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {196C39E2-2F2E-46AB-BA2A-0D2E7E171B5A}

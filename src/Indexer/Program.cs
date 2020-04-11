@@ -21,10 +21,7 @@ namespace Indexer
 
             var remoteSettingsConfig = ApplicationEnvironment.Config.Get<RemoteSettingsConfig>();
 
-            using var loggerFactory = LogConfigurator.Configure(
-                "Sirius", 
-                ApplicationEnvironment.Config["SeqUrl"],
-                remoteSettingsConfig.RemoteSettingsUrls ?? Array.Empty<string>());
+            using var loggerFactory = LogConfigurator.Configure("Sirius", remoteSettingsConfig.RemoteSettingsUrls ?? Array.Empty<string>());
             
             var logger = loggerFactory.CreateLogger<Program>();
 

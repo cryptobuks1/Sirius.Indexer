@@ -61,8 +61,6 @@ spec:
             memory: 128Mi 
             cpu: 500m 
         env:
-        - name: SeqUrl
-          value: "http://seq.common"         
         - name: RemoteSettingsUrls__0 
           value: "http://settings.common.svc.cluster.local/common"
         - name: RemoteSettingsUrls__1 
