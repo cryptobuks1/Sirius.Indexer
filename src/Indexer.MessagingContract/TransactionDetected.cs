@@ -10,9 +10,20 @@ namespace Swisschain.Sirius.Indexer.MessagingContract
         public long BlockNumber { get; set; }
         public string TransactionId { get; set; }
         public int TransactionNumber { get; set; }
-        public IReadOnlyCollection<BalanceUpdate> BalanceUpdates { get; set; }
-        public string ErrorMessage { get; set; }
-        public TransactionErrorCode? ErrorCode { get; set; }
-        public IReadOnlyCollection<Fee> Fees { get; set; }
+        
+        /// <summary>
+        /// Optional
+        /// </summary>
+        public long? OperationId { get; set; }
+        public IReadOnlyCollection<TransferSource> Sources { get; set; }
+        public IReadOnlyCollection<TransferDestination> Destinations { get; set; }
+        
+        /// <summary>
+        /// Optional
+        /// </summary>
+        public TransactionError Error { get; set; }
+        public IReadOnlyCollection<Unit> Fees { get; set; }
+
+        
     }
 }

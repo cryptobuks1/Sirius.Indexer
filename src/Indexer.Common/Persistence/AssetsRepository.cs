@@ -3,17 +3,16 @@ using System.Collections.Immutable;
 using System.Linq;
 using System.Threading.Tasks;
 using Indexer.Common.Domain;
-using Swisschain.Sirius.Sdk.Primitives;
 
 namespace Indexer.Common.Persistence
 {
     internal class AssetsRepository : IAssetsRepository
     {
-        private readonly ImmutableDictionary<AssetId, Asset> _store;
+        private readonly ImmutableDictionary<string, Asset> _store;
 
         public AssetsRepository()
         {
-            _store = new Dictionary<AssetId, Asset>
+            _store = new Dictionary<string, Asset>
             {
                 ["100000"] = new Asset(100000,
                     "bitcoin-regtest",

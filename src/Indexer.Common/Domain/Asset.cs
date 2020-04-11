@@ -1,10 +1,8 @@
-﻿using Swisschain.Sirius.Sdk.Primitives;
-
-namespace Indexer.Common.Domain
+﻿namespace Indexer.Common.Domain
 {
     public class Asset
     {
-        public Asset(long assetId, BlockId blockchainId, Symbol symbol, Address address, int accuracy)
+        public Asset(long assetId, string blockchainId, string symbol, string address, int accuracy)
         {
             AssetId = assetId;
             BlockchainId = blockchainId;
@@ -14,9 +12,9 @@ namespace Indexer.Common.Domain
         }
 
         public long AssetId { get; }
-        public BlockId BlockchainId { get; }
-        public Symbol Symbol { get; }
-        public Address Address { get; }
+        public string BlockchainId { get; }
+        public string Symbol { get; }
+        public string Address { get; }
         public int Accuracy { get; }
     }
 }
