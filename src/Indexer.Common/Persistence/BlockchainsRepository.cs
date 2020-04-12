@@ -54,5 +54,13 @@ namespace Indexer.Common.Persistence
                 await context.SaveChangesAsync();
             }
         }
+
+        public async Task<Blockchain> GetAsync(string blockchainId)
+        {
+            await using var context = new DatabaseContext(_dbContextOptionsBuilder.Options);
+
+            var result = await context.Blockchains.FirstAsync(x => x.BlockchainId == blockchainId);
+            return result;
+        }
     }
 }

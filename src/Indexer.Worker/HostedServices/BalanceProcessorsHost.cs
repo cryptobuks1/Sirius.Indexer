@@ -44,7 +44,7 @@ namespace Indexer.Worker.HostedServices
         {
             foreach (var blockchain in await _blockchainsRepository.GetAllAsync())
             {
-                var blockchainApiClient = await _blockchainApiClientProvider.Get(blockchain.BlockchainId);
+                var blockchainApiClient = await _blockchainApiClientProvider.GetAsync(blockchain.BlockchainId);
                 var blockchainAssetsDict = await blockchainApiClient.GetAllAssetsAsync(100);
 
                 var balanceProcessor = new BalanceProcessor(

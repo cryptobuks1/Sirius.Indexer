@@ -8,5 +8,6 @@ namespace Indexer.Common.Persistence
     {
         Task<IReadOnlyCollection<Blockchain>> GetAllAsync(string cursor, int limit);
         Task AddOrReplaceAsync(Blockchain blockchain);
+        Task<Blockchain> GetAsync(string blockchainId);
     }
 }

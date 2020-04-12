@@ -26,7 +26,7 @@ namespace Indexer.Common.Bilv1.DomainServices
         {
             var networkAssets = _assetService.GetAssetsFor(blockchainId);
 
-            var blockchainApiClient = await _blockchainApiClientProvider.Get(blockchainId);
+            var blockchainApiClient = await _blockchainApiClientProvider.GetAsync(blockchainId);
             await blockchainApiClient.StartBalanceObservationAsync(walletAddress);
 
             foreach (var networkAsset in networkAssets)

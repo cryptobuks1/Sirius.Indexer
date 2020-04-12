@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Collections.Concurrent;
 using System.Threading.Tasks;
 using Indexer.Common.Persistence;
 using Lykke.Service.BlockchainApi.Client;
@@ -10,34 +8,31 @@ namespace Indexer.Common.Bilv1.DomainServices
 {
     public class BlockchainApiClientProvider
     {
-        private readonly Lazy<Task<IDictionary<string, IBlockchainApiClient>>> _clients;
+        private readonly ILoggerFactory _loggerFactory;
+        private readonly IBlockchainsRepository _blockchainsRepository;
+        private readonly ConcurrentDictionary<string, IBlockchainApiClient> _clients;
 
-        public BlockchainApiClientProvider(
-            ILoggerFactory loggerFactory,
-            IBlockchainsRepository blockchainsRepository)
+        public BlockchainApiClientProvider(ILoggerFactory loggerFactory, IBlockchainsRepository blockchainsRepository)
         {
-            _clients = new Lazy<Task<IDictionary<string, IBlockchainApiClient>>>(
-                () => GetAllBlockchains(loggerFactory, blockchainsRepository));
+            _loggerFactory = loggerFactory;
+            _blockchainsRepository = blockchainsRepository;
+            _clients = new ConcurrentDictionary<string, IBlockchainApiClient>();
         }
 
-        public async Task<IBlockchainApiClient> Get(string blockchainType)
+        public async Task<IBlockchainApiClient> GetAsync(string blockchainId)
         {
-            var clients = await _clients.Value;
-            if (!clients.TryGetValue(blockchainType, out var client))
+            if (_clients.TryGetValue(blockchainId, out var client))
             {
-                throw new InvalidOperationException($"Blockchain API client [{blockchainType}] is not found");
+                return client;
             }
 
-            return client;
-        }
+            var blockchain = await _blockchainsRepository.GetAsync(blockchainId);
 
-        private static async Task<IDictionary<string, IBlockchainApiClient>> GetAllBlockchains(ILoggerFactory loggerFactory,
-            IBlockchainsRepository blockchainsRepository)
-        {
-            return (await blockchainsRepository.GetAllAsync())
-                .ToDictionary(
-                    x => x.BlockchainId,
-                    x => (IBlockchainApiClient)new BlockchainApiClient(loggerFactory, x.IntegrationUrl));
+            client = new BlockchainApiClient(_loggerFactory, blockchain.IntegrationUrl);
+
+            _clients.TryAdd(blockchainId, client);
+
+            return client;
         }
     }
 }
