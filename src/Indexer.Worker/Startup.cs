@@ -1,5 +1,8 @@
 ﻿using System;
 using GreenPipes;
+using Indexer.Bilv1.Repositories;
+using Indexer.Bilv1.Repositories.DbContexts;
+using Indexer.Common.Bilv1.DomainServices;
 using MassTransit;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -7,7 +10,9 @@ using Microsoft.Extensions.Logging;
 using Indexer.Common.Configuration;
 using Indexer.Common.HostedServices;
 using Indexer.Common.Persistence;
+using Indexer.Worker.HostedServices;
 using Indexer.Worker.MessageConsumers;
+using Microsoft.EntityFrameworkCore;
 using Swisschain.Sdk.Server.Common;
 
 namespace Indexer.Worker
@@ -25,6 +30,26 @@ namespace Indexer.Worker
             services.AddHttpClient();
             services.AddPersistence(Config.Db.ConnectionString);
             services.AddMessageConsumers();
+
+            services.AddBilV1Repositories();
+            services.AddBilV1Services();
+            services.AddHostedService<MigrationHost>();
+            services.AddHostedService<BalanceProcessorsHost>();
+
+            services.AddMessageConsumers();
+
+            services.AddSingleton<DbContextOptionsBuilder<IndexerBilV1Context>>(x =>
+            {
+                var optionsBuilder = new DbContextOptionsBuilder<IndexerBilV1Context>();
+                optionsBuilder.UseNpgsql(this.Config.Db.ConnectionString,
+                    builder =>
+                        builder.MigrationsHistoryTable(
+                            PostgresBilV1RepositoryConfiguration.MigrationHistoryTable,
+                            PostgresBilV1RepositoryConfiguration.SchemaName));
+
+                return optionsBuilder;
+            });
+
 
             services.AddMassTransit(x =>
             {
@@ -52,6 +77,16 @@ namespace Indexer.Worker
                     cfg.ReceiveEndpoint("sirius-indexer-publish-asset", e =>
                     {
                         e.Consumer(provider.GetRequiredService<PublishAssetConsumer>);
+                    });
+                    
+                    cfg.ReceiveEndpoint("sirius-indexer-blockchain-updates", e =>
+                    {
+                        e.Consumer(provider.GetRequiredService<BlockchainUpdatesConsumer>);
+                    });
+
+                    cfg.ReceiveEndpoint("sirius-indexer-wallet-added", e =>
+                    {
+                        e.Consumer(provider.GetRequiredService<WalletAddedConsumer>);
                     });
                 }));
 
