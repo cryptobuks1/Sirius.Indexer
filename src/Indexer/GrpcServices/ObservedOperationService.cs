@@ -28,7 +28,7 @@ namespace Indexer.GrpcServices
             if (!outbox.IsStored)
             {
                 var observedOperation = ObservedOperation.Create(
-                    request.OperationsId,
+                    request.OperationId,
                     request.BlockchainId,
                     request.TransactionId);
 

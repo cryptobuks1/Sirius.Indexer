@@ -27,7 +27,7 @@ namespace TestClient
                     await client.ObservedOperations.AddObservedOperationAsync(new AddObservedOperationRequest()
                     {
                         BlockchainId = "bitcoin-regtest",
-                        OperationsId = 1,
+                        OperationId = 1,
                         RequestId = "Fake-"+ guid,
                         TransactionId = guid
                     });
