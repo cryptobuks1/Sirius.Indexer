@@ -7,5 +7,6 @@ namespace Indexer.Common.Persistence
     public interface IAssetsRepository
     {
         Task<IReadOnlyCollection<Asset>> GetAllAsync();
+        Task<Asset> GetAsync(long assetId);
     }
 }

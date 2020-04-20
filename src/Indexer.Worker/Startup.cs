@@ -31,8 +31,10 @@ namespace Indexer.Worker
             services.AddPersistence(Config.Db.ConnectionString);
             services.AddMessageConsumers();
 
+
             services.AddBilV1Repositories();
             services.AddBilV1Services();
+            services.AddBilV1();
             services.AddHostedService<MigrationHost>();
             services.AddHostedService<BalanceProcessorsHost>();
 
