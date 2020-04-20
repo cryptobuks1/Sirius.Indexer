@@ -22,6 +22,16 @@ namespace TestClient
                     var sw = new Stopwatch();
                     sw.Start();
                     var result = await client.Monitoring.IsAliveAsync(new IsAliveRequest());
+
+                    var guid = Guid.NewGuid().ToString();
+                    await client.ObservedOperations.AddObservedOperationAsync(new AddObservedOperationRequest()
+                    {
+                        BlockchainId = "bitcoin-regtest",
+                        OperationId = 1,
+                        RequestId = "Fake-"+ guid,
+                        TransactionId = guid
+                    });
+
                     sw.Stop();
                     Console.WriteLine($"{result.Name}  {sw.ElapsedMilliseconds} ms");
                 }

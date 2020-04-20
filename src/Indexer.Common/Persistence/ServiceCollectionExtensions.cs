@@ -1,4 +1,5 @@
 ﻿using Indexer.Common.Persistence.DbContexts;
+using Indexer.Common.Persistence.ObservedOperations;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -15,6 +16,7 @@ namespace Indexer.Common.Persistence
         {
             services.AddSingleton<IAssetsRepository, AssetsRepository>();
             services.AddSingleton<IBlockchainsRepository, BlockchainsRepository>();
+            services.AddSingleton<IObservedOperationsRepository, ObservedOperationsRepository>();
 
             services.AddSingleton<DbContextOptionsBuilder<DatabaseContext>>(x =>
             {
