@@ -8,8 +8,11 @@ namespace Swisschain.Sirius.Indexer.ApiClient
         public IndexerClient(string serverGrpcUrl) : base(serverGrpcUrl)
         {
             Monitoring = new Monitoring.MonitoringClient(Channel);
+            ObservedOperations = new ObservedOperations.ObservedOperationsClient(Channel);
         }
 
         public Monitoring.MonitoringClient Monitoring { get; }
+
+        public ObservedOperations.ObservedOperationsClient ObservedOperations { get; }
     }
 }

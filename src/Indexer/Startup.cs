@@ -10,9 +10,14 @@ using Microsoft.Extensions.Logging;
 using Indexer.Common.Configuration;
 using Indexer.Common.HostedServices;
 using Indexer.Common.Persistence;
+using Indexer.Common.Persistence.DbContexts;
 using Indexer.Common.ServiceFunctions;
 using Indexer.GrpcServices;
+using Microsoft.EntityFrameworkCore;
 using Swashbuckle.AspNetCore.SwaggerGen;
+using Swisschain.Extensions.Idempotency;
+using Swisschain.Extensions.Idempotency.MassTransit;
+using Swisschain.Extensions.Idempotency.EfCore;
 using Swisschain.Sdk.Server.Common;
 
 namespace Indexer
@@ -28,6 +33,17 @@ namespace Indexer
             base.ConfigureServicesExt(services);
 
             services.AddPersistence(Config.Db.ConnectionString);
+
+            services.AddOutbox(c =>
+            {
+                c.DispatchWithMassTransit();
+                c.PersistWithEfCore(s =>
+                {
+                    var optionsBuilder = s.GetRequiredService<DbContextOptionsBuilder<DatabaseContext>>();
+
+                    return new DatabaseContext(optionsBuilder.Options);
+                });
+            });
 
             services.AddMassTransit(x =>
             {
@@ -55,6 +71,7 @@ namespace Indexer
             base.RegisterEndpoints(endpoints);
 
             endpoints.MapGrpcService<MonitoringService>();
+            endpoints.MapGrpcService<ObservedOperationService>();
         }
     }
 }
