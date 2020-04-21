@@ -10,6 +10,7 @@ using Microsoft.Extensions.Logging;
 using Indexer.Common.Configuration;
 using Indexer.Common.HostedServices;
 using Indexer.Common.Persistence;
+using Indexer.Worker.BilV1;
 using Indexer.Worker.HostedServices;
 using Indexer.Worker.MessageConsumers;
 using Microsoft.EntityFrameworkCore;
@@ -31,8 +32,10 @@ namespace Indexer.Worker
             services.AddPersistence(Config.Db.ConnectionString);
             services.AddMessageConsumers();
 
+
             services.AddBilV1Repositories();
             services.AddBilV1Services();
+            services.AddBilV1();
             services.AddHostedService<MigrationHost>();
             services.AddHostedService<BalanceProcessorsHost>();
 
@@ -92,6 +95,8 @@ namespace Indexer.Worker
 
                 services.AddHostedService<BusHost>();
             });
+
+            services.AddHostedService<BilV1TransfersMonitoringHost>();
         }
     }
 }

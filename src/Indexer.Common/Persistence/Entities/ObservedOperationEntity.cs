@@ -1,4 +1,7 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using Swisschain.Sirius.Sdk.Primitives;
 
 namespace Indexer.Common.Persistence.Entities
 {
@@ -12,5 +15,16 @@ namespace Indexer.Common.Persistence.Entities
         public string TransactionId { get; set; }
 
         public bool IsCompleted { get; set; }
+
+        public Guid BilV1OperationId { get; set; }
+
+        public long AssetId { get; set; }
+
+        public IReadOnlyCollection<Unit> Fees { get; set; }
+
+        public string DestinationAddress { get; set; }
+
+        public decimal OperationAmount { get; set; }
+
     }
 }

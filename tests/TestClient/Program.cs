@@ -23,13 +23,19 @@ namespace TestClient
                     sw.Start();
                     var result = await client.Monitoring.IsAliveAsync(new IsAliveRequest());
 
+                    var guidv1 = Guid.NewGuid();
                     var guid = Guid.NewGuid().ToString();
                     await client.ObservedOperations.AddObservedOperationAsync(new AddObservedOperationRequest()
                     {
                         BlockchainId = "bitcoin-regtest",
                         OperationId = 1,
                         RequestId = "Fake-"+ guid,
-                        TransactionId = guid
+                        TransactionId = guid,
+                        Fees = {},
+                        Bilv1OperationId = guidv1.ToString(),
+                        OperationAmount = 1.0m,
+                        DestinationAddress = "0x8BB7d9A81Ff3e08F59A83CE00Ecd45E079e80261",
+                        AssetId = 100_000,
                     });
 
                     sw.Stop();

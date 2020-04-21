@@ -1,0 +1,14 @@
+﻿syntax = "proto3";
+
+option csharp_namespace = "Swisschain.Sirius.Indexer.ApiContract.Common";
+
+package common;
+
+message BigDecimal {
+    string value = 1;
+}
+
+message Unit {
+    int64 assetId = 1;
+    BigDecimal amount = 2;
+}
