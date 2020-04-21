@@ -109,7 +109,7 @@ namespace Indexer.Common.Domain.ObservedOperations
                 BlockchainId = this.BlockchainId,
                 BlockId = "some block",
                 BlockNumber = blockNumber,
-                Fees = new List<Unit>(),
+                Fees = this.Fees,
                 TransactionId = this.TransactionId,
                 TransactionNumber = 0,
                 Error = null,
@@ -132,7 +132,10 @@ namespace Indexer.Common.Domain.ObservedOperations
         public void Fail(long transactionBlock, Unit[] fees, TransactionError transactionError)
         {
             if (fees != null && fees.Any())
+            {
                 Fees.AddRange(fees);
+            }
+                
 
             IsCompleted = true;
 
@@ -141,7 +144,7 @@ namespace Indexer.Common.Domain.ObservedOperations
                 BlockchainId = this.BlockchainId,
                 BlockId = "some block",
                 BlockNumber = transactionBlock,
-                Fees = new List<Unit>(),
+                Fees = this.Fees,
                 TransactionId = this.TransactionId,
                 TransactionNumber = 0,
                 Error = transactionError,

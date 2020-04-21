@@ -38,7 +38,7 @@ namespace Indexer.Common.Persistence.ObservedOperations
             await using var context = new DatabaseContext(_dbContextOptionsBuilder.Options);
 
             var query = context.ObservedOperations.Where(x =>
-                x.IsCompleted).Select(x => x);
+                !x.IsCompleted).Select(x => x);
 
             if (cursor != null)
             {

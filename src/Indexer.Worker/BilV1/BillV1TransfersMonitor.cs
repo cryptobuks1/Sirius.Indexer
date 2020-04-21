@@ -87,6 +87,7 @@ namespace Indexer.Worker.BilV1
                 //    await apiClient.ForgetBroadcastedTransactionsAsync(operation.BilV1OperationId);
                 //}
 
+                await Task.Delay(25_000);
             } while (true);
         }
 
@@ -115,7 +116,7 @@ namespace Indexer.Worker.BilV1
 
                     if (transaction == null)
                     {
-                        //operation.Complete(null);
+                        operation.Complete(0, null);
 
                         updatedOperations.Add(operation);
 
