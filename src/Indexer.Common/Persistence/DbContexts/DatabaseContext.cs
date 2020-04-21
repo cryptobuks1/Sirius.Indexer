@@ -1,8 +1,11 @@
-﻿using Indexer.Common.Domain.ObservedOperations;
+﻿using System.Collections.Generic;
+using Indexer.Common.Domain.ObservedOperations;
 using Indexer.Common.Persistence.Entities;
 using Indexer.Common.ReadModel.Blockchains;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 using Swisschain.Extensions.Idempotency.EfCore;
+using Swisschain.Sirius.Sdk.Primitives;
 
 namespace Indexer.Common.Persistence.DbContexts
 {
@@ -48,6 +51,19 @@ namespace Indexer.Common.Persistence.DbContexts
                 .HasIndex(x => x.IsCompleted)
                 .IsUnique(false)
                 .HasName("IX_ObservedOperations_IsCompleted");
+
+            var jsonSerializingSettings = new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore };
+
+            #region Conversions
+
+            modelBuilder.Entity<ObservedOperationEntity>().Property(e => e.Fees).HasConversion(
+                v => JsonConvert.SerializeObject(v,
+                    jsonSerializingSettings),
+                v =>
+                    JsonConvert.DeserializeObject<IReadOnlyCollection<Unit>>(v,
+                        jsonSerializingSettings));
+
+            #endregion
         }
 
         private static void BuildBlockchain(ModelBuilder modelBuilder)

@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 using Grpc.Core;
 using Indexer.Common.Domain.ObservedOperations;
 using Indexer.Common.Persistence.ObservedOperations;
@@ -27,10 +28,19 @@ namespace Indexer.GrpcServices
 
             if (!outbox.IsStored)
             {
+                if (!Guid.TryParse(request.Bilv1OperationId, out var bilV1OperationId))
+                {
+                    throw new ArgumentException(nameof(request.Bilv1OperationId));
+                }
+
                 var observedOperation = ObservedOperation.Create(
                     request.OperationId,
                     request.BlockchainId,
-                    request.TransactionId);
+                    request.TransactionId,
+                    request.AssetId,
+                    bilV1OperationId,
+                    request.DestinationAddress,
+                    request.OperationAmount);
 
                 await _observedOperationsRepository.AddOrIgnore(observedOperation);
 

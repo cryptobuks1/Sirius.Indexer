@@ -8,23 +8,23 @@ namespace Indexer.Common.Persistence
 {
     internal class AssetsRepository : IAssetsRepository
     {
-        private readonly ImmutableDictionary<string, Asset> _store;
+        private readonly ImmutableDictionary<long, Asset> _store;
 
         public AssetsRepository()
         {
-            _store = new Dictionary<string, Asset>
+            _store = new Dictionary<long, Asset>
             {
-                ["100000"] = new Asset(100000,
+                [100000] = new Asset(100000,
                     "bitcoin-regtest",
                     "BTC",
                     null,
                     8),
-                ["100001"] = new Asset(100001,
+                [100001] = new Asset(100001,
                     "ethereum-ropsten",
                     "ETH",
                     null,
                     18),
-                ["100002"] = new Asset(100002,
+                [100002] = new Asset(100002,
                     "ethereum-ropsten",
                     "TST",
                     "0x722dd3f80bac40c951b51bdd28dd19d435762180",
@@ -35,6 +35,11 @@ namespace Indexer.Common.Persistence
         public Task<IReadOnlyCollection<Asset>> GetAllAsync()
         {
             return Task.FromResult<IReadOnlyCollection<Asset>>(_store.Values.ToArray());
+        }
+
+        public Task<Asset> GetAsync(long assetId)
+        {
+            return Task.FromResult(_store[assetId]);
         }
     }
 }

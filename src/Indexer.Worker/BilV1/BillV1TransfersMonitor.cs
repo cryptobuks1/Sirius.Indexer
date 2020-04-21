@@ -3,13 +3,16 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Indexer.Common.Domain.ObservedOperations;
 using Indexer.Common.Persistence;
+using Indexer.Common.Persistence.ObservedOperations;
 using Lykke.Service.BlockchainApi.Client.Models;
 using Lykke.Service.BlockchainApi.Contract;
 using Lykke.Service.BlockchainApi.Contract.Assets;
 using Lykke.Service.BlockchainApi.Contract.Transactions;
 using MassTransit;
 using Microsoft.Extensions.Logging;
+using Swisschain.Sirius.Indexer.MessagingContract;
 using Swisschain.Sirius.Sdk.Primitives;
 
 namespace Indexer.Worker.BilV1
@@ -18,19 +21,19 @@ namespace Indexer.Worker.BilV1
     {
         private readonly ILogger<BillV1TransfersMonitor> _logger;
         private readonly BilV1ApiClientProvider _apiClientProvider;
-        private readonly ITransfersRepository _transfersRepository;
+        private readonly IObservedOperationsRepository _observedOperationsRepository;
         private readonly IAssetsRepository _assetsRepository;
         private readonly IPublishEndpoint _publishEndpoint;
 
         public BillV1TransfersMonitor(ILogger<BillV1TransfersMonitor> logger,
             BilV1ApiClientProvider apiClientProvider,
-            ITransfersRepository transfersRepository,
+            IObservedOperationsRepository observedOperationsRepository,
             IAssetsRepository assetsRepository,
             IPublishEndpoint publishEndpoint)
         {
             _logger = logger;
             _apiClientProvider = apiClientProvider;
-            _transfersRepository = transfersRepository;
+            _observedOperationsRepository = observedOperationsRepository;
             _assetsRepository = assetsRepository;
             _publishEndpoint = publishEndpoint;
         }
@@ -41,60 +44,67 @@ namespace Indexer.Worker.BilV1
 
             do
             {
-                var transfersPage = await _transfersRepository.GetExecutingAsync(cursor, 1000);
+                var observedOperations = await _observedOperationsRepository.GetExecutingAsync(cursor, 1000);
                 
-                if (!transfersPage.Any())
+                if (!observedOperations.Any())
                 {
                     break;
                 }
 
-                cursor = transfersPage.Last().Id;
+                cursor = observedOperations.Last().OperationId;
 
                 var tasks = new List<Task>();
-                var updatedTransfers = new ConcurrentBag<Transfer>();
+                var updatedOperations = new ConcurrentBag<ObservedOperation>();
 
-                foreach (var blockchainTransfers in transfersPage.Where(x => x.IsSent).GroupBy(x => x.BlockchainId))
+                foreach (var blockchainTransfers in observedOperations
+                    .Where(x => !x.IsCompleted)
+                    .GroupBy(x => x.BlockchainId))
                 {
-                    var task = Task.Factory.StartNew(() => ProcessBlockchainTransfers(blockchainTransfers, updatedTransfers).GetAwaiter().GetResult());
+                    var task = Task.Factory
+                        .StartNew(() => ProcessBlockchainTransfers(blockchainTransfers, updatedOperations).GetAwaiter().GetResult());
 
                     tasks.Add(task);
                 }
 
                 await Task.WhenAll(tasks);
 
-                await _transfersRepository.UpdateBatchAsync(updatedTransfers);
+                await _observedOperationsRepository.UpdateBatchAsync(updatedOperations);
 
                 // TODO: For idempotency we need outbox here
-                foreach (var transfer in updatedTransfers)
+                foreach (var operation in updatedOperations)
                 {
-                    foreach (var evt in transfer.Events)
+                    foreach (var evt in operation.Events)
                     {
                         await _publishEndpoint.Publish(evt);
                     }
                 }
 
-                foreach (var transfer in updatedTransfers)
-                {
-                    var apiClient = await _apiClientProvider.GetAsync(transfer.BlockchainId);
+                //TODO: Remove in V2 
+                //foreach (var operation in updatedOperations)
+                //{
+                //    var apiClient = await _apiClientProvider.GetAsync(operation.BlockchainId);
 
-                    await apiClient.ForgetBroadcastedTransactionsAsync(transfer.BilV1OperationId);
-                }
+                //    await apiClient.ForgetBroadcastedTransactionsAsync(operation.BilV1OperationId);
+                //}
 
             } while (true);
         }
 
-        private async Task ProcessBlockchainTransfers(IGrouping<string, Transfer> blockchainTransfers, ConcurrentBag<Transfer> updatedTransfers)
+        private async Task ProcessBlockchainTransfers(
+            IGrouping<string, 
+                ObservedOperation> observedOperations, 
+            ConcurrentBag<ObservedOperation> updatedOperations)
         {
-            var apiClient = await _apiClientProvider.GetAsync(blockchainTransfers.Key);
+            var apiClient = await _apiClientProvider.GetAsync(observedOperations.Key);
 
             try
             {
-                foreach (var transfer in blockchainTransfers)
+                foreach (var operation in observedOperations)
                 {
                     // TODO: Add caching decorator for the asset repo
-                    var asset = await _assetsRepository.GetAsync(transfer.AssetId);
+                    var asset = await _assetsRepository.GetAsync(operation.AssetId);
 
-                    var transaction = await apiClient.GetBroadcastedSingleTransactionAsync(transfer.BilV1OperationId,
+                    var transaction = await apiClient.GetBroadcastedSingleTransactionAsync(operation.BilV1OperationId,
                         new BlockchainAsset(new AssetContract
                         {
                             AssetId = asset.Symbol,
@@ -105,13 +115,13 @@ namespace Indexer.Worker.BilV1
 
                     if (transaction == null)
                     {
-                        transfer.Complete(null);
+                        //operation.Complete(null);
 
-                        updatedTransfers.Add(transfer);
+                        updatedOperations.Add(operation);
 
                         _logger.LogWarning(
                             "BIL v1 API has returned no transaction. Assuming, it was cleaned already. Transfer has been completed {@context}",
-                            new {Transfer = transfer});
+                            new {Transfer = operation});
                         
                         continue;
                     }
@@ -122,30 +132,33 @@ namespace Indexer.Worker.BilV1
                             continue;
 
                         case BroadcastedTransactionState.Completed:
-                            transfer.Complete(new[] {new Unit(transfer.AssetId, transaction.Fee)});
-                            updatedTransfers.Add(transfer);
+                            operation.Complete(transaction.Block, new[] {new Unit(operation.AssetId, transaction.Fee)});
+                            updatedOperations.Add(operation);
 
-                            _logger.LogInformation("Transfer has been completed {@context}", new {Transfer = transfer});
+                            _logger.LogInformation("Transfer has been completed {@context}", new {Transfer = operation});
                             
                             break;
 
                         case BroadcastedTransactionState.Failed:
-                            transfer.Fail(
-                                new[] {new Unit(transfer.AssetId, transaction.Fee)},
-                                new OperationError(
-                                    transaction.Error,
-                                    transaction.ErrorCode switch
+                            operation.Fail(
+                                transaction.Block,
+                                new[] {new Unit(operation.AssetId, transaction.Fee)},
+                                new TransactionError()
+                                {
+                                    Code = transaction.ErrorCode switch
                                     {
-                                        BlockchainErrorCode.Unknown => OperationErrorCode.TechnicalProblem,
-                                        BlockchainErrorCode.AmountIsTooSmall => OperationErrorCode.AmountIsTooSmall,
-                                        BlockchainErrorCode.NotEnoughBalance => OperationErrorCode.NotEnoughBalance,
-                                        BlockchainErrorCode.BuildingShouldBeRepeated => OperationErrorCode.TechnicalProblem,
-                                        null => OperationErrorCode.TechnicalProblem,
+                                        BlockchainErrorCode.Unknown => TransactionErrorCode.Unknown,
+                                        BlockchainErrorCode.AmountIsTooSmall => TransactionErrorCode.Unknown,
+                                        BlockchainErrorCode.NotEnoughBalance => TransactionErrorCode.NotEnoughBalance,
+                                        BlockchainErrorCode.BuildingShouldBeRepeated => TransactionErrorCode.Unknown,
+                                        null => TransactionErrorCode.Unknown,
                                         _ => throw new ArgumentOutOfRangeException(nameof(transaction.ErrorCode), transaction.ErrorCode, "")
-                                    }));
-                            updatedTransfers.Add(transfer);
+                                    },
+                                    Message = transaction.Error
+                                });
+                            updatedOperations.Add(operation);
 
-                            _logger.LogInformation("Transfer has been failed {@context}", new {Transfer = transfer});
+                            _logger.LogInformation("Transfer has been failed {@context}", new {Transfer = operation});
 
                             break;
 
@@ -158,7 +171,7 @@ namespace Indexer.Worker.BilV1
             {
                 _logger.LogError(ex,
                     "Failed to process executing transfers {@context}",
-                    new {BlockchainId = blockchainTransfers.Key});
+                    new {BlockchainId = observedOperations.Key});
             }
         }
     }
