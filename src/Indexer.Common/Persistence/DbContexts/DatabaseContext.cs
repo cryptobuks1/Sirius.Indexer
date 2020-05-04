@@ -92,18 +92,6 @@ namespace Indexer.Common.Persistence.DbContexts
                                     });
                             });
                     });
-
-            modelBuilder.Entity<Blockchain>()
-                .HasIndex(x => x.Name)
-                .HasName("IX_Blockchain_Name");
-
-            modelBuilder.Entity<Blockchain>()
-                .HasIndex(x => x.NetworkType)
-                .HasName("IX_Blockchain_NetworkType");
-
-            modelBuilder.Entity<Blockchain>()
-                .HasIndex(x => x.TenantId)
-                .HasName("IX_Blockchain_TenantId");
         }
     }
 }
