@@ -6,14 +6,13 @@ using System.Threading.Tasks;
 using Indexer.Common.Domain.ObservedOperations;
 using Indexer.Common.Persistence;
 using Indexer.Common.Persistence.ObservedOperations;
-using Lykke.Service.BlockchainApi.Client.Models;
 using Lykke.Service.BlockchainApi.Contract;
 using Lykke.Service.BlockchainApi.Contract.Assets;
 using Lykke.Service.BlockchainApi.Contract.Transactions;
 using MassTransit;
 using Microsoft.Extensions.Logging;
-using Swisschain.Sirius.Indexer.MessagingContract;
 using Swisschain.Sirius.Sdk.Primitives;
+using TransactionError = Swisschain.Sirius.Indexer.MessagingContract.TransactionError;
 
 namespace Indexer.Worker.BilV1
 {
@@ -106,7 +105,7 @@ namespace Indexer.Worker.BilV1
                     var asset = await _assetsRepository.GetAsync(operation.AssetId);
 
                     var transaction = await apiClient.GetBroadcastedSingleTransactionAsync(operation.BilV1OperationId,
-                        new BlockchainAsset(new AssetContract
+                        new Lykke.Service.BlockchainApi.Client.Models.BlockchainAsset(new AssetContract
                         {
                             AssetId = asset.Symbol,
                             Address = asset.Address,

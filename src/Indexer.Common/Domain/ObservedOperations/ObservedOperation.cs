@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore.Internal;
 using Swisschain.Sirius.Indexer.MessagingContract;
 using Swisschain.Sirius.Sdk.Primitives;
+using TransactionError = Swisschain.Sirius.Indexer.MessagingContract.TransactionError;
 
 namespace Indexer.Common.Domain.ObservedOperations
 {

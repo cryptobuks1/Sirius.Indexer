@@ -1,38 +1,123 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 using Indexer.Common.Persistence;
 using Indexer.Common.ReadModel.Blockchains;
 using MassTransit;
 using Microsoft.Extensions.Logging;
-using Swisschain.Sirius.Integrations.MessagingContract;
+using Swisschain.Sirius.Integrations.MessagingContract.Blockchains;
 
 namespace Indexer.Worker.MessageConsumers
 {
-    public class BlockchainUpdatesConsumer : IConsumer<BlockchainAdded>
+    public class BlockchainUpdatesConsumer : IConsumer<BlockchainAdded>, IConsumer<BlockchainUpdated>
     {
         private readonly ILogger<BlockchainUpdatesConsumer> _logger;
-        private readonly IBlockchainsRepository blockchainsRepository;
+        private readonly IBlockchainsRepository _blockchainsRepository;
 
-        public BlockchainUpdatesConsumer(
-            ILogger<BlockchainUpdatesConsumer> logger,
-            IBlockchainsRepository blockchainsRepository)
+        public BlockchainUpdatesConsumer(ILogger<BlockchainUpdatesConsumer> logger, IBlockchainsRepository blockchainsRepository)
         {
             _logger = logger;
-            this.blockchainsRepository = blockchainsRepository;
+            _blockchainsRepository = blockchainsRepository;
         }
 
         public async Task Consume(ConsumeContext<BlockchainAdded> context)
         {
             var evt = context.Message;
 
-            var model = new Blockchain
+            DateTimeOffset createdAt = evt.CreatedAt;
+            await _blockchainsRepository.AddOrReplaceAsync(new Blockchain
             {
-                BlockchainId = evt.BlockchainId,
-                IntegrationUrl = evt.IntegrationUrl.ToString()
-            };
+                Id = evt.BlockchainId,
+                Name = evt.Name,
+                NetworkType = evt.NetworkType,
+                Protocol = new Common.ReadModel.Blockchains.Protocol
+                {
+                    Code = evt.Protocol.Code,
+                    Name = evt.Protocol.Name,
+                    Capabilities = new Common.ReadModel.Blockchains.Capabilities()
+                    {
+                        DestinationTag = evt.Protocol.Capabilities.DestinationTag == null ? null :
+                            new Common.ReadModel.Blockchains.DestinationTagCapabilities()
+                            {
+                                Text = evt.Protocol.Capabilities.DestinationTag.Text == null ? null :
+                            new Common.ReadModel.Blockchains.TextDestinationTagsCapabilities()
+                            {
+                                Name = evt.Protocol.Capabilities.DestinationTag.Text.Name,
+                                MaxLength = evt.Protocol.Capabilities.DestinationTag.Text.MaxLength
+                            },
+                                Number = evt.Protocol.Capabilities.DestinationTag.Number == null ? null :
+                                new Common.ReadModel.Blockchains.NumberDestinationTagsCapabilities()
+                                {
+                                    Name = evt.Protocol.Capabilities.DestinationTag.Number.Name,
+                                    Max = evt.Protocol.Capabilities.DestinationTag.Number.Max,
+                                    Min = evt.Protocol.Capabilities.DestinationTag.Number.Min
+                                }
+                            }
+                    },
+                    DoubleSpendingProtectionType = evt.Protocol.DoubleSpendingProtectionType,
+                    Requirements = new Common.ReadModel.Blockchains.Requirements()
+                    {
+                        PublicKey = evt.Protocol.Requirements.PublicKey
+                    }
+                },
+                TenantId = evt.TenantId,
+                CreatedAt = createdAt,
+                UpdatedAt = createdAt,
+                StartBlockNumber = evt.StartBlockNumber
+            });
 
-            await blockchainsRepository.AddOrReplaceAsync(model);
+            _logger.LogInformation("Blockchain has been added {@context}", evt);
+        }
 
-            _logger.LogInformation("BlockchainAdded command has been processed {@context}", evt);
+        public async Task Consume(ConsumeContext<BlockchainUpdated> context)
+        {
+            var evt = context.Message;
+            var previous = await _blockchainsRepository.GetAsync(evt.BlockchainId);
+
+            if (previous.UpdatedAt.UtcDateTime < evt.UpdatedAt)
+            {
+                await _blockchainsRepository.AddOrReplaceAsync(new Blockchain
+                {
+                    Id = evt.BlockchainId,
+                    Name = evt.Name,
+                    NetworkType = evt.NetworkType,
+                    Protocol = new Common.ReadModel.Blockchains.Protocol
+                    {
+                        Code = evt.Protocol.Code,
+                        Name = evt.Protocol.Name,
+                        Capabilities = new Common.ReadModel.Blockchains.Capabilities()
+                        {
+                            DestinationTag = evt.Protocol.Capabilities.DestinationTag == null ? null :
+                            new Common.ReadModel.Blockchains.DestinationTagCapabilities()
+                            {
+                                Text = evt.Protocol.Capabilities.DestinationTag.Text == null ? null :
+                            new Common.ReadModel.Blockchains.TextDestinationTagsCapabilities()
+                            {
+                                Name = evt.Protocol.Capabilities.DestinationTag.Text.Name,
+                                MaxLength = evt.Protocol.Capabilities.DestinationTag.Text.MaxLength
+                            },
+                                Number = evt.Protocol.Capabilities.DestinationTag.Number == null ? null :
+                                new Common.ReadModel.Blockchains.NumberDestinationTagsCapabilities()
+                                {
+                                    Name = evt.Protocol.Capabilities.DestinationTag.Number.Name,
+                                    Max = evt.Protocol.Capabilities.DestinationTag.Number.Max,
+                                    Min = evt.Protocol.Capabilities.DestinationTag.Number.Min
+                                }
+                            }
+                        },
+                        DoubleSpendingProtectionType = evt.Protocol.DoubleSpendingProtectionType,
+                        Requirements = new Common.ReadModel.Blockchains.Requirements()
+                        {
+                            PublicKey = evt.Protocol.Requirements.PublicKey
+                        }
+                    },
+                    TenantId = evt.TenantId,
+                    CreatedAt = previous.CreatedAt,
+                    UpdatedAt = evt.UpdatedAt,
+                    StartBlockNumber = evt.StartBlockNumber
+                });
+            }
+
+            _logger.LogInformation("Blockchain has been updated {@context}", evt);
         }
     }
 }

@@ -70,7 +70,40 @@ namespace Indexer.Common.Persistence.DbContexts
         {
             modelBuilder.Entity<Blockchain>()
                 .ToTable("blockchains")
-                .HasKey(x => x.BlockchainId);
+                .HasKey(x => x.Id);
+
+            modelBuilder.Entity<Blockchain>()
+                .OwnsOne<Protocol>(x => x.Protocol,
+                    c =>
+                    {
+                        c.Property(p => p.Code).HasColumnName("ProtocolCode");
+                        c.Property(p => p.Name).HasColumnName("ProtocolName");
+                        c.Property(p => p.DoubleSpendingProtectionType).HasColumnName("DoubleSpendingProtectionType");
+
+                        c.OwnsOne<Requirements>(x => x.Requirements);
+                        c.OwnsOne<Capabilities>(x => x.Capabilities,
+                            z =>
+                            {
+                                z.OwnsOne(x => x.DestinationTag,
+                                    y =>
+                                    {
+                                        y.OwnsOne(x => x.Text);
+                                        y.OwnsOne(x => x.Number);
+                                    });
+                            });
+                    });
+
+            modelBuilder.Entity<Blockchain>()
+                .HasIndex(x => x.Name)
+                .HasName("IX_Blockchain_Name");
+
+            modelBuilder.Entity<Blockchain>()
+                .HasIndex(x => x.NetworkType)
+                .HasName("IX_Blockchain_NetworkType");
+
+            modelBuilder.Entity<Blockchain>()
+                .HasIndex(x => x.TenantId)
+                .HasName("IX_Blockchain_TenantId");
         }
     }
 }
