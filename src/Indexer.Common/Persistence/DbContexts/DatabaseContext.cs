@@ -72,26 +72,14 @@ namespace Indexer.Common.Persistence.DbContexts
                 .ToTable("blockchains")
                 .HasKey(x => x.Id);
 
-            modelBuilder.Entity<Blockchain>()
-                .OwnsOne<Protocol>(x => x.Protocol,
-                    c =>
-                    {
-                        c.Property(p => p.Code).HasColumnName("ProtocolCode");
-                        c.Property(p => p.Name).HasColumnName("ProtocolName");
-                        c.Property(p => p.DoubleSpendingProtectionType).HasColumnName("DoubleSpendingProtectionType");
+            var jsonSerializingSettings = new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore };
 
-                        c.OwnsOne<Requirements>(x => x.Requirements);
-                        c.OwnsOne<Capabilities>(x => x.Capabilities,
-                            z =>
-                            {
-                                z.OwnsOne(x => x.DestinationTag,
-                                    y =>
-                                    {
-                                        y.OwnsOne(x => x.Text);
-                                        y.OwnsOne(x => x.Number);
-                                    });
-                            });
-                    });
+            modelBuilder.Entity<Blockchain>().Property(e => e.Protocol).HasConversion(
+                v => JsonConvert.SerializeObject(v,
+                    jsonSerializingSettings),
+                v =>
+                    JsonConvert.DeserializeObject<Protocol>(v,
+                        jsonSerializingSettings));
         }
     }
 }
