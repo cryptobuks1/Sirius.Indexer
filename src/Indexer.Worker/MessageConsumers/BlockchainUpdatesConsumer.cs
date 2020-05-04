@@ -41,23 +41,17 @@ namespace Indexer.Worker.MessageConsumers
                                 Text = evt.Protocol.Capabilities.DestinationTag.Text == null ? null :
                             new Common.ReadModel.Blockchains.TextDestinationTagsCapabilities()
                             {
-                                Name = evt.Protocol.Capabilities.DestinationTag.Text.Name,
                                 MaxLength = evt.Protocol.Capabilities.DestinationTag.Text.MaxLength
                             },
                                 Number = evt.Protocol.Capabilities.DestinationTag.Number == null ? null :
                                 new Common.ReadModel.Blockchains.NumberDestinationTagsCapabilities()
                                 {
-                                    Name = evt.Protocol.Capabilities.DestinationTag.Number.Name,
                                     Max = evt.Protocol.Capabilities.DestinationTag.Number.Max,
                                     Min = evt.Protocol.Capabilities.DestinationTag.Number.Min
                                 }
                             }
                     },
-                    DoubleSpendingProtectionType = evt.Protocol.DoubleSpendingProtectionType,
-                    Requirements = new Common.ReadModel.Blockchains.Requirements()
-                    {
-                        PublicKey = evt.Protocol.Requirements.PublicKey
-                    }
+                    DoubleSpendingProtectionType = evt.Protocol.DoubleSpendingProtectionType
                 },
                 TenantId = evt.TenantId,
                 CreatedAt = createdAt,
@@ -92,23 +86,17 @@ namespace Indexer.Worker.MessageConsumers
                                 Text = evt.Protocol.Capabilities.DestinationTag.Text == null ? null :
                             new Common.ReadModel.Blockchains.TextDestinationTagsCapabilities()
                             {
-                                Name = evt.Protocol.Capabilities.DestinationTag.Text.Name,
                                 MaxLength = evt.Protocol.Capabilities.DestinationTag.Text.MaxLength
                             },
                                 Number = evt.Protocol.Capabilities.DestinationTag.Number == null ? null :
                                 new Common.ReadModel.Blockchains.NumberDestinationTagsCapabilities()
                                 {
-                                    Name = evt.Protocol.Capabilities.DestinationTag.Number.Name,
                                     Max = evt.Protocol.Capabilities.DestinationTag.Number.Max,
                                     Min = evt.Protocol.Capabilities.DestinationTag.Number.Min
                                 }
                             }
                         },
                         DoubleSpendingProtectionType = evt.Protocol.DoubleSpendingProtectionType,
-                        Requirements = new Common.ReadModel.Blockchains.Requirements()
-                        {
-                            PublicKey = evt.Protocol.Requirements.PublicKey
-                        }
                     },
                     TenantId = evt.TenantId,
                     CreatedAt = previous.CreatedAt,
