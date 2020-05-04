@@ -4,7 +4,5 @@
     {
         public long MaxLength { get; set; }
 
-        public string Name { get; set; }
-
     }
 }

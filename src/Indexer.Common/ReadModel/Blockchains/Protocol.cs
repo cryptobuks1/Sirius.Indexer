@@ -6,7 +6,6 @@ namespace Indexer.Common.ReadModel.Blockchains
     {
         public string Code { get; set; }
         public string Name { get; set; }
-        public Requirements Requirements { get; set; }
 
         public Capabilities Capabilities { get; set; }
 
