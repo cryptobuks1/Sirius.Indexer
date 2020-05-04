@@ -70,7 +70,16 @@ namespace Indexer.Common.Persistence.DbContexts
         {
             modelBuilder.Entity<Blockchain>()
                 .ToTable("blockchains")
-                .HasKey(x => x.BlockchainId);
+                .HasKey(x => x.Id);
+
+            var jsonSerializingSettings = new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore };
+
+            modelBuilder.Entity<Blockchain>().Property(e => e.Protocol).HasConversion(
+                v => JsonConvert.SerializeObject(v,
+                    jsonSerializingSettings),
+                v =>
+                    JsonConvert.DeserializeObject<Protocol>(v,
+                        jsonSerializingSettings));
         }
     }
 }

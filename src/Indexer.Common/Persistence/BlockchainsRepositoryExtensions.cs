@@ -23,7 +23,7 @@ namespace Indexer.Common.Persistence
                     break;
                 }
 
-                cursor = page.Last().BlockchainId;
+                cursor = page.Last().Id;
 
                 result.AddRange(page);
             } while (true);

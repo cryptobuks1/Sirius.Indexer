@@ -44,11 +44,11 @@ namespace Indexer.Worker.HostedServices
         {
             foreach (var blockchain in await _blockchainsRepository.GetAllAsync())
             {
-                var blockchainApiClient = await _blockchainApiClientProvider.GetAsync(blockchain.BlockchainId);
+                var blockchainApiClient = await _blockchainApiClientProvider.GetAsync(blockchain.Id);
                 var blockchainAssetsDict = await blockchainApiClient.GetAllAssetsAsync(100);
 
                 var balanceProcessor = new BalanceProcessor(
-                    blockchain.BlockchainId,
+                    blockchain.Id,
                     _loggerFactory.CreateLogger<BalanceProcessor>(),
                     blockchainApiClient,
                     _enrolledBalanceRepository,
@@ -57,7 +57,7 @@ namespace Indexer.Worker.HostedServices
                     _publishEndpoint);
 
                 var balanceReader = new BalanceProcessorJob(
-                    blockchain.BlockchainId,
+                    blockchain.Id,
                     _loggerFactory.CreateLogger<BalanceProcessorsHost>(),
                     balanceProcessor,
                     TimeSpan.FromSeconds(10));

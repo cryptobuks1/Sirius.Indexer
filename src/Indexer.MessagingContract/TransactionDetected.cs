@@ -24,6 +24,5 @@ namespace Swisschain.Sirius.Indexer.MessagingContract
         public TransactionError Error { get; set; }
         public IReadOnlyCollection<Unit> Fees { get; set; }
 
-        
     }
 }

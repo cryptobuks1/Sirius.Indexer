@@ -28,11 +28,11 @@ namespace Indexer.Common.Persistence
             if (cursor != null)
             {
                 // ReSharper disable once StringCompareToIsCultureSpecific
-                query = query.Where(x => x.BlockchainId.CompareTo(cursor) > 1);
+                query = query.Where(x => x.Id.CompareTo(cursor) > 1);
             }
 
             return await query
-                .OrderBy(x => x.BlockchainId)
+                .OrderBy(x => x.Id)
                 .Take(limit)
                 .ToListAsync();
         }
@@ -59,7 +59,7 @@ namespace Indexer.Common.Persistence
         {
             await using var context = new DatabaseContext(_dbContextOptionsBuilder.Options);
 
-            var result = await context.Blockchains.FirstAsync(x => x.BlockchainId == blockchainId);
+            var result = await context.Blockchains.FirstAsync(x => x.Id == blockchainId);
             return result;
         }
     }
