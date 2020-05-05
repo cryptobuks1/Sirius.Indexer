@@ -46,3 +46,9 @@ jobs:
         workdir: ./publish-worker
         # snapshot: true # use snapshot to push an additional image, which is tagged with {YEAR}{MONTH}{DAY}{HOUR}{MINUTE}{SECOND}{first 6 digits of the git sha}
         tag_names: true
+    - name: Restart service
+      uses: SC-Poc/kube-restart-pods@master
+      env:
+        KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA }}
+        NAMESPACE: sirius
+        POD: indexer
