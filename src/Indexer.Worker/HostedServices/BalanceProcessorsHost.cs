@@ -77,7 +77,7 @@ namespace Indexer.Worker.HostedServices
                     catch (Exception ex)
                     {
                         _logger.LogError(ex,
-                            "Failed to process balances {@context}",
+                            "Failed to initialize balances processor {@context}",
                             new
                             {
                                 BlockchainId = blockchain.Id,
