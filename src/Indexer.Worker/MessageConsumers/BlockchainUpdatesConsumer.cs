@@ -71,6 +71,7 @@ namespace Indexer.Worker.MessageConsumers
                 Id = evt.BlockchainId,
                 Name = evt.Name,
                 NetworkType = evt.NetworkType,
+                IntegrationUrl = evt.IntegrationUrl.ToString(),
                 Protocol = new Common.ReadModel.Blockchains.Protocol
                 {
                     Code = evt.Protocol.Code,
