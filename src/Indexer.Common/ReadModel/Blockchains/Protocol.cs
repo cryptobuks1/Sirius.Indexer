@@ -6,9 +6,8 @@ namespace Indexer.Common.ReadModel.Blockchains
     {
         public string Code { get; set; }
         public string Name { get; set; }
-
+        public long StartBlockNumber { get; set; }
         public Capabilities Capabilities { get; set; }
-
         public DoubleSpendingProtectionType DoubleSpendingProtectionType { get; set; }
     }
 }

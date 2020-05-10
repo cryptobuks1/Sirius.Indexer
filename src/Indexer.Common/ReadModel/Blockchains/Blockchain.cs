@@ -10,9 +10,6 @@ namespace Indexer.Common.ReadModel.Blockchains
         public string TenantId { get; set; }
         public string Name { get; set; }
         public NetworkType NetworkType { get; set; }
-        public DateTimeOffset CreatedAt { get; set; }
-        public DateTimeOffset UpdatedAt { get; set; }
         public string IntegrationUrl { get; set; }
-        public long StartBlockNumber { get; set; }
     }
 }
