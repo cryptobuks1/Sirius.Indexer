@@ -88,7 +88,7 @@ namespace Indexer.Worker.HostedServices
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to process balances");
+                _logger.LogError(ex, "Failed to initialize balance processors");
 
                 throw;
             }
