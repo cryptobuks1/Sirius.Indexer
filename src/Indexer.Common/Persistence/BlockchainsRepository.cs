@@ -19,7 +19,7 @@ namespace Indexer.Common.Persistence
             _dbContextOptionsBuilder = dbContextOptionsBuilder;
         }
 
-        public async Task<IReadOnlyCollection<Blockchain>> GetAllAsync(string cursor, int limit)
+        public async Task<IReadOnlyCollection<BlockchainMetamodel>> GetAllAsync(string cursor, int limit)
         {
             await using var context = new DatabaseContext(_dbContextOptionsBuilder.Options);
 
@@ -37,25 +37,25 @@ namespace Indexer.Common.Persistence
                 .ToListAsync();
         }
 
-        public async Task AddOrReplaceAsync(Blockchain blockchain)
+        public async Task AddOrReplaceAsync(BlockchainMetamodel blockchainMetamodel)
         {
             await using var context = new DatabaseContext(_dbContextOptionsBuilder.Options);
 
             try
             {
-                context.Blockchains.Add(blockchain);
+                context.Blockchains.Add(blockchainMetamodel);
 
                 await context.SaveChangesAsync();
             }
             catch (DbUpdateException e) when (e.InnerException is PostgresException pgEx && pgEx.SqlState == "23505")
             {
-                context.Blockchains.Update(blockchain);
+                context.Blockchains.Update(blockchainMetamodel);
 
                 await context.SaveChangesAsync();
             }
         }
 
-        public async Task<Blockchain> GetAsync(string blockchainId)
+        public async Task<BlockchainMetamodel> GetAsync(string blockchainId)
         {
             await using var context = new DatabaseContext(_dbContextOptionsBuilder.Options);
 

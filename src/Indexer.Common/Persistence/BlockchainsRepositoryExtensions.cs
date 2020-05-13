@@ -9,10 +9,10 @@ namespace Indexer.Common.Persistence
 {
     public static class BlockchainsRepositoryExtensions
     {
-        public static async Task<IReadOnlyCollection<Blockchain>> GetAllAsync(this IBlockchainsRepository repository)
+        public static async Task<IReadOnlyCollection<BlockchainMetamodel>> GetAllAsync(this IBlockchainsRepository repository)
         {
             var cursor = default(string);
-            var result = new List<Blockchain>();
+            var result = new List<BlockchainMetamodel>();
 
             do
             {

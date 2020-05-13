@@ -6,8 +6,8 @@ namespace Indexer.Common.Persistence
 {
     public interface IBlockchainsRepository
     {
-        Task<IReadOnlyCollection<Blockchain>> GetAllAsync(string cursor, int limit);
-        Task AddOrReplaceAsync(Blockchain blockchain);
-        Task<Blockchain> GetAsync(string blockchainId);
+        Task<IReadOnlyCollection<BlockchainMetamodel>> GetAllAsync(string cursor, int limit);
+        Task AddOrReplaceAsync(BlockchainMetamodel blockchainMetamodel);
+        Task<BlockchainMetamodel> GetAsync(string blockchainId);
     }
 }

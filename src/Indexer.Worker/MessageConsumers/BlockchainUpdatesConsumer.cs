@@ -22,7 +22,7 @@ namespace Indexer.Worker.MessageConsumers
         {
             var evt = context.Message;
 
-            await _blockchainsRepository.AddOrReplaceAsync(new Blockchain
+            await _blockchainsRepository.AddOrReplaceAsync(new BlockchainMetamodel
             {
                 Id = evt.BlockchainId,
                 Name = evt.Name,
@@ -66,7 +66,7 @@ namespace Indexer.Worker.MessageConsumers
         {
             var evt = context.Message;
 
-            await _blockchainsRepository.AddOrReplaceAsync(new Blockchain
+            await _blockchainsRepository.AddOrReplaceAsync(new BlockchainMetamodel
             {
                 Id = evt.BlockchainId,
                 Name = evt.Name,

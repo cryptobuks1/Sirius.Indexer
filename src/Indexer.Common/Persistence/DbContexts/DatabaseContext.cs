@@ -25,7 +25,7 @@ namespace Indexer.Common.Persistence.DbContexts
 
         #region ReadModel
 
-        public DbSet<Blockchain> Blockchains { get; set; }
+        public DbSet<BlockchainMetamodel> Blockchains { get; set; }
 
         #endregion
 
@@ -68,13 +68,13 @@ namespace Indexer.Common.Persistence.DbContexts
 
         private static void BuildBlockchain(ModelBuilder modelBuilder)
         {
-            modelBuilder.Entity<Blockchain>()
+            modelBuilder.Entity<BlockchainMetamodel>()
                 .ToTable("blockchains")
                 .HasKey(x => x.Id);
 
             var jsonSerializingSettings = new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore };
 
-            modelBuilder.Entity<Blockchain>().Property(e => e.Protocol).HasConversion(
+            modelBuilder.Entity<BlockchainMetamodel>().Property(e => e.Protocol).HasConversion(
                 v => JsonConvert.SerializeObject(v,
                     jsonSerializingSettings),
                 v =>

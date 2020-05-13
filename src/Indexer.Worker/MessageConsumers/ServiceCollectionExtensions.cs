@@ -8,7 +8,6 @@ namespace Indexer.Worker.MessageConsumers
         {
             services.AddTransient<PublishAllAssetsConsumer>();
             services.AddTransient<PublishAssetConsumer>();
-            services.AddTransient<WalletAddedConsumer>();
             services.AddTransient<BlockchainUpdatesConsumer>();
 
             return services;
