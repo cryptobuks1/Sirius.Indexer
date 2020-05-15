@@ -4,5 +4,6 @@
     {
         public DbConfig Db { get; set; }
         public RabbitMqConfig RabbitMq { get; set; }
+        public IndexingConfig Indexing { get; set; }
     }
 }

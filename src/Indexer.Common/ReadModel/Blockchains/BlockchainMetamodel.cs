@@ -1,9 +1,8 @@
-﻿using System;
-using Swisschain.Sirius.Sdk.Primitives;
+﻿using Swisschain.Sirius.Sdk.Primitives;
 
 namespace Indexer.Common.ReadModel.Blockchains
 {
-    public sealed class Blockchain
+    public sealed class BlockchainMetamodel
     {
         public string Id { get; set; }
         public Protocol Protocol { get; set; }
