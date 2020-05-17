@@ -26,6 +26,7 @@
 
     <PackageReference Include="Swisschain.Extensions.Idempotency.EfCore" Version="1.0.5" />
     <PackageReference Include="Swisschain.Extensions.Idempotency.MassTransit" Version="1.0.2" />
+    <PackageReference Include="Swisschain.Sirius.Sdk.Integrations.Client" Version="1.0.0-beta.4" />
   </ItemGroup>
 
   <ItemGroup>

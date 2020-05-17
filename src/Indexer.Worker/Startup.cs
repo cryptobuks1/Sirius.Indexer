@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Indexer.Common.Configuration;
+using Indexer.Common.Domain;
 using Indexer.Common.HostedServices;
 using Indexer.Common.InMemoryBus;
 using Indexer.Common.Persistence;
@@ -26,6 +27,7 @@ namespace Indexer.Worker
 
             services.AddHttpClient();
             services.AddPersistence(Config.Db.ConnectionString);
+            services.AddDomain();
             services.AddMessageConsumers();
             services.AddHostedService<MigrationHost>();
             services.AddMessageConsumers();
