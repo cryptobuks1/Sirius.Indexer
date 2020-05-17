@@ -3,11 +3,11 @@ using System.Threading.Tasks;
 
 namespace Indexer.Common.Domain.Indexing
 {
-    public sealed class BlockProcessor
+    public sealed class BlocksProcessor
     {
         private readonly IBlocksRepository _blocksRepository;
 
-        public BlockProcessor(IBlocksRepository blocksRepository)
+        public BlocksProcessor(IBlocksRepository blocksRepository)
         {
             _blocksRepository = blocksRepository;
         }

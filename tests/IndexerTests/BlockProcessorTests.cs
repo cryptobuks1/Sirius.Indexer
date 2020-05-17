@@ -20,7 +20,7 @@ namespace IndexerTests
             // arrange
             var initialBlock = new Block(BlockchainId, number: 10, id: "B", previousBlockId: "A");
             var blockRepository = new InMemoryBlocksRepository();
-            var processor = new BlockProcessor(blockRepository);
+            var processor = new BlocksProcessor(blockRepository);
 
             // act
             var output = await processor.ProcessBlock(initialBlock.Number, initialBlock);
@@ -35,7 +35,7 @@ namespace IndexerTests
             // arrange
             var block = new Block(BlockchainId, number: 10, id: "B", previousBlockId: "A");
             var blockRepository = new InMemoryBlocksRepository();
-            var processor = new BlockProcessor(blockRepository);
+            var processor = new BlocksProcessor(blockRepository);
 
             // assert
             await Should.ThrowAsync<NotSupportedException>(() => processor.ProcessBlock(0, block));
@@ -46,7 +46,7 @@ namespace IndexerTests
         {
             // arrange
             var blockRepository = new InMemoryBlocksRepository();
-            var processor = new BlockProcessor(blockRepository);
+            var processor = new BlocksProcessor(blockRepository);
             var results = new List<BlockProcessingResult>();
 
             // i: 1(A)-2(B)-3(C)-4(D)
@@ -83,7 +83,7 @@ namespace IndexerTests
             // arrange
             var initialBlock = new Block(BlockchainId, number: 10, id: "B", previousBlockId: "A");
             var blockRepository = new InMemoryBlocksRepository();
-            var processor = new BlockProcessor(blockRepository);
+            var processor = new BlocksProcessor(blockRepository);
 
             // act
             await processor.ProcessBlock(initialBlock.Number, initialBlock);
@@ -100,7 +100,7 @@ namespace IndexerTests
             var initialBlock = new Block(BlockchainId, number: 10, id: "A", previousBlockId: "Z");
             var regularBlock = new Block(BlockchainId, number: 11, id: "B", previousBlockId: "A");
             var blockRepository = new InMemoryBlocksRepository();
-            var processor = new BlockProcessor(blockRepository);
+            var processor = new BlocksProcessor(blockRepository);
 
             // act
             await processor.ProcessBlock(initialBlock.Number, initialBlock);
@@ -117,7 +117,7 @@ namespace IndexerTests
             // arrange
             var block = new Block(BlockchainId, number: 10, id: "B", previousBlockId: "A");
             var blockRepository = new InMemoryBlocksRepository();
-            var processor = new BlockProcessor(blockRepository);
+            var processor = new BlocksProcessor(blockRepository);
 
             // assert
             await Should.ThrowAsync<NotSupportedException>(() => processor.ProcessBlock(0, block));
@@ -132,7 +132,7 @@ namespace IndexerTests
         {
             // arrange
             var blockRepository = new InMemoryBlocksRepository();
-            var processor = new BlockProcessor(blockRepository);
+            var processor = new BlocksProcessor(blockRepository);
             var results = new List<BlockProcessingResult>();
 
             // i: 1(A)-2(B)
@@ -171,7 +171,7 @@ namespace IndexerTests
         {
             // arrange
             var blockRepository = new InMemoryBlocksRepository();
-            var processor = new BlockProcessor(blockRepository);
+            var processor = new BlocksProcessor(blockRepository);
             var results = new List<BlockProcessingResult>();
 
             // i: 1(A)-2(B)-3(D)
@@ -215,7 +215,7 @@ namespace IndexerTests
         {
             // arrange
             var blockRepository = new InMemoryBlocksRepository();
-            var processor = new BlockProcessor(blockRepository);
+            var processor = new BlocksProcessor(blockRepository);
             var results = new List<BlockProcessingResult>();
 
             // i: 1(A)-2(B)-3(C)-4(E)-5(H)-6(K)
@@ -287,7 +287,7 @@ namespace IndexerTests
         {
             // arrange
             var blockRepository = new InMemoryBlocksRepository();
-            var processor = new BlockProcessor(blockRepository);
+            var processor = new BlocksProcessor(blockRepository);
             var results = new List<BlockProcessingResult>();
 
             // i: 1(A)-2(B)-3(C)-4(E)-5(H)-6(K)
@@ -352,7 +352,7 @@ namespace IndexerTests
         {
             // arrange
             var blockRepository = new InMemoryBlocksRepository();
-            var processor = new BlockProcessor(blockRepository);
+            var processor = new BlocksProcessor(blockRepository);
             var results = new List<BlockProcessingResult>();
 
             // case: 3
@@ -411,7 +411,7 @@ namespace IndexerTests
         {
             // arrange
             var blockRepository = new InMemoryBlocksRepository();
-            var processor = new BlockProcessor(blockRepository);
+            var processor = new BlocksProcessor(blockRepository);
             var results = new List<BlockProcessingResult>();
 
             // case: 4
@@ -471,7 +471,7 @@ namespace IndexerTests
         {
             // arrange
             var blockRepository = new InMemoryBlocksRepository();
-            var processor = new BlockProcessor(blockRepository);
+            var processor = new BlocksProcessor(blockRepository);
             var results = new List<BlockProcessingResult>();
 
             // case: 6

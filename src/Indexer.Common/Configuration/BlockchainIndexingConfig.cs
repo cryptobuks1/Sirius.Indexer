@@ -1,8 +1,11 @@
-﻿namespace Indexer.Common.Configuration
+﻿using System;
+
+namespace Indexer.Common.Configuration
 {
     public class BlockchainIndexingConfig
     {
-        public int ThreadsCount { get; set; }
-        public long ThreadLength { get; set; }
+        public int FirstPassIndexersCount { get; set; }
+        public long FirstPassIndexerLength { get; set; }
+        public TimeSpan DelayOnBlockNotFound { get; set; }
     }
 }

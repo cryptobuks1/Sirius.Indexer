@@ -1,10 +1,10 @@
-﻿namespace Swisschain.Sirius.Indexer.MessagingContract
+﻿namespace Indexer.Common.Domain.Indexing
 {
-    public class BlockCancelled
+    public class FirstPassBlockDetected
     {
         public string BlockchainId { get; set; }
         public string BlockId { get; set; }
         public long BlockNumber { get; set; }
-        public long ChainSequence { get; set; }
+        public string PreviousBlockId { get; set; }
     }
 }

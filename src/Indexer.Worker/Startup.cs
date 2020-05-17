@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Indexer.Common.Configuration;
 using Indexer.Common.HostedServices;
+using Indexer.Common.InMemoryBus;
 using Indexer.Common.Persistence;
 using Indexer.Worker.HostedServices;
 using Indexer.Worker.MessageConsumers;
@@ -29,15 +30,21 @@ namespace Indexer.Worker
             services.AddHostedService<MigrationHost>();
             services.AddMessageConsumers();
 
+            services.AddInMemoryBus(cfg =>
+            {
+
+            });
+
             services.AddMassTransit(x =>
             {
                 x.AddBus(provider => Bus.Factory.CreateUsingRabbitMq(cfg =>
                 {
-                    cfg.Host(Config.RabbitMq.HostUrl, host =>
-                    {
-                        host.Username(Config.RabbitMq.Username);
-                        host.Password(Config.RabbitMq.Password);
-                    });
+                    cfg.Host(Config.RabbitMq.HostUrl,
+                        host =>
+                        {
+                            host.Username(Config.RabbitMq.Username);
+                            host.Password(Config.RabbitMq.Password);
+                        });
 
                     cfg.UseMessageRetry(y =>
                         y.Exponential(5,
@@ -48,23 +55,25 @@ namespace Indexer.Worker
                     cfg.SetLoggerFactory(provider.GetRequiredService<ILoggerFactory>());
 
                     cfg.ReceiveEndpoint("sirius-indexer-publish-all-assets", e =>
-                    {
-                        e.Consumer(provider.GetRequiredService<PublishAllAssetsConsumer>);
-                    });
+                        {
+                            e.Consumer(provider.GetRequiredService<PublishAllAssetsConsumer>);
+                        });
 
                     cfg.ReceiveEndpoint("sirius-indexer-publish-asset", e =>
-                    {
-                        e.Consumer(provider.GetRequiredService<PublishAssetConsumer>);
-                    });
-                    
+                        {
+                            e.Consumer(provider.GetRequiredService<PublishAssetConsumer>);
+                        });
+
                     cfg.ReceiveEndpoint("sirius-indexer-blockchain-updates", e =>
-                    {
-                        e.Consumer(provider.GetRequiredService<BlockchainUpdatesConsumer>);
-                    });
+                        {
+                            e.Consumer(provider.GetRequiredService<BlockchainUpdatesConsumer>);
+                        });
                 }));
 
                 services.AddHostedService<BusHost>();
             });
+
+            services.AddHostedService<IndexingHost>();
         }
     }
 }
