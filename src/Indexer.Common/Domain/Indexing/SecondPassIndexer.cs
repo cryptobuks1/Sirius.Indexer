@@ -24,7 +24,7 @@ namespace Indexer.Common.Domain.Indexing
         public long Version { get; }
         public IReadOnlyCollection<object> Events => _events;
 
-        public async Task IndexNextBlocks()
+        public async Task IndexAvailableBlocks(int maxBlocksCount)
         {
 
         }

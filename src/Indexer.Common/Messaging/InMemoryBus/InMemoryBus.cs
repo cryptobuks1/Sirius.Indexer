@@ -2,7 +2,7 @@
 using System.Threading.Tasks;
 using MassTransit;
 
-namespace Indexer.Common.InMemoryBus
+namespace Indexer.Common.Messaging.InMemoryBus
 {
     internal sealed class InMemoryBus : IInMemoryBus
     {

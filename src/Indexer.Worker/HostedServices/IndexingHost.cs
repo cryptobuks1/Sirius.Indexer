@@ -5,7 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Indexer.Common.Configuration;
 using Indexer.Common.Domain.Indexing;
-using Indexer.Common.InMemoryBus;
+using Indexer.Common.Messaging.InMemoryBus;
 using Indexer.Common.Persistence;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;

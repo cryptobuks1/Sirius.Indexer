@@ -3,15 +3,15 @@ using Indexer.Common.HostedServices;
 using MassTransit;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Indexer.Common.InMemoryBus
+namespace Indexer.Common.Messaging.InMemoryBus
 {
     public static class InMemoryBusServiceCollectionExtensions
     {
-        public static IServiceCollection AddInMemoryBus(this IServiceCollection services, Action<IInMemoryBusFactoryConfigurator> options)
+        public static IServiceCollection AddInMemoryBus(this IServiceCollection services, Action<IServiceProvider, IInMemoryBusFactoryConfigurator> options)
         {
             services.AddSingleton<IInMemoryBus, InMemoryBus>(x =>
             {
-                var busControl = Bus.Factory.CreateUsingInMemory(options);
+                var busControl = Bus.Factory.CreateUsingInMemory(cfg => options(x, cfg));
 
                 return new InMemoryBus(busControl);
             });

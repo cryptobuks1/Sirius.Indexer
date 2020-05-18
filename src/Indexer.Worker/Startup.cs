@@ -7,7 +7,8 @@ using Microsoft.Extensions.Logging;
 using Indexer.Common.Configuration;
 using Indexer.Common.Domain;
 using Indexer.Common.HostedServices;
-using Indexer.Common.InMemoryBus;
+using Indexer.Common.Messaging.DiscardingRateLimiting;
+using Indexer.Common.Messaging.InMemoryBus;
 using Indexer.Common.Persistence;
 using Indexer.Worker.HostedServices;
 using Indexer.Worker.MessageConsumers;
@@ -32,9 +33,18 @@ namespace Indexer.Worker
             services.AddHostedService<MigrationHost>();
             services.AddMessageConsumers();
 
-            services.AddInMemoryBus(cfg =>
+            services.AddInMemoryBus((provider, cfg) =>
             {
+                cfg.SetLoggerFactory(provider.GetRequiredService<ILoggerFactory>());
 
+                cfg.ReceiveEndpoint("first-pass-block-updates", e =>
+                {
+                    // TODO: Use rate limiter per-blockchain
+                    // TODO: Use parallelism for the entire endpoint and dispatch messages to the single-threaded per-blockchain consumers
+                    e.UseDiscardingRateLimit(rateLimit: 1, interval: TimeSpan.FromSeconds(1));
+
+                    e.Consumer(provider.GetRequiredService<FirstPassBlockUpdatesConsumer>);
+                });
             });
 
             services.AddMassTransit(x =>

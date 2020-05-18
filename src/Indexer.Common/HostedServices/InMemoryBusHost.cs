@@ -1,6 +1,6 @@
 ﻿using System.Threading;
 using System.Threading.Tasks;
-using Indexer.Common.InMemoryBus;
+using Indexer.Common.Messaging.InMemoryBus;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 

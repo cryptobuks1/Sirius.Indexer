@@ -1,7 +1,7 @@
 ﻿using System.Threading;
 using System.Threading.Tasks;
 
-namespace Indexer.Common.InMemoryBus
+namespace Indexer.Common.Messaging.InMemoryBus
 {
     public interface IInMemoryBus
     {
