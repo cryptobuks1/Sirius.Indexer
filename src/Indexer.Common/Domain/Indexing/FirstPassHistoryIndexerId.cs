@@ -2,9 +2,9 @@
 
 namespace Indexer.Common.Domain.Indexing
 {
-    public sealed class FirstPassIndexerId : IEquatable<FirstPassIndexerId>
+    public sealed class FirstPassHistoryIndexerId : IEquatable<FirstPassHistoryIndexerId>
     {
-        public FirstPassIndexerId(string blockchainId, long startBlock)
+        public FirstPassHistoryIndexerId(string blockchainId, long startBlock)
         {
             BlockchainId = blockchainId;
             StartBlock = startBlock;
@@ -18,7 +18,7 @@ namespace Indexer.Common.Domain.Indexing
             return $"{BlockchainId}-{StartBlock}";
         }
 
-        public bool Equals(FirstPassIndexerId other)
+        public bool Equals(FirstPassHistoryIndexerId other)
         {
             if (ReferenceEquals(null, other)) return false;
             if (ReferenceEquals(this, other)) return true;
@@ -27,7 +27,7 @@ namespace Indexer.Common.Domain.Indexing
 
         public override bool Equals(object obj)
         {
-            return ReferenceEquals(this, obj) || obj is FirstPassIndexerId other && Equals(other);
+            return ReferenceEquals(this, obj) || obj is FirstPassHistoryIndexerId other && Equals(other);
         }
 
         public override int GetHashCode()

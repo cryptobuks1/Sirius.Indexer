@@ -25,7 +25,7 @@ namespace Indexer.Common.Domain.Indexing
 
             if (previousBlock == null)
             {
-                throw new NotSupportedException("An out-of-order block has been processed");
+                throw new NotSupportedException("An out-of-order block has been detected");
             }
 
             if (previousBlock.Id != block.PreviousId)

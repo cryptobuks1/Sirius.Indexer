@@ -10,21 +10,21 @@ namespace Indexer.Common.Persistence
 {
     public static class ServiceCollectionExtensions
     {
-        public static readonly ILoggerFactory MyLoggerFactory
-            = LoggerFactory.Create(builder => { builder.AddConsole(); });
         public static IServiceCollection AddPersistence(this IServiceCollection services, string connectionString)
         {
             services.AddTransient<IAssetsRepository, AssetsRepository>();
             services.AddTransient<IBlockchainsRepository, BlockchainsRepository>();
             services.AddTransient<IObservedOperationsRepository, ObservedOperationsRepository>();
-            services.AddSingleton<IFirstPassIndexersRepository, InMemoryFirstPassIndexersRepository>();
+            services.AddSingleton<IFirstPassHistoryIndexersRepository, InMemoryFirstPassHistoryIndexersRepository>();
+            services.AddSingleton<ISecondPassHistoryIndexersRepository, InMemorySecondPassHistoryIndexersRepository>();
             services.AddSingleton<IBlocksRepository, InMemoryBlocksRepository>();
 
             services.AddSingleton<DbContextOptionsBuilder<DatabaseContext>>(x =>
             {
                 var optionsBuilder = new DbContextOptionsBuilder<DatabaseContext>();
+
                 optionsBuilder
-                    //.UseLoggerFactory(MyLoggerFactory)
+                    .UseLoggerFactory(x.GetRequiredService<ILoggerFactory>())
                     .UseNpgsql(connectionString,
                     builder =>
                         builder.MigrationsHistoryTable(

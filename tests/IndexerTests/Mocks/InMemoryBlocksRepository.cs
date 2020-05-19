@@ -38,5 +38,20 @@ namespace IndexerTests.Mocks
 
             return Task.CompletedTask;
         }
+
+        public Task<IReadOnlyCollection<Block>> GetBatch(string blockchainId, long startBlockNumber, int limit)
+        {
+            lock (_store)
+            {
+                var blocks = _store.Values
+                    .Where(x => x.BlockchainId == blockchainId)
+                    .OrderBy(x => x.Number)
+                    .SkipWhile(x => x.Number < startBlockNumber)
+                    .Take(limit)
+                    .ToArray();
+
+                return Task.FromResult<IReadOnlyCollection<Block>>(blocks);
+            }
+        }
     }
 }

@@ -1,9 +1,8 @@
 ﻿namespace Indexer.Common.Domain.Indexing
 {
-    public enum BlockIndexingResult
+    public enum OngoingBlockIndexingResult
     {
-        BlockIndexed,
         BlockNotFound,
-        ThreadCompleted
+        BlockIndexed
     }
 }

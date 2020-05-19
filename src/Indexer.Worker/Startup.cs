@@ -37,13 +37,14 @@ namespace Indexer.Worker
             {
                 cfg.SetLoggerFactory(provider.GetRequiredService<ILoggerFactory>());
 
-                cfg.ReceiveEndpoint("first-pass-block-updates", e =>
+                cfg.ReceiveEndpoint("first-pass-block-detected", e =>
                 {
                     // TODO: Use rate limiter per-blockchain
                     // TODO: Use parallelism for the entire endpoint and dispatch messages to the single-threaded per-blockchain consumers
+                    // TODO: Move the rate limit to the config
                     e.UseDiscardingRateLimit(rateLimit: 1, interval: TimeSpan.FromSeconds(1));
 
-                    e.Consumer(provider.GetRequiredService<FirstPassBlockUpdatesConsumer>);
+                    e.Consumer(provider.GetRequiredService<FirstPassHistoryBlockDetectedConsumer>);
                 });
             });
 

@@ -4,11 +4,11 @@ using Indexer.Common.Domain.Indexing;
 
 namespace Indexer.Common.Persistence
 {
-    internal class InMemoryFirstPassIndexersRepository : IFirstPassIndexersRepository
+    internal class InMemoryFirstPassHistoryIndexersRepository : IFirstPassHistoryIndexersRepository
     {
-        private readonly Dictionary<FirstPassIndexerId, FirstPassIndexer> _store = new Dictionary<FirstPassIndexerId, FirstPassIndexer>();
+        private readonly Dictionary<FirstPassHistoryIndexerId, FirstPassHistoryIndexer> _store = new Dictionary<FirstPassHistoryIndexerId, FirstPassHistoryIndexer>();
 
-        public Task<FirstPassIndexer> Get(FirstPassIndexerId id)
+        public Task<FirstPassHistoryIndexer> Get(FirstPassHistoryIndexerId id)
         {
             lock (_store)
             {
@@ -16,7 +16,7 @@ namespace Indexer.Common.Persistence
             }
         }
 
-        public Task<FirstPassIndexer> GetOrDefault(FirstPassIndexerId id)
+        public Task<FirstPassHistoryIndexer> GetOrDefault(FirstPassHistoryIndexerId id)
         {
             lock (_store)
             {
@@ -26,7 +26,7 @@ namespace Indexer.Common.Persistence
             }
         }
 
-        public Task Add(FirstPassIndexer indexer)
+        public Task Add(FirstPassHistoryIndexer indexer)
         {
             lock (_store)
             {
@@ -36,7 +36,7 @@ namespace Indexer.Common.Persistence
             return Task.CompletedTask;
         }
 
-        public Task Update(FirstPassIndexer indexer)
+        public Task Update(FirstPassHistoryIndexer indexer)
         {
             lock (_store)
             {

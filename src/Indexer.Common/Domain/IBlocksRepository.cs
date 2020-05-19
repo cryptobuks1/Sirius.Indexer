@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Indexer.Common.Domain
 {
@@ -7,5 +8,6 @@ namespace Indexer.Common.Domain
         Task InsertOrReplace(Block block);
         Task<Block> GetOrDefault(string blockchainId, long blockNumber);
         Task Remove(string id);
+        Task<IReadOnlyCollection<Block>> GetBatch(string blockchainId, long startBlockNumber, int limit);
     }
 }
