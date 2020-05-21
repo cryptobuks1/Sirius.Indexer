@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Indexer.Common.Domain.Indexing;
 
@@ -44,6 +45,16 @@ namespace Indexer.Common.Persistence
             }
 
             return Task.CompletedTask;
+        }
+
+        public Task<IReadOnlyCollection<FirstPassHistoryIndexer>> GetByBlockchain(string blockchainId)
+        {
+            lock (_store)
+            {
+                var indexers = _store.Where(x => x.Key.BlockchainId == blockchainId).Select(x => x.Value).ToArray();
+
+                return Task.FromResult<IReadOnlyCollection<FirstPassHistoryIndexer>>(indexers);
+            }
         }
     }
 }

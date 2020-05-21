@@ -11,6 +11,7 @@ using Indexer.Common.Messaging.DiscardingRateLimiting;
 using Indexer.Common.Messaging.InMemoryBus;
 using Indexer.Common.Persistence;
 using Indexer.Worker.HostedServices;
+using Indexer.Worker.Jobs;
 using Indexer.Worker.MessageConsumers;
 using Swisschain.Sdk.Server.Common;
 
@@ -29,9 +30,10 @@ namespace Indexer.Worker
             services.AddHttpClient();
             services.AddPersistence(Config.Db.ConnectionString);
             services.AddDomain();
+            services.AddJobs();
             services.AddMessageConsumers();
+            
             services.AddHostedService<MigrationHost>();
-            services.AddMessageConsumers();
 
             services.AddInMemoryBus((provider, cfg) =>
             {
@@ -43,6 +45,7 @@ namespace Indexer.Worker
                     // TODO: Use parallelism for the entire endpoint and dispatch messages to the single-threaded per-blockchain consumers
                     // TODO: Move the rate limit to the config
                     e.UseDiscardingRateLimit(rateLimit: 1, interval: TimeSpan.FromSeconds(1));
+                    e.UseConcurrencyLimit(1);
 
                     e.Consumer(provider.GetRequiredService<FirstPassHistoryBlockDetectedConsumer>);
                 });

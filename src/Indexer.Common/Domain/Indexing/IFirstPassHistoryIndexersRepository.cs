@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Indexer.Common.Domain.Indexing
 {
@@ -8,5 +9,6 @@ namespace Indexer.Common.Domain.Indexing
         Task<FirstPassHistoryIndexer> GetOrDefault(FirstPassHistoryIndexerId id);
         Task Add(FirstPassHistoryIndexer indexer);
         Task Update(FirstPassHistoryIndexer indexer);
+        Task<IReadOnlyCollection<FirstPassHistoryIndexer>> GetByBlockchain(string blockchainId);
     }
 }

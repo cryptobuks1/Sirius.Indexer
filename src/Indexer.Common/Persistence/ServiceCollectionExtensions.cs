@@ -15,8 +15,10 @@ namespace Indexer.Common.Persistence
             services.AddTransient<IAssetsRepository, AssetsRepository>();
             services.AddTransient<IBlockchainsRepository, BlockchainsRepository>();
             services.AddTransient<IObservedOperationsRepository, ObservedOperationsRepository>();
+
             services.AddSingleton<IFirstPassHistoryIndexersRepository, InMemoryFirstPassHistoryIndexersRepository>();
             services.AddSingleton<ISecondPassHistoryIndexersRepository, InMemorySecondPassHistoryIndexersRepository>();
+            services.AddSingleton<IOngoingIndexersRepository, InMemoryOngoingIndexersRepository>();
             services.AddSingleton<IBlocksRepository, InMemoryBlocksRepository>();
 
             services.AddSingleton<DbContextOptionsBuilder<DatabaseContext>>(x =>

@@ -12,15 +12,8 @@ namespace Indexer.Common.Domain.Indexing
             _blocksRepository = blocksRepository;
         }
 
-        public async Task<BlockProcessingResult> ProcessBlock(long startBlockNumber, Block block)
+        public async Task<BlockProcessingResult> ProcessBlock(Block block)
         {
-            if (block.Number == startBlockNumber)
-            {
-                await _blocksRepository.InsertOrReplace(block);
-
-                return BlockProcessingResult.CreateForward();
-            }
-
             var previousBlock = await _blocksRepository.GetOrDefault(block.BlockchainId, block.Number - 1);
 
             if (previousBlock == null)

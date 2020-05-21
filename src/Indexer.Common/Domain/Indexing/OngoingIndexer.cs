@@ -6,32 +6,29 @@ namespace Indexer.Common.Domain.Indexing
 {
     public sealed class OngoingIndexer
     {
-        private OngoingIndexer(string blockchainId, long startBlock, long nextBlock, long sequence, int version)
+        private OngoingIndexer(string blockchainId, long nextBlock, long sequence, int version)
         {
             BlockchainId = blockchainId;
-            StartBlock = startBlock;
             NextBlock = nextBlock;
             Sequence = sequence;
             Version = version;
         }
 
         public string BlockchainId { get; }
-        public long StartBlock { get; }
         public long NextBlock { get; private set; }
         public long Sequence { get; private set; }
         public int Version { get; }
 
-        public static OngoingIndexer Start(string blockchainId, long startBlock, long sequence)
+        public static OngoingIndexer Create(string blockchainId, long startBlock, long startSequence)
         {
             return new OngoingIndexer(
                 blockchainId,
                 startBlock,
-                startBlock,
-                sequence,
+                startSequence,
                 version: 0);
         }
 
-        public async Task<OngoingBlockIndexingResult> IndexNextBlock(ILogger<FirstPassHistoryIndexer> logger,
+        public async Task<OngoingBlockIndexingResult> IndexNextBlock(ILogger<OngoingIndexer> logger,
             IBlocksReader reader,
             BlocksProcessor processor)
         {
@@ -42,7 +39,7 @@ namespace Indexer.Common.Domain.Indexing
                 return OngoingBlockIndexingResult.BlockNotFound;
             }
 
-            var processingResult = await processor.ProcessBlock(StartBlock, newBlock);
+            var processingResult = await processor.ProcessBlock(newBlock);
 
             switch (processingResult.IndexingDirection)
             {
@@ -60,6 +57,14 @@ namespace Indexer.Common.Domain.Indexing
                     
                     NextBlock++;
                     Sequence++;
+
+                    logger.LogInformation("Ongoing indexer has indexed the block {@context}", new
+                    {
+                        BlockchainId = BlockchainId,
+                        BlockNumber = newBlock.Number,
+                        BlockId = newBlock.Id
+                    });
+
                     break;
 
                 case IndexingDirection.Backward:
@@ -76,7 +81,7 @@ namespace Indexer.Common.Domain.Indexing
                     NextBlock--;
                     Sequence++;
 
-                    logger.LogInformation("Block has been reverted by the ongoing indexer {@context}", new
+                    logger.LogInformation("Ongoing indexer has reverted the block {@context}", new
                     {
                         BlockchainId = BlockchainId,
                         BlockNumber = processingResult.PreviousBlock.Number,

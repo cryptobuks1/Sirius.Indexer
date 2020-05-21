@@ -8,7 +8,7 @@ using Swisschain.Sirius.Sdk.Primitives;
 
 namespace Indexer.Common.Domain.Indexing
 {
-    public class BlocksReader : IBlocksReader
+    internal class BlocksReader : IBlocksReader
     {
         private readonly ILogger<BlocksReader> _logger;
         private readonly ISiriusIntegrationClient _client;

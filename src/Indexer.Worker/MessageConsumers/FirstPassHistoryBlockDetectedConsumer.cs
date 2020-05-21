@@ -1,27 +1,31 @@
 ﻿using System.Threading.Tasks;
 using Indexer.Common.Domain;
 using Indexer.Common.Domain.Indexing;
+using Indexer.Worker.Jobs;
 using MassTransit;
 using Microsoft.Extensions.Logging;
 
 namespace Indexer.Worker.MessageConsumers
 {
-    public class FirstPassHistoryBlockDetectedConsumer : IConsumer<FirstPassHistoryBlockDetected>
+    internal class FirstPassHistoryBlockDetectedConsumer : IConsumer<FirstPassHistoryBlockDetected>
     {
-        private readonly ILogger<FirstPassHistoryBlockDetectedConsumer> _logger;
+        private readonly ILoggerFactory _loggerFactory;
         private readonly IBlocksRepository _blocksRepository;
         private readonly ISecondPassHistoryIndexersRepository _secondPassHistoryIndexersRepository;
         private readonly IPublishEndpoint _persistentPublisher;
+        private readonly OngoingIndexingJobsManager _ongoingIndexingJobsManager;
 
-        public FirstPassHistoryBlockDetectedConsumer(ILogger<FirstPassHistoryBlockDetectedConsumer> logger,
+        public FirstPassHistoryBlockDetectedConsumer(ILoggerFactory loggerFactory,
             IBlocksRepository blocksRepository,
             ISecondPassHistoryIndexersRepository secondPassHistoryIndexersRepository,
-            IPublishEndpoint persistentPublisher)
+            IPublishEndpoint persistentPublisher,
+            OngoingIndexingJobsManager ongoingIndexingJobsManager)
         {
-            _logger = logger;
+            _loggerFactory = loggerFactory;
             _blocksRepository = blocksRepository;
             _secondPassHistoryIndexersRepository = secondPassHistoryIndexersRepository;
             _persistentPublisher = persistentPublisher;
+            _ongoingIndexingJobsManager = ongoingIndexingJobsManager;
         }
 
         public async Task Consume(ConsumeContext<FirstPassHistoryBlockDetected> context)
@@ -30,6 +34,7 @@ namespace Indexer.Worker.MessageConsumers
             var secondPassIndexer = await _secondPassHistoryIndexersRepository.Get(evt.BlockchainId);
 
             var secondPassIndexingResult = await secondPassIndexer.IndexAvailableBlocks(
+                _loggerFactory.CreateLogger<SecondPassHistoryIndexer>(),
                 // TODO: To config
                 100,
                 _blocksRepository,
@@ -39,10 +44,8 @@ namespace Indexer.Worker.MessageConsumers
 
             if (secondPassIndexingResult == SecondPassHistoryIndexingResult.IndexingCompleted)
             {
-                // TODO: Start ongoing indexer
+                await _ongoingIndexingJobsManager.EnsureStarted(evt.BlockchainId);
             }
-
-            _logger.LogInformation("Second-pass indexer has processed the blocks batch {@context}", secondPassIndexer);
         }
     }
 }

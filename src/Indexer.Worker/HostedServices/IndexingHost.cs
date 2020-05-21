@@ -9,13 +9,13 @@ using Indexer.Common.Domain.Indexing;
 using Indexer.Common.Messaging.InMemoryBus;
 using Indexer.Common.Persistence;
 using Indexer.Common.ReadModel.Blockchains;
+using Indexer.Worker.Jobs;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Swisschain.Sirius.Sdk.Integrations.Client;
 
 namespace Indexer.Worker.HostedServices
 {
-    public class IndexingHost : IHostedService
+    internal class IndexingHost : IHostedService, IDisposable
     {
         private readonly ILogger<IndexingHost> _logger;
         private readonly ILoggerFactory _loggerFactory;
@@ -23,10 +23,13 @@ namespace Indexer.Worker.HostedServices
         private readonly IBlockchainsRepository _blockchainsRepository;
         private readonly IFirstPassHistoryIndexersRepository _firstPassHistoryIndexersRepository;
         private readonly ISecondPassHistoryIndexersRepository _secondPassHistoryIndexersRepository;
+        private readonly IOngoingIndexersRepository _ongoingIndexersRepository;
         private readonly IBlocksRepository _blocksRepository;
         private readonly IInMemoryBus _inMemoryBus;
+        private readonly SecondPassHistoryIndexingJobsManager _secondPassHistoryIndexingJobsManager;
+        private readonly OngoingIndexingJobsManager _ongoingIndexingJobsManager;
+        private readonly IBlockReadersProvider _blockReadersProvider;
         private readonly List<FirstPassHistoryIndexingJob> _firstPassIndexingJobs;
-        private readonly List<ISiriusIntegrationClient> _integrationClients;
 
         public IndexingHost(ILogger<IndexingHost> logger,
             ILoggerFactory loggerFactory,
@@ -34,8 +37,12 @@ namespace Indexer.Worker.HostedServices
             IBlockchainsRepository blockchainsRepository,
             IFirstPassHistoryIndexersRepository firstPassHistoryIndexersRepository,
             ISecondPassHistoryIndexersRepository secondPassHistoryIndexersRepository,
+            IOngoingIndexersRepository ongoingIndexersRepository,
             IBlocksRepository blocksRepository,
-            IInMemoryBus inMemoryBus)
+            IInMemoryBus inMemoryBus,
+            SecondPassHistoryIndexingJobsManager secondPassHistoryIndexingJobsManager,
+            OngoingIndexingJobsManager ongoingIndexingJobsManager,
+            IBlockReadersProvider blockReadersProvider)
         {
             _logger = logger;
             _loggerFactory = loggerFactory;
@@ -43,11 +50,14 @@ namespace Indexer.Worker.HostedServices
             _blockchainsRepository = blockchainsRepository;
             _firstPassHistoryIndexersRepository = firstPassHistoryIndexersRepository;
             _secondPassHistoryIndexersRepository = secondPassHistoryIndexersRepository;
+            _ongoingIndexersRepository = ongoingIndexersRepository;
             _blocksRepository = blocksRepository;
             _inMemoryBus = inMemoryBus;
+            _secondPassHistoryIndexingJobsManager = secondPassHistoryIndexingJobsManager;
+            _ongoingIndexingJobsManager = ongoingIndexingJobsManager;
+            _blockReadersProvider = blockReadersProvider;
 
             _firstPassIndexingJobs = new List<FirstPassHistoryIndexingJob>();
-            _integrationClients = new List<ISiriusIntegrationClient>();
         }
 
         public async Task StartAsync(CancellationToken cancellationToken)
@@ -64,14 +74,15 @@ namespace Indexer.Worker.HostedServices
                     });
 
                 var blockchainMetamodel = await _blockchainsRepository.GetAsync(blockchainId);
+                var blocksReader = await _blockReadersProvider.Get(blockchainId);
 
-                await ProvisionBlockchainFirstPassHistoryIndexingJobs(blockchainId, blockchainConfig, blockchainMetamodel);
-                await ProvisionBlockchainSecondPassHistoryIndexer(blockchainId, blockchainConfig, blockchainMetamodel);
-            }
-
-            foreach (var job in _firstPassIndexingJobs)
-            {
-                job.Start();
+                var firstPassIndexers = await ProvisionFirstPassHistoryIndexers(blockchainId, blockchainConfig, blockchainMetamodel);
+                var secondPassIndexer = await ProvisionSecondPassHistoryIndexer(blockchainId, blockchainConfig, blockchainMetamodel);
+                var ongoingIndexer = await ProvisionOngoingIndexer(blockchainId, blockchainConfig, blockchainMetamodel);
+                
+                await StartFirstPassHistoryIndexingJobs(firstPassIndexers, blocksReader);
+                await StartSecondPassHistoryIndexingJob(firstPassIndexers, secondPassIndexer);
+                await StartOngoingIndexingJob(secondPassIndexer, ongoingIndexer);
             }
 
             _logger.LogInformation("Indexing has been started.");
@@ -86,28 +97,91 @@ namespace Indexer.Worker.HostedServices
                 job.Stop();
             }
 
+            _secondPassHistoryIndexingJobsManager.Stop();
+            _ongoingIndexingJobsManager.Stop();
+
             foreach (var job in _firstPassIndexingJobs)
             {
                 job.Wait();
             }
 
-            foreach (var job in _firstPassIndexingJobs)
-            {
-                job.Dispose();
-            }
-
-            foreach (var client in _integrationClients.Cast<IDisposable>())
-            {
-                client.Dispose();
-            }
+            _secondPassHistoryIndexingJobsManager.Wait();
+            _ongoingIndexingJobsManager.Wait();
 
             _logger.LogInformation("Indexing has been stopped.");
 
             return Task.CompletedTask;
         }
 
-        private async Task ProvisionBlockchainSecondPassHistoryIndexer(string blockchainId, 
-            BlockchainIndexingConfig blockchainConfig, 
+        public void Dispose()
+        {
+            foreach (var job in _firstPassIndexingJobs)
+            {
+                job.Dispose();
+            }
+            
+            _secondPassHistoryIndexingJobsManager.Dispose();
+            _ongoingIndexingJobsManager.Dispose();
+        }
+
+        private async Task<IReadOnlyCollection<FirstPassHistoryIndexer>> ProvisionFirstPassHistoryIndexers(string blockchainId,
+            BlockchainIndexingConfig blockchainConfig,
+            BlockchainMetamodel blockchainMetamodel)
+        {
+            var indexerBlocksCount = blockchainConfig.LastHistoricalBlockNumber /
+                                     blockchainConfig.FirstPassHistoryIndexersCount;
+            var indexerFactoryTasks = Enumerable
+                .Range(0, blockchainConfig.FirstPassHistoryIndexersCount)
+                .Select(async i =>
+                {
+                    var startBlock = blockchainMetamodel.Protocol.StartBlockNumber + i * indexerBlocksCount;
+                    var isLastIndexer = i != blockchainConfig.FirstPassHistoryIndexersCount - 1;
+                    var stopBlock = isLastIndexer
+                        ? startBlock + indexerBlocksCount
+                        : blockchainConfig.LastHistoricalBlockNumber;
+                    var indexerId = new FirstPassHistoryIndexerId(blockchainId, startBlock);
+                    var indexer = await _firstPassHistoryIndexersRepository.GetOrDefault(indexerId);
+
+                    if (indexer == null)
+                    {
+                        _logger.LogInformation("First-pass history indexer is being created {@context}", new
+                        {
+                            BlockchainId = indexerId.BlockchainId,
+                            StartBlock = indexerId.StartBlock,
+                            StopBlock = stopBlock
+                        });
+
+                        indexer = FirstPassHistoryIndexer.Start(indexerId, stopBlock);
+
+                        await _firstPassHistoryIndexersRepository.Add(indexer);
+                    }
+                    else
+                    {
+                        _logger.LogInformation("First-pass history indexer has been found {@context}", new
+                        {
+                            BlockchainId = indexer.BlockchainId,
+                            StartBlock = indexer.StartBlock,
+                            StopBlock = stopBlock,
+                            NextBlock = indexer.NextBlock
+                        });
+                    }
+
+                    return indexer;
+                })
+                .ToArray();
+
+            await Task.WhenAll(indexerFactoryTasks);
+
+            var indexers = indexerFactoryTasks
+                .Select(x => x.Result)
+                .Where(x => x != null)
+                .ToArray();
+
+            return indexers;
+        }
+        
+        private async Task<SecondPassHistoryIndexer> ProvisionSecondPassHistoryIndexer(string blockchainId,
+            BlockchainIndexingConfig blockchainConfig,
             BlockchainMetamodel blockchainMetamodel)
         {
             var indexer = await _secondPassHistoryIndexersRepository.GetOrDefault(blockchainId);
@@ -130,121 +204,130 @@ namespace Indexer.Worker.HostedServices
             }
             else
             {
-                if (indexer.IsCompleted)
+                _logger.LogInformation("Second-pass history indexer has been found {@context}", new
                 {
-                    _logger.LogInformation("Second-pass history indexer is already completed {@context}", new
-                    {
-                        BlockchainId = blockchainId,
-                        StartBlock = blockchainMetamodel.Protocol.StartBlockNumber,
-                        StopBlock = indexer.StopBlock,
-                        NextBlock = indexer.NextBlock
-                    });
-
-                    // TODO: Start ongoing indexer
-                }
-                else
-                {
-                    _logger.LogInformation("Second-pass history indexer has been found {@context}", new
-                    {
-                        BlockchainId = blockchainId,
-                        StartBlock = blockchainMetamodel.Protocol.StartBlockNumber,
-                        StopBlock = indexer.StopBlock,
-                        NextBlock = indexer.NextBlock
-                    });
-                }
+                    BlockchainId = blockchainId,
+                    StartBlock = blockchainMetamodel.Protocol.StartBlockNumber,
+                    StopBlock = indexer.StopBlock,
+                    NextBlock = indexer.NextBlock
+                });
             }
+
+            return indexer;
         }
 
-        private async Task<bool> ProvisionBlockchainFirstPassHistoryIndexer(string blockchainId, long startBlock, long stopBlock)
+        private async Task<OngoingIndexer> ProvisionOngoingIndexer(string blockchainId,
+            BlockchainIndexingConfig blockchainConfig,
+            BlockchainMetamodel blockchainMetamodel)
         {
-            var indexerId = new FirstPassHistoryIndexerId(blockchainId, startBlock);
-            var indexer = await _firstPassHistoryIndexersRepository.GetOrDefault(indexerId);
+            var indexer = await _ongoingIndexersRepository.GetOrDefault(blockchainId);
 
             if (indexer == null)
             {
-                _logger.LogInformation("First-pass history indexer is being created {@context}", new
+                var startBlock = blockchainConfig.LastHistoricalBlockNumber;
+                var sequence = blockchainConfig.LastHistoricalBlockNumber -
+                               blockchainMetamodel.Protocol.StartBlockNumber;
+
+                _logger.LogInformation("Ongoing indexer is being created {@context}", new
                 {
-                    BlockchainId = indexerId.BlockchainId,
-                    StartBlock = indexerId.StartBlock,
-                    StopBlock = stopBlock
+                    BlockchainId = blockchainId,
+                    StartBlock = startBlock,
+                    StartSeqence = sequence
                 });
 
-                indexer = FirstPassHistoryIndexer.Start(indexerId, stopBlock);
+                indexer = OngoingIndexer.Create(
+                    blockchainId, 
+                    startBlock: blockchainConfig.LastHistoricalBlockNumber,
+                    startSequence: blockchainConfig.LastHistoricalBlockNumber - blockchainMetamodel.Protocol.StartBlockNumber);
 
-                await _firstPassHistoryIndexersRepository.Add(indexer);
+                await _ongoingIndexersRepository.Add(indexer);
             }
             else
+            {
+                _logger.LogInformation("Ongoing indexer has been found {@context}", new
+                {
+                    BlockchainId = blockchainId,
+                    NextBlock = indexer.NextBlock,
+                    Sequence = indexer.Sequence
+                });
+            }
+
+            return indexer;
+        }
+
+        private async Task StartFirstPassHistoryIndexingJobs(
+            IReadOnlyCollection<FirstPassHistoryIndexer> indexers,
+            IBlocksReader blocksReader)
+        {
+            foreach (var indexer in indexers)
             {
                 if (indexer.IsCompleted)
                 {
                     _logger.LogInformation("First-pass history indexer is already completed {@context}", new
                     {
-                        BlockchainId = indexerId.BlockchainId,
-                        StartBlock = indexerId.StartBlock,
-                        StopBlock = stopBlock,
+                        BlockchainId = indexer.BlockchainId,
+                        StartBlock = indexer.StartBlock,
+                        StopBlock = indexer.StopBlock,
                         NextBlock = indexer.NextBlock
                     });
-
-                    return false;
                 }
-
-                _logger.LogInformation("First-pass history indexer has been found {@context}", new
+                else
                 {
-                    BlockchainId = indexerId.BlockchainId,
-                    StartBlock = indexerId.StartBlock,
-                    StopBlock = stopBlock,
-                    NextBlock = indexer.NextBlock
-                });
-            }
+                    var job = new FirstPassHistoryIndexingJob(
+                        _loggerFactory.CreateLogger<FirstPassHistoryIndexingJob>(),
+                        _loggerFactory,
+                        indexer.Id,
+                        indexer.StopBlock,
+                        _firstPassHistoryIndexersRepository,
+                        blocksReader,
+                        _blocksRepository,
+                        _inMemoryBus,
+                        _secondPassHistoryIndexingJobsManager);
 
-            return true;
+                    await job.Start();
+                    
+                    _firstPassIndexingJobs.Add(job);
+                }
+            }
         }
 
-        private async Task ProvisionBlockchainFirstPassHistoryIndexingJobs(string blockchainId,
-            BlockchainIndexingConfig blockchainConfig,
-            BlockchainMetamodel blockchainMetamodel)
+        private async Task StartSecondPassHistoryIndexingJob(IReadOnlyCollection<FirstPassHistoryIndexer> firstPassIndexers, 
+            SecondPassHistoryIndexer secondPassIndexer)
         {
-            var indexerBlocksCount = blockchainConfig.LastHistoricalBlockNumber /
-                                     blockchainConfig.FirstPassHistoryIndexersCount;
-            var integrationClient = new SiriusIntegrationClient(blockchainMetamodel.IntegrationUrl, unencrypted: true);
-            var blocksReader = new BlocksReader(
-                _loggerFactory.CreateLogger<BlocksReader>(),
-                integrationClient,
-                blockchainMetamodel);
-            var jobFactoryTasks = Enumerable
-                .Range(0, blockchainConfig.FirstPassHistoryIndexersCount)
-                .Select(async i =>
+            if (firstPassIndexers.All(x => x.IsCompleted))
+            {
+                _logger.LogInformation("All first-pass history indexers are already completed, starting second-pass history indexer {@context}", new
                 {
-                    var startBlock = blockchainMetamodel.Protocol.StartBlockNumber + i * indexerBlocksCount;
-                    var stopBlock = startBlock + indexerBlocksCount;
-                    var isLastIndexer = i != blockchainConfig.FirstPassHistoryIndexersCount - 1;
+                    BlockchainId = secondPassIndexer.BlockchainId
+                });
 
-                    if (await ProvisionBlockchainFirstPassHistoryIndexer(blockchainId, startBlock, stopBlock))
+                if (secondPassIndexer.IsCompleted)
+                {
+                    _logger.LogInformation("Second-pass history indexer is already completed {@context}", new
                     {
-                        return new FirstPassHistoryIndexingJob(
-                            _loggerFactory.CreateLogger<FirstPassHistoryIndexingJob>(),
-                            _loggerFactory,
-                            new FirstPassHistoryIndexerId(blockchainId, startBlock),
-                            isLastIndexer ? stopBlock : blockchainConfig.LastHistoricalBlockNumber,
-                            blockchainConfig.DelayOnBlockNotFound,
-                            _firstPassHistoryIndexersRepository,
-                            blocksReader,
-                            _blocksRepository,
-                            _inMemoryBus);
-                    }
+                        BlockchainId = secondPassIndexer.BlockchainId,
+                        StopBlock = secondPassIndexer.StopBlock
+                    });
+                }
+                else
+                {
+                    await _secondPassHistoryIndexingJobsManager.EnsureStarted(secondPassIndexer.BlockchainId);
+                }
+            }
+        }
 
-                    return null;
-                })
-                .ToArray();
+        private async Task StartOngoingIndexingJob(SecondPassHistoryIndexer secondPassIndexer,
+            OngoingIndexer ongoingIndexer)
+        {
+            if (secondPassIndexer.IsCompleted)
+            {
+                _logger.LogInformation("Second-pass history indexer is already completed, starting ongoing indexer {@context}", new
+                {
+                    BlockchainId = secondPassIndexer.BlockchainId
+                });
 
-            await Task.WhenAll(jobFactoryTasks);
-
-            var jobs = jobFactoryTasks
-                .Select(x => x.Result)
-                .Where(x => x != null);
-
-            _firstPassIndexingJobs.AddRange(jobs);
-            _integrationClients.Add(integrationClient);
+                await _ongoingIndexingJobsManager.EnsureStarted(ongoingIndexer.BlockchainId);
+            }
         }
     }
 }

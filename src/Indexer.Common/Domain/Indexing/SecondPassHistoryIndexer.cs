@@ -1,6 +1,6 @@
 ﻿using System.Threading.Tasks;
 using MassTransit;
-using Swisschain.Sirius.Indexer.MessagingContract;
+using Microsoft.Extensions.Logging;
 
 namespace Indexer.Common.Domain.Indexing
 {
@@ -9,20 +9,17 @@ namespace Indexer.Common.Domain.Indexing
         private SecondPassHistoryIndexer(string blockchainId,
             long nextBlock,
             long stopBlock,
-            long sequence,
             long version)
         {
             BlockchainId = blockchainId;
             NextBlock = nextBlock;
             StopBlock = stopBlock;
-            Sequence = sequence;
             Version = version;
         }
 
         public string BlockchainId { get; }
         public long NextBlock { get; private set; }
         public long StopBlock { get; }
-        public long Sequence { get; private set; }
         public long Version { get; }
         public bool IsCompleted => NextBlock == StopBlock;
 
@@ -32,29 +29,42 @@ namespace Indexer.Common.Domain.Indexing
                 blockchainId,
                 startBlock,
                 stopBlock,
-                sequence: 0,
                 version: 0);
         }
 
-        public async Task<SecondPassHistoryIndexingResult> IndexAvailableBlocks(int maxBlocksCount,
+        public async Task<SecondPassHistoryIndexingResult> IndexAvailableBlocks(
+            ILogger<SecondPassHistoryIndexer> logger,
+            int maxBlocksCount,
             IBlocksRepository blocksRepository,
             IPublishEndpoint publisher)
         {
+            if (IsCompleted)
+            {
+                return SecondPassHistoryIndexingResult.IndexingCompleted;
+            }
+
             var blocks = await blocksRepository.GetBatch(BlockchainId, NextBlock, maxBlocksCount);
 
-            foreach (var block in blocks)
+            try
             {
-                if (IsCompleted)
+                foreach (var block in blocks)
                 {
-                    return SecondPassHistoryIndexingResult.IndexingCompleted;
-                }
+                    if (NextBlock != block.Number)
+                    {
+                        return SecondPassHistoryIndexingResult.IndexingInProgress;
+                    }
 
-                if (NextBlock != block.Number)
-                {
-                    return SecondPassHistoryIndexingResult.IndexingInProgress;
-                }
+                    await StepForward(block, publisher);
 
-                await StepForward(block, publisher);
+                    if (IsCompleted)
+                    {
+                        return SecondPassHistoryIndexingResult.IndexingCompleted;
+                    }
+                }
+            }
+            finally
+            {
+                logger.LogInformation("Second-pass indexer has processed the blocks batch {@context}", this);
             }
 
             return SecondPassHistoryIndexingResult.IndexingInProgress;
@@ -63,18 +73,8 @@ namespace Indexer.Common.Domain.Indexing
         private async Task StepForward(Block block, IPublishEndpoint publisher)
         {
             NextBlock = block.Number + 1;
-            Sequence++;
 
             // TODO: Index block data
-
-            await publisher.Publish(new BlockDetected
-            {
-                BlockchainId = BlockchainId,
-                BlockId = block.Id,
-                BlockNumber = block.Number,
-                ChainSequence = Sequence,
-                PreviousBlockId = block.PreviousId
-            });
         }
     }
 }

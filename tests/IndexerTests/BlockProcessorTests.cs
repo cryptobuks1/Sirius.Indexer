@@ -22,8 +22,10 @@ namespace IndexerTests
             var blockRepository = new InMemoryBlocksRepository();
             var processor = new BlocksProcessor(blockRepository);
 
+            await blockRepository.InsertOrReplace(new Block(BlockchainId, number: 9, id: "A", previousBlockId: "C"));
+
             // act
-            var output = await processor.ProcessBlock(initialBlock.Number, initialBlock);
+            var output = await processor.ProcessBlock(initialBlock);
 
             // assert
             output.IndexingDirection.ShouldBe(IndexingDirection.Forward);
@@ -38,7 +40,7 @@ namespace IndexerTests
             var processor = new BlocksProcessor(blockRepository);
 
             // assert
-            await Should.ThrowAsync<NotSupportedException>(() => processor.ProcessBlock(0, block));
+            await processor.ProcessBlock(block).ShouldThrowAsync<NotSupportedException>();
         }
 
         [Fact]
@@ -53,7 +55,7 @@ namespace IndexerTests
             var order = new List<string> { "A", "B", "C", "D" };
             var blocks = new BlockSet
             {
-                new Block(BlockchainId, number: 10, id: "A", previousBlockId: null),
+                new Block(BlockchainId, number: 10, id: "A", previousBlockId: "Z"),
                 new Block(BlockchainId, number: 11, id: "B", previousBlockId: "A"),
                 new Block(BlockchainId, number: 12, id: "C", previousBlockId: "B"),
                 new Block(BlockchainId, number: 13, id: "D", previousBlockId: "C"),
@@ -67,10 +69,12 @@ namespace IndexerTests
                 BlockProcessingResult.CreateForward(),
             };
 
+            await blockRepository.InsertOrReplace(new Block(BlockchainId, number: 9, id: "Z", previousBlockId: "X"));
+
             // act
             foreach (var id in order)
             {
-                results.Add(await processor.ProcessBlock(startBlockNumber: 10, block: blocks[id]));
+                results.Add(await processor.ProcessBlock(blocks[id]));
             }
 
             // assert
@@ -78,23 +82,7 @@ namespace IndexerTests
         }
 
         [Fact]
-        public async Task StoresInitialBlock()
-        {
-            // arrange
-            var initialBlock = new Block(BlockchainId, number: 10, id: "B", previousBlockId: "A");
-            var blockRepository = new InMemoryBlocksRepository();
-            var processor = new BlocksProcessor(blockRepository);
-
-            // act
-            await processor.ProcessBlock(initialBlock.Number, initialBlock);
-
-            var readBlock = await blockRepository.GetOrDefault(BlockchainId, 10);
-
-            readBlock.ShouldNotBeNull();
-        }
-
-        [Fact]
-        public async Task StoresRegularBlock()
+        public async Task StoresBlock()
         {
             // arrange
             var initialBlock = new Block(BlockchainId, number: 10, id: "A", previousBlockId: "Z");
@@ -102,9 +90,11 @@ namespace IndexerTests
             var blockRepository = new InMemoryBlocksRepository();
             var processor = new BlocksProcessor(blockRepository);
 
+            await blockRepository.InsertOrReplace(new Block(BlockchainId, number: 9, id: "Z", previousBlockId: "X"));
+
             // act
-            await processor.ProcessBlock(initialBlock.Number, initialBlock);
-            await processor.ProcessBlock(initialBlock.Number, regularBlock);
+            await processor.ProcessBlock(initialBlock);
+            await processor.ProcessBlock(regularBlock);
 
             var readBlock = await blockRepository.GetOrDefault(BlockchainId, 11);
 
@@ -120,7 +110,7 @@ namespace IndexerTests
             var processor = new BlocksProcessor(blockRepository);
 
             // assert
-            await Should.ThrowAsync<NotSupportedException>(() => processor.ProcessBlock(0, block));
+            await Should.ThrowAsync<NotSupportedException>(() => processor.ProcessBlock(block));
 
             var readBlock = await blockRepository.GetOrDefault(BlockchainId, 10);
 
@@ -141,7 +131,7 @@ namespace IndexerTests
             var order = new List<string> { "A", "B", "D", "C", "D" };
             var blocks = new BlockSet
             {
-                new Block(BlockchainId, number: 1, id: "A", previousBlockId: null),
+                new Block(BlockchainId, number: 1, id: "A", previousBlockId: "Z"),
                 new Block(BlockchainId, number: 2, id: "B", previousBlockId: "A"),
                 new Block(BlockchainId, number: 2, id: "C", previousBlockId: "A"),
                 new Block(BlockchainId, number: 3, id: "D", previousBlockId: "C"),
@@ -156,10 +146,12 @@ namespace IndexerTests
                 BlockProcessingResult.CreateForward(),
             };
 
+            await blockRepository.InsertOrReplace(new Block(BlockchainId, number: 0, id: "Z", previousBlockId: "X"));
+
             // act
             foreach (var id in order)
             {
-                results.Add(await processor.ProcessBlock(startBlockNumber: 1, block: blocks[id]));
+                results.Add(await processor.ProcessBlock(blocks[id]));
             }
 
             // assert
@@ -180,7 +172,7 @@ namespace IndexerTests
             var order = new List<string> { "A", "B", "D", "F", "E", "C", "E", "F" };
             var blocks = new BlockSet
             {
-                new Block(BlockchainId, number: 1, id: "A", previousBlockId: null),
+                new Block(BlockchainId, number: 1, id: "A", previousBlockId: "Z"),
                 new Block(BlockchainId, number: 2, id: "B", previousBlockId: "A"),
                 new Block(BlockchainId, number: 2, id: "C", previousBlockId: "A"),
                 new Block(BlockchainId, number: 3, id: "D", previousBlockId: "B"),
@@ -200,10 +192,12 @@ namespace IndexerTests
                 BlockProcessingResult.CreateForward(),
             };
 
+            await blockRepository.InsertOrReplace(new Block(BlockchainId, number: 0, id: "Z", previousBlockId: "X"));
+
             // act
             foreach (var id in order)
             {
-                results.Add(await processor.ProcessBlock(startBlockNumber: 1, block: blocks[id]));
+                results.Add(await processor.ProcessBlock(blocks[id]));
             }
 
             // assert
@@ -226,7 +220,7 @@ namespace IndexerTests
             var order = new List<string> { "A", "B", "C", "E", "H", "K", "N", "L", "I", "F", "D", "F", "I", "L", "N", "P", "O", "M", "J", "G", "J", "M", "O", "P" };
             var blocks = new BlockSet
             {
-                new Block(BlockchainId, number: 1, id: "A", previousBlockId: null),
+                new Block(BlockchainId, number: 1, id: "A", previousBlockId: "Z"),
                 new Block(BlockchainId, number: 2, id: "B", previousBlockId: "A"),
                 new Block(BlockchainId, number: 3, id: "C", previousBlockId: "B"),
                 new Block(BlockchainId, number: 3, id: "D", previousBlockId: "B"),
@@ -272,10 +266,12 @@ namespace IndexerTests
                 BlockProcessingResult.CreateForward(),
             };
 
+            await blockRepository.InsertOrReplace(new Block(BlockchainId, number: 0, id: "Z", previousBlockId: "X"));
+
             // act
             foreach (var id in order)
             {
-                results.Add(await processor.ProcessBlock(startBlockNumber: 1, block: blocks[id]));
+                results.Add(await processor.ProcessBlock(blocks[id]));
             }
 
             // assert
@@ -299,7 +295,7 @@ namespace IndexerTests
             var order = new List<string> { "A", "B", "C", "E", "H", "K", "N", "L", "J", "G", "D", "G", "J", "M", "O", "P" };
             var blocks = new BlockSet
             {
-                new Block(BlockchainId, number: 1, id: "A", previousBlockId: null),
+                new Block(BlockchainId, number: 1, id: "A", previousBlockId: "Z"),
                 new Block(BlockchainId, number: 2, id: "B", previousBlockId: "A"),
                 new Block(BlockchainId, number: 3, id: "C", previousBlockId: "B"),
                 new Block(BlockchainId, number: 3, id: "D", previousBlockId: "B"),
@@ -337,10 +333,12 @@ namespace IndexerTests
                 BlockProcessingResult.CreateForward(),
             };
 
+            await blockRepository.InsertOrReplace(new Block(BlockchainId, number: 0, id: "Z", previousBlockId: "X"));
+
             // act
             foreach (var id in order)
             {
-                results.Add(await processor.ProcessBlock(startBlockNumber: 1, block: blocks[id]));
+                results.Add(await processor.ProcessBlock(blocks[id]));
             }
 
             // assert
@@ -364,7 +362,7 @@ namespace IndexerTests
             var order = new List<string> { "1A", "2A", "3A", "4A", "5B", "4B", "3B", "4B", "5B", "6C", "5C", "4C", "3A", "4C", "5C", "6C" };
             var blocks = new BlockSet
             {
-                new Block(BlockchainId, number: 1, id: "1A", previousBlockId: null),
+                new Block(BlockchainId, number: 1, id: "1A", previousBlockId: "Z"),
                 new Block(BlockchainId, number: 2, id: "2A", previousBlockId: "1A"),
                 new Block(BlockchainId, number: 3, id: "3A", previousBlockId: "2A"),
                 new Block(BlockchainId, number: 4, id: "4A", previousBlockId: "3A"),
@@ -396,10 +394,12 @@ namespace IndexerTests
                 BlockProcessingResult.CreateForward(),
             };
 
+            await blockRepository.InsertOrReplace(new Block(BlockchainId, number: 0, id: "Z", previousBlockId: "X"));
+
             // act
             foreach (var id in order)
             {
-                results.Add(await processor.ProcessBlock(startBlockNumber: 1, block: blocks[id]));
+                results.Add(await processor.ProcessBlock(blocks[id]));
             }
 
             // assert
@@ -423,7 +423,7 @@ namespace IndexerTests
             var order = new List<string> { "1A", "2A", "3A", "4A", "5B", "4B", "3B", "4B", "5B", "6C", "5C", "4C", "3C", "4C", "5C", "6C" };
             var blocks = new BlockSet
             {
-                new Block(BlockchainId, number: 1, id: "1A", previousBlockId: null),
+                new Block(BlockchainId, number: 1, id: "1A", previousBlockId: "Z"),
                 new Block(BlockchainId, number: 2, id: "2A", previousBlockId: "1A"),
                 new Block(BlockchainId, number: 3, id: "3A", previousBlockId: "2A"),
                 new Block(BlockchainId, number: 4, id: "4A", previousBlockId: "3A"),
@@ -456,10 +456,12 @@ namespace IndexerTests
                 BlockProcessingResult.CreateForward(),
             };
 
+            await blockRepository.InsertOrReplace(new Block(BlockchainId, number: 0, id: "Z", previousBlockId: "X"));
+
             // act
             foreach (var id in order)
             {
-                results.Add(await processor.ProcessBlock(startBlockNumber: 1, block: blocks[id]));
+                results.Add(await processor.ProcessBlock(blocks[id]));
             }
 
             // assert
@@ -483,7 +485,7 @@ namespace IndexerTests
             var order = new List<string> { "1A", "2A", "3A", "4A", "5B", "4B", "3B", "4B", "5B", "6C", "5C", "4C", "3C", "2C", "3C", "4C", "5C", "6C" };
             var blocks = new BlockSet
             {
-                new Block(BlockchainId, number: 1, id: "1A", previousBlockId: null),
+                new Block(BlockchainId, number: 1, id: "1A", previousBlockId: "Z"),
                 new Block(BlockchainId, number: 2, id: "2A", previousBlockId: "1A"),
                 new Block(BlockchainId, number: 3, id: "3A", previousBlockId: "2A"),
                 new Block(BlockchainId, number: 4, id: "4A", previousBlockId: "3A"),
@@ -519,10 +521,12 @@ namespace IndexerTests
                 BlockProcessingResult.CreateForward(),
             };
 
+            await blockRepository.InsertOrReplace(new Block(BlockchainId, number: 0, id: "Z", previousBlockId: "X"));
+
             // act
             foreach (var id in order)
             {
-                results.Add(await processor.ProcessBlock(startBlockNumber: 1, block: blocks[id]));
+                results.Add(await processor.ProcessBlock(blocks[id]));
             }
 
             // assert
