@@ -6,12 +6,14 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Indexer.Common.Configuration;
 using Indexer.Common.Domain;
+using Indexer.Common.Domain.Indexing;
 using Indexer.Common.HostedServices;
 using Indexer.Common.Messaging.DiscardingRateLimiting;
 using Indexer.Common.Messaging.InMemoryBus;
 using Indexer.Common.Persistence;
 using Indexer.Worker.HostedServices;
 using Indexer.Worker.Jobs;
+using Indexer.Worker.Limiters;
 using Indexer.Worker.MessageConsumers;
 using Swisschain.Sdk.Server.Common;
 
@@ -41,11 +43,9 @@ namespace Indexer.Worker
 
                 cfg.ReceiveEndpoint("first-pass-block-detected", e =>
                 {
-                    // TODO: Use rate limiter per-blockchain
-                    // TODO: Use parallelism for the entire endpoint and dispatch messages to the single-threaded per-blockchain consumers
-                    // TODO: Move the rate limit to the config
-                    e.UseDiscardingRateLimit(rateLimit: 1, interval: TimeSpan.FromSeconds(1));
-                    e.UseConcurrencyLimit(1);
+                    // For all blockchains
+
+                    e.UseConcurrencyLimit(8);
 
                     e.Consumer(provider.GetRequiredService<FirstPassHistoryBlockDetectedConsumer>);
                 });

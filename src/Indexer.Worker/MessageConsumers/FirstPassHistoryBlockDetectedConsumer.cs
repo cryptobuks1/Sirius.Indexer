@@ -1,7 +1,9 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 using Indexer.Common.Domain;
 using Indexer.Common.Domain.Indexing;
 using Indexer.Worker.Jobs;
+using Indexer.Worker.Limiters;
 using MassTransit;
 using Microsoft.Extensions.Logging;
 
@@ -9,6 +11,9 @@ namespace Indexer.Worker.MessageConsumers
 {
     internal class FirstPassHistoryBlockDetectedConsumer : IConsumer<FirstPassHistoryBlockDetected>
     {
+        private static readonly RateLimiter RateLimiter = new RateLimiter(1, TimeSpan.FromSeconds(10));
+        private static readonly ConcurrencyLimiter ConcurrencyLimiter = new ConcurrencyLimiter(1);
+
         private readonly ILoggerFactory _loggerFactory;
         private readonly IBlocksRepository _blocksRepository;
         private readonly ISecondPassHistoryIndexersRepository _secondPassHistoryIndexersRepository;
@@ -31,6 +36,15 @@ namespace Indexer.Worker.MessageConsumers
         public async Task Consume(ConsumeContext<FirstPassHistoryBlockDetected> context)
         {
             var evt = context.Message;
+
+            if (!await RateLimiter.Wait($"{nameof(FirstPassHistoryBlockDetected)}-{evt.BlockchainId}"))
+            {
+                // Just skips rate-limited event
+                return;
+            }
+
+            using var concurrencyLimiter = await ConcurrencyLimiter.Enter($"{nameof(FirstPassHistoryBlockDetected)}-{evt.BlockchainId}");
+
             var secondPassIndexer = await _secondPassHistoryIndexersRepository.Get(evt.BlockchainId);
 
             var secondPassIndexingResult = await secondPassIndexer.IndexAvailableBlocks(
