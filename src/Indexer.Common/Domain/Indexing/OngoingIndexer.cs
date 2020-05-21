@@ -1,6 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
+using MassTransit;
 using Microsoft.Extensions.Logging;
+using Swisschain.Sirius.Indexer.MessagingContract;
 
 namespace Indexer.Common.Domain.Indexing
 {
@@ -18,7 +21,7 @@ namespace Indexer.Common.Domain.Indexing
         public long NextBlock { get; private set; }
         public long Sequence { get; private set; }
         public int Version { get; }
-
+        
         public static OngoingIndexer Create(string blockchainId, long startBlock, long startSequence)
         {
             return new OngoingIndexer(
@@ -28,33 +31,38 @@ namespace Indexer.Common.Domain.Indexing
                 version: 0);
         }
 
-        public async Task<OngoingBlockIndexingResult> IndexNextBlock(ILogger<OngoingIndexer> logger,
+        public async Task<IOngoingIndexingResult> IndexNextBlock(ILogger<OngoingIndexer> logger,
             IBlocksReader reader,
-            BlocksProcessor processor)
+            BlocksProcessor processor,
+            IPublishEndpoint publisher)
         {
             var newBlock = await reader.ReadBlockOrDefaultAsync(NextBlock);
 
             if (newBlock == null)
             {
-                return OngoingBlockIndexingResult.BlockNotFound;
+                return OngoingIndexingResult.BlockNotFound();
             }
 
+            var indexingResult = OngoingIndexingResult.BlockIndexed();
             var processingResult = await processor.ProcessBlock(newBlock);
 
             switch (processingResult.IndexingDirection)
             {
                 case IndexingDirection.Forward:
+                    // This is needed to mitigate events publishing latency
+                    indexingResult.AddBackgroundTask(
+                        publisher.Publish(new BlockDetected
+                        {
+                            BlockchainId = BlockchainId,
+                            BlockId = newBlock.Id,
+                            BlockNumber = newBlock.Number,
+                            PreviousBlockId = newBlock.PreviousId,
+                            ChainSequence = Sequence
+                        }));
+
                     // TODO:
-                    //_events.Add(new FirstPassHistoryBlockDetected
-                    //{
-                    //    BlockchainId = BlockchainId,
-                    //    BlockId = newBlock.Id,
-                    //    BlockNumber = newBlock.Number,
-                    //    PreviousBlockId = newBlock.PreviousId
-                    //});
-                    
                     //await block.ExecuteAsync(this.Blockchain, this.NetworkType, this.executionRouter);
-                    
+
                     NextBlock++;
                     Sequence++;
 
@@ -68,16 +76,19 @@ namespace Indexer.Common.Domain.Indexing
                     break;
 
                 case IndexingDirection.Backward:
-                    // TODO:
-                    //_events.Add(new FirstPassBlockCancelled
-                    //{
-                    //    BlockchainId = BlockchainId,
-                    //    BlockId = processingResult.PreviousBlock.Id,
-                    //    BlockNumber = processingResult.PreviousBlock.Number
-                    //});
+                    // This is needed to mitigate events publishing latency
+                    indexingResult.AddBackgroundTask(
+                        publisher.Publish(new BlockCancelled
+                        {
+                            BlockchainId = BlockchainId,
+                            BlockId = processingResult.PreviousBlock.Id,
+                            BlockNumber = processingResult.PreviousBlock.Number,
+                            ChainSequence = Sequence
+                        }));
 
+                    // TODO:
                     //await this.canceler.Cancel(processingResult.PreviousBlockHash);
-                    
+
                     NextBlock--;
                     Sequence++;
 
@@ -94,7 +105,7 @@ namespace Indexer.Common.Domain.Indexing
                     throw new ArgumentOutOfRangeException(nameof(processingResult.IndexingDirection), processingResult.IndexingDirection, string.Empty);
             }
 
-            return OngoingBlockIndexingResult.BlockIndexed;
+            return indexingResult;
         }
     }
 }

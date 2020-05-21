@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Indexer.Common.Domain.Indexing;
+using MassTransit;
 using Microsoft.Extensions.Logging;
 
 namespace Indexer.Worker.Jobs
@@ -15,6 +17,7 @@ namespace Indexer.Worker.Jobs
         private readonly IOngoingIndexersRepository _indexersRepository;
         private readonly IBlocksReader _blocksReader;
         private readonly BlocksProcessor _blocksProcessor;
+        private readonly IPublishEndpoint _publisher;
         private readonly Timer _timer;
         private readonly ManualResetEventSlim _done;
         private readonly CancellationTokenSource _cts;
@@ -26,7 +29,8 @@ namespace Indexer.Worker.Jobs
             TimeSpan delayOnBlockNotFound,
             IOngoingIndexersRepository indexersRepository,
             IBlocksReader blocksReader,
-            BlocksProcessor blocksProcessor)
+            BlocksProcessor blocksProcessor,
+            IPublishEndpoint publisher)
         {
             _logger = logger;
             _loggerFactory = loggerFactory;
@@ -35,6 +39,7 @@ namespace Indexer.Worker.Jobs
             _indexersRepository = indexersRepository;
             _blocksReader = blocksReader;
             _blocksProcessor = blocksProcessor;
+            _publisher = publisher;
 
             _timer = new Timer(TimerCallback, null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
             _done = new ManualResetEventSlim(false);
@@ -121,15 +126,19 @@ namespace Indexer.Worker.Jobs
         private async Task IndexAvailableBlocks()
         {
             var batchInitialBlock = _indexer.NextBlock;
+            var batchBackgroundTasks = new List<Task>();
 
             while (!_cts.IsCancellationRequested)
             {
                 var indexingResult = await _indexer.IndexNextBlock(
                     _loggerFactory.CreateLogger<OngoingIndexer>(),
                     _blocksReader,
-                    _blocksProcessor);
+                    _blocksProcessor,
+                    _publisher);
 
-                if (indexingResult == OngoingBlockIndexingResult.BlockNotFound)
+                batchBackgroundTasks.AddRange(indexingResult.BackgroundTasks);
+
+                if (indexingResult.BlockResult == OngoingBlockIndexingResult.BlockNotFound)
                 {
                     _logger.LogDebug("Ongoing block is not found {@context}", new
                     {
@@ -139,6 +148,8 @@ namespace Indexer.Worker.Jobs
                     
                     if (_indexer.NextBlock != batchInitialBlock)
                     {
+                        // This is needed to mitigate single IO operation latency
+                        await Task.WhenAll(batchBackgroundTasks);
                         await _indexersRepository.Update(_indexer);
                     }
 
@@ -151,6 +162,9 @@ namespace Indexer.Worker.Jobs
 
                 if (_indexer.NextBlock - batchInitialBlock >= 100)
                 {
+                    // This is needed to mitigate single IO operation latency
+                    await Task.WhenAll(batchBackgroundTasks);
+
                     // TODO: Update indexer Version or re-read it from DB
                     await _indexersRepository.Update(_indexer);
 

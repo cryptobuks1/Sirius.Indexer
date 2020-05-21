@@ -6,14 +6,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Indexer.Common.Configuration;
 using Indexer.Common.Domain;
-using Indexer.Common.Domain.Indexing;
 using Indexer.Common.HostedServices;
-using Indexer.Common.Messaging.DiscardingRateLimiting;
 using Indexer.Common.Messaging.InMemoryBus;
 using Indexer.Common.Persistence;
 using Indexer.Worker.HostedServices;
 using Indexer.Worker.Jobs;
-using Indexer.Worker.Limiters;
 using Indexer.Worker.MessageConsumers;
 using Swisschain.Sdk.Server.Common;
 
@@ -43,8 +40,7 @@ namespace Indexer.Worker
 
                 cfg.ReceiveEndpoint("first-pass-block-detected", e =>
                 {
-                    // For all blockchains
-
+                    // This is for all blockchains
                     e.UseConcurrencyLimit(8);
 
                     e.Consumer(provider.GetRequiredService<FirstPassHistoryBlockDetectedConsumer>);
