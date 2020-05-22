@@ -29,17 +29,17 @@ namespace IndexerTests.Mocks
             }
         }
 
-        public Task Remove(string id)
+        public Task Remove(string globalId)
         {
             lock (_store)
             {
-                _store.Remove(id);
+                _store.Remove(globalId);
             }
 
             return Task.CompletedTask;
         }
 
-        public Task<IReadOnlyCollection<Block>> GetBatch(string blockchainId, long startBlockNumber, int limit)
+        public Task<IEnumerable<Block>> GetBatch(string blockchainId, long startBlockNumber, int limit)
         {
             lock (_store)
             {
@@ -50,7 +50,7 @@ namespace IndexerTests.Mocks
                     .Take(limit)
                     .ToArray();
 
-                return Task.FromResult<IReadOnlyCollection<Block>>(blocks);
+                return Task.FromResult<IEnumerable<Block>>(blocks);
             }
         }
     }

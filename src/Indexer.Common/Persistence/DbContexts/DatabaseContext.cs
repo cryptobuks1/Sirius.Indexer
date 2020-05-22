@@ -10,7 +10,7 @@ namespace Indexer.Common.Persistence.DbContexts
 {
     public class DatabaseContext : DbContext, IDbContextWithOutbox
     {
-        public const string SchemaName = "indexer-2";
+        public const string SchemaName = "indexer";
         public const string MigrationHistoryTable = "__EFMigrationsHistory";
 
         public DatabaseContext(DbContextOptions<DatabaseContext> options) :
@@ -19,7 +19,7 @@ namespace Indexer.Common.Persistence.DbContexts
         }
 
         public DbSet<ObservedOperationEntity> ObservedOperations { get; set; }
-
+        public DbSet<BlockEntity> Blocks { get; set; }
         public DbSet<OutboxEntity> Outbox { get; set; }
 
         #region ReadModel
@@ -36,8 +36,42 @@ namespace Indexer.Common.Persistence.DbContexts
 
             BuildBlockchain(modelBuilder);
             BuildObservedOperation(modelBuilder);
+            BuildBlocks(modelBuilder);
 
             base.OnModelCreating(modelBuilder);
+        }
+
+        private void BuildBlocks(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<BlockEntity>()
+                .ToTable("blocks")
+                .HasKey(x => x.GlobalId);
+
+            modelBuilder.Entity<BlockEntity>()
+                .HasIndex(x => new
+                {
+                    x.BlockchainId,
+                    x.Id
+                })
+                .IsUnique()
+                .HasName("IX_Blocks_Blockchain_Id");
+
+            modelBuilder.Entity<BlockEntity>()
+                .HasIndex(x => new
+                {
+                    x.BlockchainId,
+                    x.Number
+                })
+                .IsUnique()
+                .HasName("IX_Blocks_Blockchain_Number");
+
+            modelBuilder.Entity<BlockEntity>()
+                .Property(x => x.BlockchainId)
+                .IsRequired();
+
+            modelBuilder.Entity<BlockEntity>()
+                .Property(x => x.Id)
+                .IsRequired();
         }
 
         private static void BuildObservedOperation(ModelBuilder modelBuilder)

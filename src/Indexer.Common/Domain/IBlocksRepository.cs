@@ -7,7 +7,7 @@ namespace Indexer.Common.Domain
     {
         Task InsertOrReplace(Block block);
         Task<Block> GetOrDefault(string blockchainId, long blockNumber);
-        Task Remove(string id);
-        Task<IReadOnlyCollection<Block>> GetBatch(string blockchainId, long startBlockNumber, int limit);
+        Task Remove(string globalId);
+        Task<IEnumerable<Block>> GetBatch(string blockchainId, long startBlockNumber, int limit);
     }
 }

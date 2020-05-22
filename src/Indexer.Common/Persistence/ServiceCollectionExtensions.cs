@@ -19,7 +19,7 @@ namespace Indexer.Common.Persistence
             services.AddSingleton<IFirstPassHistoryIndexersRepository, InMemoryFirstPassHistoryIndexersRepository>();
             services.AddSingleton<ISecondPassHistoryIndexersRepository, InMemorySecondPassHistoryIndexersRepository>();
             services.AddSingleton<IOngoingIndexersRepository, InMemoryOngoingIndexersRepository>();
-            services.AddSingleton<IBlocksRepository, InMemoryBlocksRepository>();
+            services.AddSingleton<IBlocksRepository, BlocksRepository>();
 
             services.AddSingleton<DbContextOptionsBuilder<DatabaseContext>>(x =>
             {
