@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using Indexer.Common.Domain.ObservedOperations;
 using Indexer.Common.Persistence.Entities;
 using Indexer.Common.ReadModel.Blockchains;
 using Microsoft.EntityFrameworkCore;
@@ -11,7 +10,7 @@ namespace Indexer.Common.Persistence.DbContexts
 {
     public class DatabaseContext : DbContext, IDbContextWithOutbox
     {
-        public const string SchemaName = "indexer";
+        public const string SchemaName = "indexer-2";
         public const string MigrationHistoryTable = "__EFMigrationsHistory";
 
         public DatabaseContext(DbContextOptions<DatabaseContext> options) :

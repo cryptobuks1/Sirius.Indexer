@@ -8,6 +8,7 @@ using Indexer.Common.Configuration;
 using Indexer.Common.Domain;
 using Indexer.Common.HostedServices;
 using Indexer.Common.Messaging.InMemoryBus;
+using Indexer.Common.Monitoring;
 using Indexer.Common.Persistence;
 using Indexer.Worker.HostedServices;
 using Indexer.Worker.Jobs;
@@ -31,7 +32,14 @@ namespace Indexer.Worker
             services.AddDomain();
             services.AddJobs();
             services.AddMessageConsumers();
-            
+            services.AddAppInsight(options =>
+            {
+                options.SetInstrumentationKey(ConfigRoot["APPINSIGHTS_INSTRUMENTATIONKEY"]);
+                options.AddDefaultProperty("host-name", ApplicationEnvironment.HostName);
+                options.AddDefaultProperty("app-version", ApplicationInformation.AppVersion);
+            });
+
+           
             services.AddHostedService<MigrationHost>();
 
             services.AddInMemoryBus((provider, cfg) =>

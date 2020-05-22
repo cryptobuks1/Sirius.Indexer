@@ -7,6 +7,7 @@ using Indexer.Common.Configuration;
 using Indexer.Common.Domain;
 using Indexer.Common.Domain.Indexing;
 using Indexer.Common.Messaging.InMemoryBus;
+using Indexer.Common.Monitoring;
 using Indexer.Common.Persistence;
 using Indexer.Common.ReadModel.Blockchains;
 using Indexer.Worker.Jobs;
@@ -29,6 +30,7 @@ namespace Indexer.Worker.HostedServices
         private readonly SecondPassHistoryIndexingJobsManager _secondPassHistoryIndexingJobsManager;
         private readonly OngoingIndexingJobsManager _ongoingIndexingJobsManager;
         private readonly IBlockReadersProvider _blockReadersProvider;
+        private readonly IAppInsight _appInsight;
         private readonly List<FirstPassHistoryIndexingJob> _firstPassIndexingJobs;
 
         public IndexingHost(ILogger<IndexingHost> logger,
@@ -42,7 +44,8 @@ namespace Indexer.Worker.HostedServices
             IInMemoryBus inMemoryBus,
             SecondPassHistoryIndexingJobsManager secondPassHistoryIndexingJobsManager,
             OngoingIndexingJobsManager ongoingIndexingJobsManager,
-            IBlockReadersProvider blockReadersProvider)
+            IBlockReadersProvider blockReadersProvider,
+            IAppInsight appInsight)
         {
             _logger = logger;
             _loggerFactory = loggerFactory;
@@ -56,6 +59,7 @@ namespace Indexer.Worker.HostedServices
             _secondPassHistoryIndexingJobsManager = secondPassHistoryIndexingJobsManager;
             _ongoingIndexingJobsManager = ongoingIndexingJobsManager;
             _blockReadersProvider = blockReadersProvider;
+            _appInsight = appInsight;
 
             _firstPassIndexingJobs = new List<FirstPassHistoryIndexingJob>();
         }
@@ -282,7 +286,8 @@ namespace Indexer.Worker.HostedServices
                         blocksReader,
                         _blocksRepository,
                         _inMemoryBus,
-                        _secondPassHistoryIndexingJobsManager);
+                        _secondPassHistoryIndexingJobsManager,
+                        _appInsight);
 
                     await job.Start();
                     

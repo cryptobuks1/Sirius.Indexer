@@ -41,7 +41,7 @@ namespace Indexer.Common.Domain.Indexing
                 }
                 
                 var integrationClient = new SiriusIntegrationClient(blockchainMetamodel.IntegrationUrl, unencrypted: true);
-                
+
                 blocksReader = new BlocksReader(
                     _loggerFactory.CreateLogger<BlocksReader>(),
                     integrationClient,

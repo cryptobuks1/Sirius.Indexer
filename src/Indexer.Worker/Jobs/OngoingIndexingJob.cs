@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Indexer.Common.Domain.Indexing;
+using Indexer.Common.Monitoring;
 using MassTransit;
 using Microsoft.Extensions.Logging;
 
@@ -18,6 +19,7 @@ namespace Indexer.Worker.Jobs
         private readonly IBlocksReader _blocksReader;
         private readonly BlocksProcessor _blocksProcessor;
         private readonly IPublishEndpoint _publisher;
+        private readonly IAppInsight _appInsight;
         private readonly Timer _timer;
         private readonly ManualResetEventSlim _done;
         private readonly CancellationTokenSource _cts;
@@ -30,7 +32,8 @@ namespace Indexer.Worker.Jobs
             IOngoingIndexersRepository indexersRepository,
             IBlocksReader blocksReader,
             BlocksProcessor blocksProcessor,
-            IPublishEndpoint publisher)
+            IPublishEndpoint publisher,
+            IAppInsight appInsight)
         {
             _logger = logger;
             _loggerFactory = loggerFactory;
@@ -40,6 +43,7 @@ namespace Indexer.Worker.Jobs
             _blocksReader = blocksReader;
             _blocksProcessor = blocksProcessor;
             _publisher = publisher;
+            _appInsight = appInsight;
 
             _timer = new Timer(TimerCallback, null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
             _done = new ManualResetEventSlim(false);
@@ -130,45 +134,68 @@ namespace Indexer.Worker.Jobs
 
             while (!_cts.IsCancellationRequested)
             {
-                var indexingResult = await _indexer.IndexNextBlock(
-                    _loggerFactory.CreateLogger<OngoingIndexer>(),
-                    _blocksReader,
-                    _blocksProcessor,
-                    _publisher);
-
-                batchBackgroundTasks.AddRange(indexingResult.BackgroundTasks);
-
-                if (indexingResult.BlockResult == OngoingBlockIndexingResult.BlockNotFound)
+                var appInsightOperation = _appInsight.StartRequest("Ongoing block indexing", new Dictionary<string, string>
                 {
-                    _logger.LogDebug("Ongoing block is not found {@context}", new
+                    ["job"] = "Ongoing indexing",
+                    ["blockchainId"] = _indexer.BlockchainId,
+                    ["nextBlock"] = _indexer.NextBlock.ToString()
+                });
+
+                try
+                {
+                    // TODO: Add some delay in case of an error to reduce workload on the integration and DB
+
+                    var indexingResult = await _indexer.IndexNextBlock(
+                        _loggerFactory.CreateLogger<OngoingIndexer>(),
+                        _blocksReader,
+                        _blocksProcessor,
+                        _publisher);
+
+                    batchBackgroundTasks.AddRange(indexingResult.BackgroundTasks);
+
+                    if (indexingResult.BlockResult == OngoingBlockIndexingResult.BlockNotFound)
                     {
-                        BlockchainId = _indexer.BlockchainId,
-                        NextBlock = _indexer.NextBlock
-                    });
-                    
-                    if (_indexer.NextBlock != batchInitialBlock)
+                        _logger.LogDebug("Ongoing block is not found {@context}",
+                            new
+                            {
+                                BlockchainId = _indexer.BlockchainId,
+                                NextBlock = _indexer.NextBlock
+                            });
+
+                        if (_indexer.NextBlock != batchInitialBlock)
+                        {
+                            // This is needed to mitigate single IO operation latency
+                            await Task.WhenAll(batchBackgroundTasks);
+                            await _indexersRepository.Update(_indexer);
+                        }
+
+                        break;
+                    }
+
+                    // Saves the indexer state only every 100 blocks
+
+                    // TODO: Move batch size to the config
+
+                    if (_indexer.NextBlock - batchInitialBlock >= 100)
                     {
                         // This is needed to mitigate single IO operation latency
                         await Task.WhenAll(batchBackgroundTasks);
+
+                        // TODO: Update indexer Version or re-read it from DB
                         await _indexersRepository.Update(_indexer);
+
+                        batchInitialBlock = _indexer.NextBlock;
                     }
-
-                    break;
                 }
-
-                // Saves the indexer state only every 100 blocks
-
-                // TODO: Move batch size to the config
-
-                if (_indexer.NextBlock - batchInitialBlock >= 100)
+                catch (Exception ex)
                 {
-                    // This is needed to mitigate single IO operation latency
-                    await Task.WhenAll(batchBackgroundTasks);
+                    appInsightOperation.Fail(ex);
 
-                    // TODO: Update indexer Version or re-read it from DB
-                    await _indexersRepository.Update(_indexer);
-
-                    batchInitialBlock = _indexer.NextBlock;
+                    throw;
+                }
+                finally
+                {
+                    appInsightOperation.Stop();
                 }
             }
         }

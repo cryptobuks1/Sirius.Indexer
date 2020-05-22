@@ -1,4 +1,7 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using Indexer.Common.Monitoring;
 using MassTransit;
 using Microsoft.Extensions.Logging;
 
@@ -36,7 +39,8 @@ namespace Indexer.Common.Domain.Indexing
             ILogger<SecondPassHistoryIndexer> logger,
             int maxBlocksCount,
             IBlocksRepository blocksRepository,
-            IPublishEndpoint publisher)
+            IPublishEndpoint publisher,
+            IAppInsight appInsight)
         {
             if (IsCompleted)
             {
@@ -54,7 +58,7 @@ namespace Indexer.Common.Domain.Indexing
                         return SecondPassHistoryIndexingResult.IndexingInProgress;
                     }
 
-                    await StepForward(block, publisher);
+                    await StepForward(block, publisher, appInsight);
 
                     if (IsCompleted)
                     {
@@ -70,11 +74,32 @@ namespace Indexer.Common.Domain.Indexing
             return SecondPassHistoryIndexingResult.IndexingInProgress;
         }
         
-        private async Task StepForward(Block block, IPublishEndpoint publisher)
+        private async Task StepForward(Block block, IPublishEndpoint publisher, IAppInsight appInsight)
         {
-            NextBlock = block.Number + 1;
+            var appInsightOperation = appInsight.StartRequest("Second-pass block indexing",
+                new Dictionary<string, string>
+                {
+                    ["blockchainId"] = BlockchainId,
+                    ["nextBlock"] = NextBlock.ToString()
+                });
 
-            // TODO: Index block data
+            try
+            {
+
+                // TODO: Index block data
+
+                NextBlock = block.Number + 1;
+            }
+            catch (Exception ex)
+            {
+                appInsightOperation.Fail(ex);
+
+                throw;
+            }
+            finally
+            {
+                appInsightOperation.Stop();
+            }
         }
     }
 }

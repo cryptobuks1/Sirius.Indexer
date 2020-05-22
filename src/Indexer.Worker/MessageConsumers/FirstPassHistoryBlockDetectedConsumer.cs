@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using Indexer.Common.Domain;
 using Indexer.Common.Domain.Indexing;
+using Indexer.Common.Monitoring;
 using Indexer.Worker.Jobs;
 using Indexer.Worker.Limiters;
 using MassTransit;
@@ -11,7 +12,7 @@ namespace Indexer.Worker.MessageConsumers
 {
     internal class FirstPassHistoryBlockDetectedConsumer : IConsumer<FirstPassHistoryBlockDetected>
     {
-        private static readonly RateLimiter RateLimiter = new RateLimiter(1, TimeSpan.FromSeconds(10));
+        private static readonly RateLimiter RateLimiter = new RateLimiter(1, TimeSpan.FromSeconds(1));
         private static readonly ConcurrencyLimiter ConcurrencyLimiter = new ConcurrencyLimiter(1);
 
         private readonly ILoggerFactory _loggerFactory;
@@ -19,18 +20,21 @@ namespace Indexer.Worker.MessageConsumers
         private readonly ISecondPassHistoryIndexersRepository _secondPassHistoryIndexersRepository;
         private readonly IPublishEndpoint _persistentPublisher;
         private readonly OngoingIndexingJobsManager _ongoingIndexingJobsManager;
+        private readonly IAppInsight _appInsight;
 
         public FirstPassHistoryBlockDetectedConsumer(ILoggerFactory loggerFactory,
             IBlocksRepository blocksRepository,
             ISecondPassHistoryIndexersRepository secondPassHistoryIndexersRepository,
             IPublishEndpoint persistentPublisher,
-            OngoingIndexingJobsManager ongoingIndexingJobsManager)
+            OngoingIndexingJobsManager ongoingIndexingJobsManager,
+            IAppInsight appInsight)
         {
             _loggerFactory = loggerFactory;
             _blocksRepository = blocksRepository;
             _secondPassHistoryIndexersRepository = secondPassHistoryIndexersRepository;
             _persistentPublisher = persistentPublisher;
             _ongoingIndexingJobsManager = ongoingIndexingJobsManager;
+            _appInsight = appInsight;
         }
 
         public async Task Consume(ConsumeContext<FirstPassHistoryBlockDetected> context)
@@ -52,7 +56,8 @@ namespace Indexer.Worker.MessageConsumers
                 // TODO: To config
                 100,
                 _blocksRepository,
-                _persistentPublisher);
+                _persistentPublisher,
+                _appInsight);
 
             await _secondPassHistoryIndexersRepository.Update(secondPassIndexer);
 

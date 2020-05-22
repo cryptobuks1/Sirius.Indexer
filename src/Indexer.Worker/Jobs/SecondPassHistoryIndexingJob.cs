@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using Indexer.Common.Domain;
 using Indexer.Common.Domain.Indexing;
+using Indexer.Common.Monitoring;
 using MassTransit;
 using Microsoft.Extensions.Logging;
 
@@ -17,6 +18,7 @@ namespace Indexer.Worker.Jobs
         private readonly IBlocksRepository _blocksRepository;
         private readonly IPublishEndpoint _publisher;
         private readonly OngoingIndexingJobsManager _ongoingIndexingJobsManager;
+        private readonly IAppInsight _appInsight;
         private readonly BackgroundJob _job;
         private SecondPassHistoryIndexer _indexer;
 
@@ -27,7 +29,8 @@ namespace Indexer.Worker.Jobs
             ISecondPassHistoryIndexersRepository indexersRepository,
             IBlocksRepository blocksRepository,
             IPublishEndpoint publisher,
-            OngoingIndexingJobsManager ongoingIndexingJobsManager)
+            OngoingIndexingJobsManager ongoingIndexingJobsManager,
+            IAppInsight appInsight)
         {
             _logger = logger;
             _loggerFactory = loggerFactory;
@@ -37,6 +40,7 @@ namespace Indexer.Worker.Jobs
             _blocksRepository = blocksRepository;
             _publisher = publisher;
             _ongoingIndexingJobsManager = ongoingIndexingJobsManager;
+            _appInsight = appInsight;
 
             _job = new BackgroundJob(
                 loggerFactory.CreateLogger<SecondPassHistoryIndexingJob>(),
@@ -73,12 +77,14 @@ namespace Indexer.Worker.Jobs
 
         private async Task IndexBlocksBatch()
         {
+            // TODO: Add some delay in case of an error to reduce workload on the DB
             // TODO: Move max blocks count to config
             var indexingResult = await _indexer.IndexAvailableBlocks(
                 _loggerFactory.CreateLogger<SecondPassHistoryIndexer>(), 
                 maxBlocksCount: 100,
                 _blocksRepository,
-                _publisher);
+                _publisher,
+                _appInsight);
 
             if (indexingResult == SecondPassHistoryIndexingResult.IndexingCompleted)
             {

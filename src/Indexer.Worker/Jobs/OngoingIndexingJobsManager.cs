@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Indexer.Common.Configuration;
 using Indexer.Common.Domain.Indexing;
+using Indexer.Common.Monitoring;
 using MassTransit;
 using Microsoft.Extensions.Logging;
 
@@ -17,6 +18,7 @@ namespace Indexer.Worker.Jobs
         private readonly IBlockReadersProvider _blockReadersProvider;
         private readonly BlocksProcessor _blocksProcessor;
         private readonly IPublishEndpoint _publisher;
+        private readonly IAppInsight _appInsight;
         private readonly SemaphoreSlim _lock;
         private readonly ConcurrentDictionary<string, OngoingIndexingJob> _jobs;
 
@@ -25,7 +27,8 @@ namespace Indexer.Worker.Jobs
             IOngoingIndexersRepository indexersRepository,
             IBlockReadersProvider blockReadersProvider,
             BlocksProcessor blocksProcessor,
-            IPublishEndpoint publisher)
+            IPublishEndpoint publisher,
+            IAppInsight appInsight)
         {
             _loggerFactory = loggerFactory;
             _appConfig = appConfig;
@@ -33,6 +36,7 @@ namespace Indexer.Worker.Jobs
             _blockReadersProvider = blockReadersProvider;
             _blocksProcessor = blocksProcessor;
             _publisher = publisher;
+            _appInsight = appInsight;
 
             _lock = new SemaphoreSlim(1, 1);
             _jobs = new ConcurrentDictionary<string, OngoingIndexingJob>();
@@ -57,7 +61,8 @@ namespace Indexer.Worker.Jobs
                         _indexersRepository,
                         blocksReader,
                         _blocksProcessor,
-                        _publisher);
+                        _publisher,
+                        _appInsight);
 
                     _jobs.TryAdd(blockchainId, job);
 
