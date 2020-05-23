@@ -51,7 +51,7 @@ namespace Indexer.Worker
                     // This is for all blockchains
                     e.UseConcurrencyLimit(8);
 
-                    e.Consumer(provider.GetRequiredService<FirstPassHistoryBlockDetectedConsumer>);
+                    e.Consumer(provider.GetRequiredService<FirstPassBlockDetectedConsumer>);
                 });
             });
 

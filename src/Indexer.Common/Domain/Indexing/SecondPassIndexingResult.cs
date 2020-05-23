@@ -1,8 +1,8 @@
 ﻿namespace Indexer.Common.Domain.Indexing
 {
-    public enum FirstPassHistoryIndexingResult
+    public enum SecondPassIndexingResult
     {
-        BlockIndexed,
+        IndexingInProgress,
         IndexingCompleted
     }
 }

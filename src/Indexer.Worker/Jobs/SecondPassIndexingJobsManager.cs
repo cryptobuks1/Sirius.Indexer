@@ -11,21 +11,21 @@ using Microsoft.Extensions.Logging;
 
 namespace Indexer.Worker.Jobs
 {
-    internal sealed class SecondPassHistoryIndexingJobsManager : IDisposable
+    internal sealed class SecondPassIndexingJobsManager : IDisposable
     {
         private readonly ILoggerFactory _loggerFactory;
         private readonly AppConfig _appConfig;
-        private readonly ISecondPassHistoryIndexersRepository _indexersRepository;
+        private readonly ISecondPassIndexersRepository _indexersRepository;
         private readonly IBlocksRepository _blocksRepository;
         private readonly IPublishEndpoint _publisher;
         private readonly OngoingIndexingJobsManager _ongoingIndexingJobsManager;
         private readonly IAppInsight _appInsight;
         private readonly SemaphoreSlim _lock;
-        private readonly ConcurrentDictionary<string, SecondPassHistoryIndexingJob> _jobs;
+        private readonly ConcurrentDictionary<string, SecondPassIndexingJob> _jobs;
 
-        public SecondPassHistoryIndexingJobsManager(ILoggerFactory loggerFactory, 
+        public SecondPassIndexingJobsManager(ILoggerFactory loggerFactory, 
             AppConfig appConfig,
-            ISecondPassHistoryIndexersRepository indexersRepository,
+            ISecondPassIndexersRepository indexersRepository,
             IBlocksRepository blocksRepository,
             IPublishEndpoint publisher,
             OngoingIndexingJobsManager ongoingIndexingJobsManager,
@@ -40,7 +40,7 @@ namespace Indexer.Worker.Jobs
             _appInsight = appInsight;
 
             _lock = new SemaphoreSlim(1, 1);
-            _jobs = new ConcurrentDictionary<string, SecondPassHistoryIndexingJob>();
+            _jobs = new ConcurrentDictionary<string, SecondPassIndexingJob>();
         }
 
         public async Task EnsureStarted(string blockchainId)
@@ -53,8 +53,8 @@ namespace Indexer.Worker.Jobs
                 {
                     var blockchainConfig = _appConfig.Indexing.Blockchains[blockchainId];
 
-                    var job = new SecondPassHistoryIndexingJob(
-                        _loggerFactory.CreateLogger<SecondPassHistoryIndexingJob>(),
+                    var job = new SecondPassIndexingJob(
+                        _loggerFactory.CreateLogger<SecondPassIndexingJob>(),
                         _loggerFactory,
                         blockchainId,
                         blockchainConfig.LastHistoricalBlockNumber,

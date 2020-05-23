@@ -1,6 +1,6 @@
 ﻿namespace Indexer.Common.Domain.Indexing
 {
-    public class FirstPassHistoryBlockDetected
+    public class FirstPassBlockDetected
     {
         public string BlockchainId { get; set; }
     }

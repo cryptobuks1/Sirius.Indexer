@@ -9,7 +9,7 @@ namespace Indexer.Worker.MessageConsumers
             services.AddTransient<PublishAllAssetsConsumer>();
             services.AddTransient<PublishAssetConsumer>();
             services.AddTransient<BlockchainUpdatesConsumer>();
-            services.AddTransient<FirstPassHistoryBlockDetectedConsumer>();
+            services.AddTransient<FirstPassBlockDetectedConsumer>();
 
             return services;
         }

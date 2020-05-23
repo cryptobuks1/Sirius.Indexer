@@ -2,13 +2,13 @@
 using System.Threading.Tasks;
 using Indexer.Common.Domain.Indexing;
 
-namespace IndexerTests.Mocks
+namespace Indexer.Common.Persistence
 {
-    internal sealed class InMemorySecondPassHistoryIndexersRepository : ISecondPassHistoryIndexersRepository
+    internal sealed class InMemorySecondPassIndexersRepository : ISecondPassIndexersRepository
     {
-        private readonly Dictionary<string, SecondPassHistoryIndexer> _store = new Dictionary<string, SecondPassHistoryIndexer>();
+        private readonly Dictionary<string, SecondPassIndexer> _store = new Dictionary<string, SecondPassIndexer>();
 
-        public Task<SecondPassHistoryIndexer> Get(string blockchainId)
+        public Task<SecondPassIndexer> Get(string blockchainId)
         {
             lock (_store)
             {
@@ -16,7 +16,7 @@ namespace IndexerTests.Mocks
             }
         }
 
-        public Task<SecondPassHistoryIndexer> GetOrDefault(string blockchainId)
+        public Task<SecondPassIndexer> GetOrDefault(string blockchainId)
         {
             lock (_store)
             {
@@ -26,7 +26,7 @@ namespace IndexerTests.Mocks
             }
         }
 
-        public Task Add(SecondPassHistoryIndexer indexer)
+        public Task Add(SecondPassIndexer indexer)
         {
             lock (_store)
             {
@@ -36,7 +36,7 @@ namespace IndexerTests.Mocks
             return Task.CompletedTask;
         }
 
-        public Task Update(SecondPassHistoryIndexer indexer)
+        public Task Update(SecondPassIndexer indexer)
         {
             lock (_store)
             {

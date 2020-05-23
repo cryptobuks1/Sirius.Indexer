@@ -8,25 +8,25 @@ using Microsoft.Extensions.Logging;
 
 namespace Indexer.Worker.Jobs
 {
-    internal sealed class SecondPassHistoryIndexingJob : IDisposable
+    internal sealed class SecondPassIndexingJob : IDisposable
     {
-        private readonly ILogger<SecondPassHistoryIndexingJob> _logger;
+        private readonly ILogger<SecondPassIndexingJob> _logger;
         private readonly ILoggerFactory _loggerFactory;
         private readonly string _blockchainId;
         private readonly long _stopBlock;
-        private readonly ISecondPassHistoryIndexersRepository _indexersRepository;
+        private readonly ISecondPassIndexersRepository _indexersRepository;
         private readonly IBlocksRepository _blocksRepository;
         private readonly IPublishEndpoint _publisher;
         private readonly OngoingIndexingJobsManager _ongoingIndexingJobsManager;
         private readonly IAppInsight _appInsight;
         private readonly BackgroundJob _job;
-        private SecondPassHistoryIndexer _indexer;
+        private SecondPassIndexer _indexer;
 
-        public SecondPassHistoryIndexingJob(ILogger<SecondPassHistoryIndexingJob> logger,
+        public SecondPassIndexingJob(ILogger<SecondPassIndexingJob> logger,
             ILoggerFactory loggerFactory,
             string blockchainId,
             long stopBlock,
-            ISecondPassHistoryIndexersRepository indexersRepository,
+            ISecondPassIndexersRepository indexersRepository,
             IBlocksRepository blocksRepository,
             IPublishEndpoint publisher,
             OngoingIndexingJobsManager ongoingIndexingJobsManager,
@@ -43,8 +43,8 @@ namespace Indexer.Worker.Jobs
             _appInsight = appInsight;
 
             _job = new BackgroundJob(
-                loggerFactory.CreateLogger<SecondPassHistoryIndexingJob>(),
-                "Second-pass history indexing",
+                loggerFactory.CreateLogger<SecondPassIndexingJob>(),
+                "Second-pass indexing",
                 new
                 {
                     BlockchainId = _blockchainId,
@@ -80,15 +80,15 @@ namespace Indexer.Worker.Jobs
             // TODO: Add some delay in case of an error to reduce workload on the DB
             // TODO: Move max blocks count to config
             var indexingResult = await _indexer.IndexAvailableBlocks(
-                _loggerFactory.CreateLogger<SecondPassHistoryIndexer>(), 
+                _loggerFactory.CreateLogger<SecondPassIndexer>(), 
                 maxBlocksCount: 100,
                 _blocksRepository,
                 _publisher,
                 _appInsight);
 
-            if (indexingResult == SecondPassHistoryIndexingResult.IndexingCompleted)
+            if (indexingResult == SecondPassIndexingResult.IndexingCompleted)
             {
-                _logger.LogInformation("Second-pass history indexing job is completed {@context}", new
+                _logger.LogInformation("Second-pass indexing job is completed {@context}", new
                 {
                     BlockchainId = _blockchainId,
                     StopBlock = _stopBlock

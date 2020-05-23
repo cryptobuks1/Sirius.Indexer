@@ -6,7 +6,7 @@ namespace Indexer.Worker.Jobs
     {
         public static IServiceCollection AddJobs(this IServiceCollection services)
         {
-            services.AddSingleton<SecondPassHistoryIndexingJobsManager>();
+            services.AddSingleton<SecondPassIndexingJobsManager>();
             services.AddSingleton<OngoingIndexingJobsManager>();
 
             return services;

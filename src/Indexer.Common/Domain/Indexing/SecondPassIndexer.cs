@@ -7,9 +7,9 @@ using Microsoft.Extensions.Logging;
 
 namespace Indexer.Common.Domain.Indexing
 {
-    public sealed class SecondPassHistoryIndexer
+    public sealed class SecondPassIndexer
     {
-        private SecondPassHistoryIndexer(string blockchainId,
+        private SecondPassIndexer(string blockchainId,
             long nextBlock,
             long stopBlock,
             long version)
@@ -26,17 +26,17 @@ namespace Indexer.Common.Domain.Indexing
         public long Version { get; }
         public bool IsCompleted => NextBlock == StopBlock;
 
-        public static SecondPassHistoryIndexer Create(string blockchainId, long startBlock, long stopBlock)
+        public static SecondPassIndexer Create(string blockchainId, long startBlock, long stopBlock)
         {
-            return new SecondPassHistoryIndexer(
+            return new SecondPassIndexer(
                 blockchainId,
                 startBlock,
                 stopBlock,
                 version: 0);
         }
 
-        public async Task<SecondPassHistoryIndexingResult> IndexAvailableBlocks(
-            ILogger<SecondPassHistoryIndexer> logger,
+        public async Task<SecondPassIndexingResult> IndexAvailableBlocks(
+            ILogger<SecondPassIndexer> logger,
             int maxBlocksCount,
             IBlocksRepository blocksRepository,
             IPublishEndpoint publisher,
@@ -44,7 +44,7 @@ namespace Indexer.Common.Domain.Indexing
         {
             if (IsCompleted)
             {
-                return SecondPassHistoryIndexingResult.IndexingCompleted;
+                return SecondPassIndexingResult.IndexingCompleted;
             }
 
             var blocks = await blocksRepository.GetBatch(BlockchainId, NextBlock, maxBlocksCount);
@@ -55,14 +55,14 @@ namespace Indexer.Common.Domain.Indexing
                 {
                     if (NextBlock != block.Number)
                     {
-                        return SecondPassHistoryIndexingResult.IndexingInProgress;
+                        return SecondPassIndexingResult.IndexingInProgress;
                     }
 
                     await StepForward(block, publisher, appInsight);
 
                     if (IsCompleted)
                     {
-                        return SecondPassHistoryIndexingResult.IndexingCompleted;
+                        return SecondPassIndexingResult.IndexingCompleted;
                     }
                 }
             }
@@ -71,7 +71,7 @@ namespace Indexer.Common.Domain.Indexing
                 logger.LogInformation("Second-pass indexer has processed the blocks batch {@context}", this);
             }
 
-            return SecondPassHistoryIndexingResult.IndexingInProgress;
+            return SecondPassIndexingResult.IndexingInProgress;
         }
         
         private async Task StepForward(Block block, IPublishEndpoint publisher, IAppInsight appInsight)

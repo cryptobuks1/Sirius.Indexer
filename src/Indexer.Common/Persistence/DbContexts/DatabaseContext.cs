@@ -20,6 +20,7 @@ namespace Indexer.Common.Persistence.DbContexts
 
         public DbSet<ObservedOperationEntity> ObservedOperations { get; set; }
         public DbSet<BlockEntity> Blocks { get; set; }
+        public DbSet<FirstPassIndexerEntity> FirstPassHistoryIndexers { get; set; }
         public DbSet<OutboxEntity> Outbox { get; set; }
 
         #region ReadModel

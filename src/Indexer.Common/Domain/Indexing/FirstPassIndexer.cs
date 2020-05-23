@@ -6,9 +6,9 @@ using Microsoft.Extensions.Logging;
 
 namespace Indexer.Common.Domain.Indexing
 {
-    public sealed class FirstPassHistoryIndexer
+    public sealed class FirstPassIndexer
     {
-        private FirstPassHistoryIndexer(FirstPassHistoryIndexerId id,
+        private FirstPassIndexer(FirstPassIndexerId id,
             long stopBlock,
             long nextBlock,
             int version)
@@ -19,7 +19,7 @@ namespace Indexer.Common.Domain.Indexing
             Version = version;
         }
 
-        public FirstPassHistoryIndexerId Id { get; }
+        public FirstPassIndexerId Id { get; }
         public string BlockchainId => Id.BlockchainId;
         public long StartBlock => Id.StartBlock;
         public long StopBlock { get; }
@@ -27,50 +27,50 @@ namespace Indexer.Common.Domain.Indexing
         public int Version { get; }
         public bool IsCompleted => NextBlock >= StopBlock;
         
-        public static FirstPassHistoryIndexer Start(FirstPassHistoryIndexerId id, long stopBlock)
+        public static FirstPassIndexer Start(FirstPassIndexerId id, long stopBlock)
         {
-            return new FirstPassHistoryIndexer(
+            return new FirstPassIndexer(
                 id,
                 stopBlock: stopBlock,
                 nextBlock: id.StartBlock,
                 version: 0);
         }
 
-        public async Task<FirstPassHistoryIndexingResult> IndexNextBlock(ILogger<FirstPassHistoryIndexer> logger,
+        public async Task<FirstPassIndexingResult> IndexNextBlock(ILogger<FirstPassIndexer> logger,
             IBlocksReader blocksReader,
             IBlocksRepository blocksRepository,
             IInMemoryBus inMemoryBus)
         {
             if (IsCompleted)
             {
-                return FirstPassHistoryIndexingResult.IndexingCompleted;
+                return FirstPassIndexingResult.IndexingCompleted;
             }
 
             var block = await blocksReader.ReadBlockOrDefaultAsync(NextBlock);
 
             if (block == null)
             {
-                logger.LogInformation($"First-pass history indexer has not found the block. Likely `{nameof(BlockchainIndexingConfig.LastHistoricalBlockNumber)}` should be decreased. It should be existing block {{@context}}", new
+                logger.LogInformation($"First-pass indexer has not found the block. Likely `{nameof(BlockchainIndexingConfig.LastHistoricalBlockNumber)}` should be decreased. It should be existing block {{@context}}", new
                 {
                     BlockchainId = BlockchainId,
                     BlockNumber = NextBlock
                 });
 
-                throw new InvalidOperationException($@"First-pass history indexer {BlockchainId} has not found the block {NextBlock}.");
+                throw new InvalidOperationException($@"First-pass indexer {BlockchainId} has not found the block {NextBlock}.");
             }
 
             await blocksRepository.InsertOrIgnore(block);
 
             // TODO: Add first-pass block data indexing
             
-            await inMemoryBus.Publish(new FirstPassHistoryBlockDetected
+            await inMemoryBus.Publish(new FirstPassBlockDetected
             {
                 BlockchainId = BlockchainId
             });
             
             NextBlock++;
 
-            return FirstPassHistoryIndexingResult.BlockIndexed;
+            return FirstPassIndexingResult.BlockIndexed;
         }
     }
 }

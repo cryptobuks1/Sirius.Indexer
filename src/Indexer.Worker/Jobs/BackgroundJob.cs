@@ -7,14 +7,14 @@ namespace Indexer.Worker.Jobs
 {
     internal sealed class BackgroundJob : IDisposable
     {
-        private readonly ILogger<SecondPassHistoryIndexingJob> _logger;
+        private readonly ILogger<SecondPassIndexingJob> _logger;
         private readonly string _jobName;
         private readonly object _jobLoggingContext;
         private readonly Func<Task> _worker;
         private readonly CancellationTokenSource _cts;
         private Task _task;
 
-        public BackgroundJob(ILogger<SecondPassHistoryIndexingJob> logger,
+        public BackgroundJob(ILogger<SecondPassIndexingJob> logger,
             string jobName,
             object jobLoggingContext,
             Func<Task> worker)

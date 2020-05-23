@@ -10,30 +10,30 @@ using Microsoft.Extensions.Logging;
 
 namespace Indexer.Worker.Jobs
 {
-    internal sealed class FirstPassHistoryIndexingJob : IDisposable
+    internal sealed class FirstPassIndexingJob : IDisposable
     {
-        private readonly ILogger<FirstPassHistoryIndexingJob> _logger;
+        private readonly ILogger<FirstPassIndexingJob> _logger;
         private readonly ILoggerFactory _loggerFactory;
-        private readonly FirstPassHistoryIndexerId _indexerId;
+        private readonly FirstPassIndexerId _indexerId;
         private readonly long _stopBlock;
-        private readonly IFirstPassHistoryIndexersRepository _indexersRepository;
+        private readonly IFirstPassIndexersRepository _indexersRepository;
         private readonly IBlocksReader _blocksReader;
         private readonly IBlocksRepository _blocksRepository;
         private readonly IInMemoryBus _inMemoryBus;
-        private readonly SecondPassHistoryIndexingJobsManager _secondPassHistoryIndexingJobsManager;
+        private readonly SecondPassIndexingJobsManager _secondPassIndexingJobsManager;
         private readonly IAppInsight _appInsight;
         private readonly BackgroundJob _job;
-        private FirstPassHistoryIndexer _indexer;
+        private FirstPassIndexer _indexer;
 
-        public FirstPassHistoryIndexingJob(ILogger<FirstPassHistoryIndexingJob> logger,
+        public FirstPassIndexingJob(ILogger<FirstPassIndexingJob> logger,
             ILoggerFactory loggerFactory,
-            FirstPassHistoryIndexerId indexerId,
+            FirstPassIndexerId indexerId,
             long stopBlock,
-            IFirstPassHistoryIndexersRepository indexersRepository,
+            IFirstPassIndexersRepository indexersRepository,
             IBlocksReader blocksReader,
             IBlocksRepository blocksRepository,
             IInMemoryBus inMemoryBus,
-            SecondPassHistoryIndexingJobsManager secondPassHistoryIndexingJobsManager,
+            SecondPassIndexingJobsManager secondPassIndexingJobsManager,
             IAppInsight appInsight)
         {
             _logger = logger;
@@ -44,11 +44,11 @@ namespace Indexer.Worker.Jobs
             _blocksReader = blocksReader;
             _blocksRepository = blocksRepository;
             _inMemoryBus = inMemoryBus;
-            _secondPassHistoryIndexingJobsManager = secondPassHistoryIndexingJobsManager;
+            _secondPassIndexingJobsManager = secondPassIndexingJobsManager;
             _appInsight = appInsight;
 
             _job = new BackgroundJob(
-                loggerFactory.CreateLogger<SecondPassHistoryIndexingJob>(),
+                loggerFactory.CreateLogger<SecondPassIndexingJob>(),
                 "First-pass indexing",
                 new
                 {
@@ -94,9 +94,9 @@ namespace Indexer.Worker.Jobs
 
                 var indexingResult = await IndexNextBlock();
 
-                if (indexingResult == FirstPassHistoryIndexingResult.IndexingCompleted)
+                if (indexingResult == FirstPassIndexingResult.IndexingCompleted)
                 {
-                    _logger.LogInformation("First-pass history indexing job is completed {@context}", new
+                    _logger.LogInformation("First-pass indexing job is completed {@context}", new
                     {
                         BlockchainId = _indexerId.BlockchainId,
                         StartBlock = _indexerId.StartBlock,
@@ -119,7 +119,7 @@ namespace Indexer.Worker.Jobs
             await _indexersRepository.Update(_indexer);
         }
 
-        private async Task<FirstPassHistoryIndexingResult> IndexNextBlock()
+        private async Task<FirstPassIndexingResult> IndexNextBlock()
         {
             var appInsightOperation = _appInsight.StartRequest("First-pass block indexing",
                 new Dictionary<string, string>
@@ -131,7 +131,7 @@ namespace Indexer.Worker.Jobs
             try
             {
                 return await _indexer.IndexNextBlock(
-                    _loggerFactory.CreateLogger<FirstPassHistoryIndexer>(),
+                    _loggerFactory.CreateLogger<FirstPassIndexer>(),
                     _blocksReader,
                     _blocksRepository,
                     _inMemoryBus);
@@ -154,7 +154,7 @@ namespace Indexer.Worker.Jobs
 
             if (indexers.All(x => x.IsCompleted))
             {
-                await _secondPassHistoryIndexingJobsManager.EnsureStarted(_indexerId.BlockchainId);
+                await _secondPassIndexingJobsManager.EnsureStarted(_indexerId.BlockchainId);
             }
         }
     }
