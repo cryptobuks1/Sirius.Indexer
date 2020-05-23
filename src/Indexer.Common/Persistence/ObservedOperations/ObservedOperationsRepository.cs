@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Indexer.Common.Domain.ObservedOperations;
@@ -11,16 +12,16 @@ namespace Indexer.Common.Persistence.ObservedOperations
 {
     public class ObservedOperationsRepository : IObservedOperationsRepository
     {
-        private readonly DbContextOptionsBuilder<DatabaseContext> _dbContextOptionsBuilder;
+        private readonly Func<DatabaseContext> _contextFactory;
 
-        public ObservedOperationsRepository(DbContextOptionsBuilder<DatabaseContext> dbContextOptionsBuilder)
+        public ObservedOperationsRepository(Func<DatabaseContext> contextFactory)
         {
-            _dbContextOptionsBuilder = dbContextOptionsBuilder;
+            _contextFactory = contextFactory;
         }
 
         public async Task AddOrIgnore(ObservedOperation observedOperation)
         {
-            await using var context = new DatabaseContext(_dbContextOptionsBuilder.Options);
+            await using var context = _contextFactory.Invoke();
             var entity = MapToEntity(observedOperation);
 
             try
@@ -35,7 +36,7 @@ namespace Indexer.Common.Persistence.ObservedOperations
 
         public async Task<IReadOnlyCollection<ObservedOperation>> GetExecutingAsync(long? cursor, int limit)
         {
-            await using var context = new DatabaseContext(_dbContextOptionsBuilder.Options);
+            await using var context = _contextFactory.Invoke();
 
             var query = context.ObservedOperations.Where(x =>
                 !x.IsCompleted).Select(x => x);
@@ -55,7 +56,7 @@ namespace Indexer.Common.Persistence.ObservedOperations
 
         public async Task UpdateBatchAsync(IReadOnlyCollection<ObservedOperation> updatedOperations)
         {
-            await using var context = new DatabaseContext(_dbContextOptionsBuilder.Options);
+            await using var context = _contextFactory.Invoke();
 
             var entities = updatedOperations.Select(MapToEntity);
 

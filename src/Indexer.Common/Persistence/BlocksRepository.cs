@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Threading.Tasks;
 using Indexer.Common.Domain;
@@ -12,36 +14,51 @@ namespace Indexer.Common.Persistence
 {
     internal class BlocksRepository : IBlocksRepository
     {
-        private readonly DbContextOptionsBuilder<DatabaseContext> _dbContextOptionsBuilder;
+        private readonly Func<DatabaseContext> _contextFactory;
 
-        public BlocksRepository(DbContextOptionsBuilder<DatabaseContext> dbContextOptionsBuilder)
+        public BlocksRepository(Func<DatabaseContext> contextFactory)
         {
-            _dbContextOptionsBuilder = dbContextOptionsBuilder;
+            _contextFactory = contextFactory;
         }
 
-        public async Task InsertOrReplace(Block block)
+        public async Task InsertOrIgnore(Block block)
         {
-            await using var context = new DatabaseContext(_dbContextOptionsBuilder.Options);
+            await using var context = _contextFactory.Invoke();
+            await using var connection = context.Database.GetDbConnection();
+            await connection.OpenAsync();
+            await using var command = connection.CreateCommand();
 
-            var entity = MapToEntity(block);
+            command.CommandText = @$"
+insert into {DatabaseContext.SchemaName}.{TableNames.Blocks} 
+(
+    ""GlobalId"",
+    ""BlockchainId"",
+    ""Id"",
+    ""Number"",
+    ""PreviousId""
+) 
+values 
+(
+    @globalId,
+    @blockchainId,
+    @id,
+    @number,
+    @previousId
+) 
+on conflict (""GlobalId"") do nothing";
 
-            await context.Blocks.AddAsync(entity);
+            command.Parameters.Add(new NpgsqlParameter("@globalId", DbType.String) {Value = block.GlobalId});
+            command.Parameters.Add(new NpgsqlParameter("@blockchainId", DbType.String) {Value = block.BlockchainId});
+            command.Parameters.Add(new NpgsqlParameter("@id", DbType.String) {Value = block.Id});
+            command.Parameters.Add(new NpgsqlParameter("@number", DbType.Int64) {Value = block.Number});
+            command.Parameters.Add(new NpgsqlParameter("@previousId", DbType.String) {Value = (object)block.PreviousId ?? DBNull.Value});
 
-            try
-            {
-                await context.SaveChangesAsync();
-            }
-            catch (DbUpdateException e) when (e.InnerException is PostgresException pgEx && pgEx.SqlState == "23505")
-            {
-                context.Blocks.Update(entity);
-
-                await context.SaveChangesAsync();
-            }
+            await command.ExecuteNonQueryAsync();
         }
 
         public async Task<Block> GetOrDefault(string blockchainId, long blockNumber)
         {
-            await using var context = new DatabaseContext(_dbContextOptionsBuilder.Options);
+            await using var context = _contextFactory.Invoke();
 
             var entity = context.Blocks.SingleOrDefault(x => x.BlockchainId == blockchainId && x.Number == blockNumber);
 
@@ -50,14 +67,14 @@ namespace Indexer.Common.Persistence
         
         public async Task Remove(string globalId)
         {
-            await using var context = new DatabaseContext(_dbContextOptionsBuilder.Options);
+            await using var context = _contextFactory.Invoke();
 
             await context.Blocks.Where(x => x.GlobalId == globalId).DeleteAsync();
         }
 
         public async Task<IEnumerable<Block>> GetBatch(string blockchainId, long startBlockNumber, int limit)
         {
-            await using var context = new DatabaseContext(_dbContextOptionsBuilder.Options);
+            await using var context = _contextFactory.Invoke();
 
             var entities = await context.Blocks
                 .Where(x => x.BlockchainId == blockchainId && x.Number >= startBlockNumber)
@@ -66,18 +83,6 @@ namespace Indexer.Common.Persistence
                 .ToArrayAsync();
 
             return entities.Select(MapFromEntity);
-        }
-
-        private static BlockEntity MapToEntity(Block block)
-        {
-            return new BlockEntity
-            {
-                GlobalId = block.GlobalId,
-                BlockchainId = block.BlockchainId,
-                Id = block.Id,
-                Number = block.Number,
-                PreviousId = block.PreviousId
-            };
         }
 
         private static Block MapFromEntity(BlockEntity entity)

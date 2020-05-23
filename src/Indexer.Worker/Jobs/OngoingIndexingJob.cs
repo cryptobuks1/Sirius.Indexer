@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Indexer.Common.Domain.Indexing;
-using Indexer.Common.Monitoring;
+using Indexer.Common.Telemetry;
 using MassTransit;
 using Microsoft.Extensions.Logging;
 

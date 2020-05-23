@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Indexer.Common.Persistence.DbContexts;
@@ -10,16 +11,16 @@ namespace Indexer.Common.Persistence
 {
     public class BlockchainsRepository : IBlockchainsRepository
     {
-        private readonly DbContextOptionsBuilder<DatabaseContext> _dbContextOptionsBuilder;
+        private readonly Func<DatabaseContext> _contextFactory;
 
-        public BlockchainsRepository(DbContextOptionsBuilder<DatabaseContext> dbContextOptionsBuilder)
+        public BlockchainsRepository(Func<DatabaseContext> contextFactory)
         {
-            _dbContextOptionsBuilder = dbContextOptionsBuilder;
+            _contextFactory = contextFactory;
         }
 
         public async Task<IReadOnlyCollection<BlockchainMetamodel>> GetAllAsync(string cursor, int limit)
         {
-            await using var context = new DatabaseContext(_dbContextOptionsBuilder.Options);
+            await using var context = _contextFactory.Invoke();
 
             var query = context.Blockchains.Select(x => x);
 
@@ -37,7 +38,7 @@ namespace Indexer.Common.Persistence
 
         public async Task AddOrReplaceAsync(BlockchainMetamodel blockchainMetamodel)
         {
-            await using var context = new DatabaseContext(_dbContextOptionsBuilder.Options);
+            await using var context = _contextFactory.Invoke();
 
             try
             {
@@ -55,7 +56,7 @@ namespace Indexer.Common.Persistence
 
         public async Task<BlockchainMetamodel> GetAsync(string blockchainId)
         {
-            await using var context = new DatabaseContext(_dbContextOptionsBuilder.Options);
+            await using var context = _contextFactory.Invoke();
 
             var result = await context.Blockchains.FirstAsync(x => x.Id == blockchainId);
             return result;

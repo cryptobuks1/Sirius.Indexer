@@ -1,6 +1,4 @@
 ﻿using System;
-using System.IO;
-using System.Reflection;
 using MassTransit;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
@@ -13,8 +11,6 @@ using Indexer.Common.Persistence;
 using Indexer.Common.Persistence.DbContexts;
 using Indexer.Common.ServiceFunctions;
 using Indexer.GrpcServices;
-using Microsoft.EntityFrameworkCore;
-using Swashbuckle.AspNetCore.SwaggerGen;
 using Swisschain.Extensions.Idempotency;
 using Swisschain.Extensions.Idempotency.MassTransit;
 using Swisschain.Extensions.Idempotency.EfCore;
@@ -39,9 +35,9 @@ namespace Indexer
                 c.DispatchWithMassTransit();
                 c.PersistWithEfCore(s =>
                 {
-                    var optionsBuilder = s.GetRequiredService<DbContextOptionsBuilder<DatabaseContext>>();
+                    var contextFactory = s.GetRequiredService<Func<DatabaseContext>>();
 
-                    return new DatabaseContext(optionsBuilder.Options);
+                    return contextFactory.Invoke();
                 });
             });
 

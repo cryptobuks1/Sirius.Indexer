@@ -44,7 +44,7 @@ namespace Indexer.Common.Persistence.DbContexts
         private void BuildBlocks(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<BlockEntity>()
-                .ToTable("blocks")
+                .ToTable(TableNames.Blocks)
                 .HasKey(x => x.GlobalId);
 
             modelBuilder.Entity<BlockEntity>()
@@ -77,7 +77,7 @@ namespace Indexer.Common.Persistence.DbContexts
         private static void BuildObservedOperation(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<ObservedOperationEntity>()
-                .ToTable("observed_operations")
+                .ToTable(TableNames.ObserverOperations)
                 .HasKey(x => x.OperationId);
 
             modelBuilder.Entity<ObservedOperationEntity>()
@@ -102,7 +102,7 @@ namespace Indexer.Common.Persistence.DbContexts
         private static void BuildBlockchain(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<BlockchainMetamodel>()
-                .ToTable("blockchains")
+                .ToTable(TableNames.Blockchains)
                 .HasKey(x => x.Id);
 
             var jsonSerializingSettings = new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore };

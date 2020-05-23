@@ -59,7 +59,7 @@ namespace Indexer.Common.Domain.Indexing
                 throw new InvalidOperationException($@"First-pass history indexer {BlockchainId} has not found the block {NextBlock}.");
             }
 
-            await blocksRepository.InsertOrReplace(block);
+            await blocksRepository.InsertOrIgnore(block);
 
             // TODO: Add first-pass block data indexing
             

@@ -1,4 +1,5 @@
-﻿using System.Threading;
+﻿using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Indexer.Common.Persistence.DbContexts;
 using Microsoft.EntityFrameworkCore;
@@ -10,20 +11,20 @@ namespace Indexer.Worker.HostedServices
     public class MigrationHost : IHostedService
     {
         private readonly ILogger<MigrationHost> _logger;
-        private readonly DbContextOptionsBuilder<DatabaseContext> _contextOptions;
+        private readonly Func<DatabaseContext> _contextFactory;
 
         public MigrationHost(ILogger<MigrationHost> logger, 
-            DbContextOptionsBuilder<DatabaseContext> contextOptions)
+            Func<DatabaseContext> contextFactory)
         {
             _logger = logger;
-            _contextOptions = contextOptions;
+            _contextFactory = contextFactory;
         }
 
         public async Task StartAsync(CancellationToken cancellationToken)
         {
             _logger.LogInformation("EF Migration is being started...");
 
-            await using var context = new DatabaseContext(_contextOptions.Options);
+            await using var context = _contextFactory.Invoke();
 
             await context.Database.MigrateAsync(cancellationToken);
 

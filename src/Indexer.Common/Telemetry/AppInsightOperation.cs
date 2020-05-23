@@ -3,7 +3,7 @@ using Microsoft.ApplicationInsights;
 using Microsoft.ApplicationInsights.DataContracts;
 using Microsoft.ApplicationInsights.Extensibility;
 
-namespace Indexer.Common.Monitoring
+namespace Indexer.Common.Telemetry
 {
     public sealed class AppInsightOperation
     {

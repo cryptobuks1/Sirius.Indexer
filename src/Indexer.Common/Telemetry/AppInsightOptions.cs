@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace Indexer.Common.Monitoring
+namespace Indexer.Common.Telemetry
 {
     public sealed class AppInsightOptions
     {

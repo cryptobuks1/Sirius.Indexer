@@ -9,11 +9,14 @@ namespace IndexerTests.Mocks
     {
         private readonly Dictionary<string, Block> _store = new Dictionary<string, Block>();
 
-        public Task InsertOrReplace(Block block)
+        public Task InsertOrIgnore(Block block)
         {
             lock (_store)
             {
-                _store[block.GlobalId] = block;
+                if (!_store.ContainsKey(block.GlobalId))
+                {
+                    _store[block.GlobalId] = block;
+                }
             }
 
             return Task.CompletedTask;

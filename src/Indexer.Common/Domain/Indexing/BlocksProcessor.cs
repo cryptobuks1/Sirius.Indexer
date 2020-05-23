@@ -28,7 +28,7 @@ namespace Indexer.Common.Domain.Indexing
                 return BlockProcessingResult.CreateBackward(previousBlock);
             }
 
-            await _blocksRepository.InsertOrReplace(block);
+            await _blocksRepository.InsertOrIgnore(block);
 
             return BlockProcessingResult.CreateForward();
         }

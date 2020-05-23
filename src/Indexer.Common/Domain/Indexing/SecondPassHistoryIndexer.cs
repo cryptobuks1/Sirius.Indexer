@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Indexer.Common.Monitoring;
+using Indexer.Common.Telemetry;
 using MassTransit;
 using Microsoft.Extensions.Logging;
 

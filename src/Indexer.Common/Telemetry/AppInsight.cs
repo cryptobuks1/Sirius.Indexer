@@ -6,9 +6,9 @@ using Microsoft.ApplicationInsights.DataContracts;
 using Microsoft.ApplicationInsights.DependencyCollector;
 using Microsoft.ApplicationInsights.Extensibility;
 
-namespace Indexer.Common.Monitoring
+namespace Indexer.Common.Telemetry
 {
-    internal class AppInsight : IAppInsight
+    internal sealed class AppInsight : IAppInsight
     {
         private readonly IDictionary<string, string> _defaultProperties;
         private readonly TelemetryClient _client;
@@ -35,6 +35,66 @@ namespace Indexer.Common.Monitoring
             var effectiveProperties = GetEffectiveProperties(properties);
 
             _client.TrackMetric(name, value, effectiveProperties);
+        }
+
+        public void TrackDependency(string type,
+            string name,
+            string data,
+            DateTimeOffset startTime,
+            TimeSpan duration,
+            IReadOnlyDictionary<string, string> properties = null)
+        {
+            var telemetry = new DependencyTelemetry(
+                type,
+                null,
+                name,
+                data,
+                startTime,
+                duration,
+                null,
+                true);
+
+            var effectiveProperties = GetEffectiveProperties(properties);
+
+            if (effectiveProperties != null)
+            {
+                foreach (var (key, value) in effectiveProperties)
+                {
+                    telemetry.Properties[key] = value;
+                }
+            }
+
+            _client.TrackDependency(telemetry);
+        }
+
+        public void TrackDependencyFailure(string type,
+            string name,
+            string data,
+            DateTimeOffset startTime,
+            TimeSpan duration,
+            string resultCode,
+            IReadOnlyDictionary<string, string> properties = null)
+        {
+            var telemetry = new DependencyTelemetry(type,
+                null,
+                name,
+                data,
+                startTime,
+                duration,
+                resultCode,
+                false);
+
+            var effectiveProperties = GetEffectiveProperties(properties);
+
+            if (effectiveProperties != null)
+            {
+                foreach (var (key, value) in effectiveProperties)
+                {
+                    telemetry.Properties[key] = value;
+                }
+            }
+
+            _client.TrackDependency(telemetry);
         }
 
         public AppInsightOperation StartRequest(string name, IReadOnlyDictionary<string, string> properties = null)

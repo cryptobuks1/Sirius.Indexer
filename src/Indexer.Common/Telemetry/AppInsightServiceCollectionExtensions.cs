@@ -1,7 +1,7 @@
 ﻿using System;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Indexer.Common.Monitoring
+namespace Indexer.Common.Telemetry
 {
     public static class AppInsightServiceCollectionExtensions
     {

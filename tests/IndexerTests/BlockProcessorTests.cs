@@ -22,7 +22,7 @@ namespace IndexerTests
             var blockRepository = new InMemoryBlocksRepository();
             var processor = new BlocksProcessor(blockRepository);
 
-            await blockRepository.InsertOrReplace(new Block(BlockchainId, number: 9, id: "A", previousBlockId: "C"));
+            await blockRepository.InsertOrIgnore(new Block(BlockchainId, number: 9, id: "A", previousBlockId: "C"));
 
             // act
             var output = await processor.ProcessBlock(initialBlock);
@@ -69,7 +69,7 @@ namespace IndexerTests
                 BlockProcessingResult.CreateForward(),
             };
 
-            await blockRepository.InsertOrReplace(new Block(BlockchainId, number: 9, id: "Z", previousBlockId: "X"));
+            await blockRepository.InsertOrIgnore(new Block(BlockchainId, number: 9, id: "Z", previousBlockId: "X"));
 
             // act
             foreach (var id in order)
@@ -90,7 +90,7 @@ namespace IndexerTests
             var blockRepository = new InMemoryBlocksRepository();
             var processor = new BlocksProcessor(blockRepository);
 
-            await blockRepository.InsertOrReplace(new Block(BlockchainId, number: 9, id: "Z", previousBlockId: "X"));
+            await blockRepository.InsertOrIgnore(new Block(BlockchainId, number: 9, id: "Z", previousBlockId: "X"));
 
             // act
             await processor.ProcessBlock(initialBlock);
@@ -146,7 +146,7 @@ namespace IndexerTests
                 BlockProcessingResult.CreateForward(),
             };
 
-            await blockRepository.InsertOrReplace(new Block(BlockchainId, number: 0, id: "Z", previousBlockId: "X"));
+            await blockRepository.InsertOrIgnore(new Block(BlockchainId, number: 0, id: "Z", previousBlockId: "X"));
 
             // act
             foreach (var id in order)
@@ -192,7 +192,7 @@ namespace IndexerTests
                 BlockProcessingResult.CreateForward(),
             };
 
-            await blockRepository.InsertOrReplace(new Block(BlockchainId, number: 0, id: "Z", previousBlockId: "X"));
+            await blockRepository.InsertOrIgnore(new Block(BlockchainId, number: 0, id: "Z", previousBlockId: "X"));
 
             // act
             foreach (var id in order)
@@ -266,7 +266,7 @@ namespace IndexerTests
                 BlockProcessingResult.CreateForward(),
             };
 
-            await blockRepository.InsertOrReplace(new Block(BlockchainId, number: 0, id: "Z", previousBlockId: "X"));
+            await blockRepository.InsertOrIgnore(new Block(BlockchainId, number: 0, id: "Z", previousBlockId: "X"));
 
             // act
             foreach (var id in order)
@@ -333,7 +333,7 @@ namespace IndexerTests
                 BlockProcessingResult.CreateForward(),
             };
 
-            await blockRepository.InsertOrReplace(new Block(BlockchainId, number: 0, id: "Z", previousBlockId: "X"));
+            await blockRepository.InsertOrIgnore(new Block(BlockchainId, number: 0, id: "Z", previousBlockId: "X"));
 
             // act
             foreach (var id in order)
@@ -394,7 +394,7 @@ namespace IndexerTests
                 BlockProcessingResult.CreateForward(),
             };
 
-            await blockRepository.InsertOrReplace(new Block(BlockchainId, number: 0, id: "Z", previousBlockId: "X"));
+            await blockRepository.InsertOrIgnore(new Block(BlockchainId, number: 0, id: "Z", previousBlockId: "X"));
 
             // act
             foreach (var id in order)
@@ -456,7 +456,7 @@ namespace IndexerTests
                 BlockProcessingResult.CreateForward(),
             };
 
-            await blockRepository.InsertOrReplace(new Block(BlockchainId, number: 0, id: "Z", previousBlockId: "X"));
+            await blockRepository.InsertOrIgnore(new Block(BlockchainId, number: 0, id: "Z", previousBlockId: "X"));
 
             // act
             foreach (var id in order)
@@ -521,7 +521,7 @@ namespace IndexerTests
                 BlockProcessingResult.CreateForward(),
             };
 
-            await blockRepository.InsertOrReplace(new Block(BlockchainId, number: 0, id: "Z", previousBlockId: "X"));
+            await blockRepository.InsertOrIgnore(new Block(BlockchainId, number: 0, id: "Z", previousBlockId: "X"));
 
             // act
             foreach (var id in order)
