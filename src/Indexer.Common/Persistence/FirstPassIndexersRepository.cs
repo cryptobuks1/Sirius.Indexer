@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Indexer.Common.Domain.Indexing;
 using Indexer.Common.Persistence.DbContexts;
+using Indexer.Common.Persistence.Entities;
+using Microsoft.EntityFrameworkCore;
 
 namespace Indexer.Common.Persistence
 {
@@ -17,44 +20,79 @@ namespace Indexer.Common.Persistence
         
         public async Task<FirstPassIndexer> Get(FirstPassIndexerId id)
         {
-            
+            var result = await GetOrDefault(id);
+
+            if (result == null)
+            {
+                throw new InvalidOperationException($"First pass indexer not found {id}");
+            }
+
+            return result;
         }
 
         public async Task<FirstPassIndexer> GetOrDefault(FirstPassIndexerId id)
         {
             await using var context = _contextFactory.Invoke();
 
-            context.
+            var entity = await context.FirstPassHistoryIndexers.FindAsync(id.ToString());
+
+            return entity != null ? MapFromEntity(entity) : null;
         }
 
-        public Task Add(FirstPassIndexer indexer)
+        public async Task Add(FirstPassIndexer indexer)
         {
-            lock (_store)
-            {
-                _store.Add(indexer.Id, indexer);
-            }
+            await using var context = _contextFactory.Invoke();
 
-            return Task.CompletedTask;
+            var entity = MapToEntity(indexer);
+
+            await context.FirstPassHistoryIndexers.AddAsync(entity);
+
+            await context.SaveChangesAsync();
+        }
+        
+        public async Task<FirstPassIndexer> Update(FirstPassIndexer indexer)
+        {
+            await using var context = _contextFactory.Invoke();
+
+            var entity = MapToEntity(indexer);
+
+            context.FirstPassHistoryIndexers.Update(entity);
+
+            await context.SaveChangesAsync();
+
+            // Returns updated Version
+            return MapFromEntity(entity);
         }
 
-        public Task Update(FirstPassIndexer indexer)
+        public async Task<IEnumerable<FirstPassIndexer>> GetByBlockchain(string blockchainId)
         {
-            lock (_store)
-            {
-                _store[indexer.Id] = indexer;
-            }
+            await using var context = _contextFactory.Invoke();
 
-            return Task.CompletedTask;
+            var entities = await context.FirstPassHistoryIndexers.Where(x => x.BlockchainId == blockchainId).ToArrayAsync();
+
+            return entities.Select(MapFromEntity);
         }
 
-        public Task<IReadOnlyCollection<FirstPassIndexer>> GetByBlockchain(string blockchainId)
+        private static FirstPassIndexer MapFromEntity(FirstPassIndexerEntity entity)
         {
-            lock (_store)
+            return FirstPassIndexer.Restore(
+                new FirstPassIndexerId(entity.BlockchainId, entity.StartBlock),
+                entity.StopBlock,
+                entity.NextBlock,
+                entity.Version);
+        }
+        
+        private static FirstPassIndexerEntity MapToEntity(FirstPassIndexer indexer)
+        {
+            return new FirstPassIndexerEntity
             {
-                var indexers = _store.Where(x => x.Key.BlockchainId == blockchainId).Select(x => x.Value).ToArray();
-
-                return Task.FromResult<IReadOnlyCollection<FirstPassIndexer>>(indexers);
-            }
+                Id = indexer.Id.ToString(),
+                BlockchainId = indexer.BlockchainId,
+                StartBlock = indexer.StartBlock,
+                StopBlock = indexer.StopBlock,
+                NextBlock = indexer.NextBlock,
+                Version = indexer.Version
+            };
         }
     }
 }

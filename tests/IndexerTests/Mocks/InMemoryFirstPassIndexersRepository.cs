@@ -37,23 +37,23 @@ namespace IndexerTests.Mocks
             return Task.CompletedTask;
         }
 
-        public Task Update(FirstPassIndexer indexer)
+        public Task<FirstPassIndexer> Update(FirstPassIndexer indexer)
         {
             lock (_store)
             {
                 _store[indexer.Id] = indexer;
             }
 
-            return Task.CompletedTask;
+            return Task.FromResult(indexer);
         }
 
-        public Task<IReadOnlyCollection<FirstPassIndexer>> GetByBlockchain(string blockchainId)
+        public Task<IEnumerable<FirstPassIndexer>> GetByBlockchain(string blockchainId)
         {
             lock (_store)
             {
                 var indexers = _store.Where(x => x.Key.BlockchainId == blockchainId).Select(x => x.Value).ToArray();
 
-                return Task.FromResult<IReadOnlyCollection<FirstPassIndexer>>(indexers);
+                return Task.FromResult<IEnumerable<FirstPassIndexer>>(indexers);
             }
         }
     }

@@ -36,6 +36,19 @@ namespace Indexer.Common.Domain.Indexing
                 version: 0);
         }
 
+        public static FirstPassIndexer Restore(
+            FirstPassIndexerId id,
+            long stopBlock,
+            long nextBlock,
+            int version)
+        {
+            return new FirstPassIndexer(
+                id,
+                stopBlock,
+                nextBlock,
+                version);
+        }
+
         public async Task<FirstPassIndexingResult> IndexNextBlock(ILogger<FirstPassIndexer> logger,
             IBlocksReader blocksReader,
             IBlocksRepository blocksRepository,

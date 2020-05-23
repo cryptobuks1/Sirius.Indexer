@@ -38,41 +38,56 @@ namespace Indexer.Common.Persistence.DbContexts
             BuildBlockchain(modelBuilder);
             BuildObservedOperation(modelBuilder);
             BuildBlocks(modelBuilder);
+            BuildFirstPassIndexers(modelBuilder);
 
             base.OnModelCreating(modelBuilder);
         }
 
-        private void BuildBlocks(ModelBuilder modelBuilder)
+        private static void BuildFirstPassIndexers(ModelBuilder modelBuilder)
         {
-            modelBuilder.Entity<BlockEntity>()
-                .ToTable(TableNames.Blocks)
-                .HasKey(x => x.GlobalId);
+            modelBuilder.Entity<FirstPassIndexerEntity>(e =>
+            {
+                e.ToTable(TableNames.FirstPassIndexers);
+                e.HasKey(x => x.Id);
 
-            modelBuilder.Entity<BlockEntity>()
-                .HasIndex(x => new
-                {
-                    x.BlockchainId,
-                    x.Id
-                })
-                .IsUnique()
-                .HasName("IX_Blocks_Blockchain_Id");
+                e.HasIndex(x => x.BlockchainId).HasName("IX_FirstPassIndexers_Blockchain");
 
-            modelBuilder.Entity<BlockEntity>()
-                .HasIndex(x => new
-                {
-                    x.BlockchainId,
-                    x.Number
-                })
-                .IsUnique()
-                .HasName("IX_Blocks_Blockchain_Number");
+                e.Property(x => x.BlockchainId).IsRequired();
+                
+                e.Property(p => p.Version)
+                    .HasColumnName("xmin")
+                    .HasColumnType("xid")
+                    .ValueGeneratedOnAddOrUpdate()
+                    .IsConcurrencyToken();
+            });
+        }
 
-            modelBuilder.Entity<BlockEntity>()
-                .Property(x => x.BlockchainId)
-                .IsRequired();
+        private static void BuildBlocks(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<BlockEntity>(e =>
+            {
+                e.ToTable(TableNames.Blocks);
+                e.HasKey(x => x.GlobalId);
 
-            modelBuilder.Entity<BlockEntity>()
-                .Property(x => x.Id)
-                .IsRequired();
+                e.HasIndex(x => new
+                    {
+                        x.BlockchainId,
+                        x.Id
+                    })
+                    .IsUnique()
+                    .HasName("IX_Blocks_Blockchain_Id");
+
+                e.HasIndex(x => new
+                    {
+                        x.BlockchainId,
+                        x.Number
+                    })
+                    .IsUnique()
+                    .HasName("IX_Blocks_Blockchain_Number");
+
+                e.Property(x => x.BlockchainId).IsRequired();
+                e.Property(x => x.Id).IsRequired();
+            });
         }
 
         private static void BuildObservedOperation(ModelBuilder modelBuilder)

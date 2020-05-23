@@ -103,7 +103,7 @@ namespace Indexer.Worker.Jobs
                         StopBlock = _stopBlock
                     });
 
-                    await _indexersRepository.Update(_indexer);
+                    _indexer = await _indexersRepository.Update(_indexer);
 
                     await StartSecondPassIndexerJobIfFirstPassDone();
 
@@ -114,9 +114,7 @@ namespace Indexer.Worker.Jobs
             }
 
             // Saves the indexer state only in the end of the batch
-
-            // TODO: Update indexer Version or re-read it from DB
-            await _indexersRepository.Update(_indexer);
+            _indexer = await _indexersRepository.Update(_indexer);
         }
 
         private async Task<FirstPassIndexingResult> IndexNextBlock()

@@ -2,6 +2,7 @@
 {
     public class FirstPassIndexerEntity
     {
+        public string Id { get; set; }
         public string BlockchainId { get; set; }
         public long StartBlock { get; set; }
         public long StopBlock { get; set; }

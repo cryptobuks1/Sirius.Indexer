@@ -8,7 +8,7 @@ namespace Indexer.Common.Domain.Indexing
         Task<FirstPassIndexer> Get(FirstPassIndexerId id);
         Task<FirstPassIndexer> GetOrDefault(FirstPassIndexerId id);
         Task Add(FirstPassIndexer indexer);
-        Task Update(FirstPassIndexer indexer);
-        Task<IReadOnlyCollection<FirstPassIndexer>> GetByBlockchain(string blockchainId);
+        Task<FirstPassIndexer> Update(FirstPassIndexer indexer);
+        Task<IEnumerable<FirstPassIndexer>> GetByBlockchain(string blockchainId);
     }
 }
