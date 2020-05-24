@@ -22,6 +22,7 @@ namespace Indexer.Common.Persistence.DbContexts
         public DbSet<BlockEntity> Blocks { get; set; }
         public DbSet<FirstPassIndexerEntity> FirstPassHistoryIndexers { get; set; }
         public DbSet<SecondPassIndexerEntity> SecondPassIndexers { get; set; }
+        public DbSet<OngoingIndexerEntity> OngoingIndexers { get; set; }
         public DbSet<OutboxEntity> Outbox { get; set; }
 
         #region ReadModel
@@ -41,8 +42,24 @@ namespace Indexer.Common.Persistence.DbContexts
             BuildBlocks(modelBuilder);
             BuildFirstPassIndexers(modelBuilder);
             BuildSecondPassIndexers(modelBuilder);
+            BuildOngoingIndexers(modelBuilder);
 
             base.OnModelCreating(modelBuilder);
+        }
+
+        private static void BuildOngoingIndexers(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<OngoingIndexerEntity>(e =>
+            {
+                e.ToTable(TableNames.OngoingIndexers);
+                e.HasKey(x => x.BlockchainId);
+
+                e.Property(p => p.Version)
+                    .HasColumnName("xmin")
+                    .HasColumnType("xid")
+                    .ValueGeneratedOnAddOrUpdate()
+                    .IsConcurrencyToken();
+            });
         }
 
         private static void BuildSecondPassIndexers(ModelBuilder modelBuilder)

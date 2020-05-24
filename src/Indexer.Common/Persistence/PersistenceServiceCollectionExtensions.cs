@@ -20,7 +20,7 @@ namespace Indexer.Common.Persistence
             services.AddTransient<IBlocksRepository, BlocksRepository>();
             services.AddTransient<IFirstPassIndexersRepository, FirstPassIndexersRepository>();
             services.AddTransient<ISecondPassIndexersRepository, SecondPassIndexersRepository>();
-            services.AddSingleton<IOngoingIndexersRepository, InMemoryOngoingIndexersRepository>();
+            services.AddTransient<IOngoingIndexersRepository, OngoingIndexersRepository>();
             
             services.AddSingleton<Func<DatabaseContext>>(x =>
             {

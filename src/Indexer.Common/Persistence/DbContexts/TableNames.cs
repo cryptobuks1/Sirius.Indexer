@@ -7,5 +7,6 @@
         public const string Blockchains = "blockchains";
         public const string FirstPassIndexers = "first_pass_indexers";
         public const string SecondPassIndexers = "second_pass_indexers";
+        public const string OngoingIndexers = "ongoing_indexers";
     }
 }

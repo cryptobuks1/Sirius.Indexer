@@ -16,14 +16,14 @@ namespace IndexerTests.Mocks
             }
         }
 
-        public Task Update(OngoingIndexer indexer)
+        public Task<OngoingIndexer> Update(OngoingIndexer indexer)
         {
             lock (_store)
             {
                 _store[indexer.BlockchainId] = indexer;
             }
 
-            return Task.CompletedTask;
+            return Task.FromResult(indexer);
         }
 
         public Task<OngoingIndexer> GetOrDefault(string blockchainId)

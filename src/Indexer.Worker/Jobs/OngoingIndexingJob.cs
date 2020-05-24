@@ -162,13 +162,6 @@ namespace Indexer.Worker.Jobs
                                 NextBlock = _indexer.NextBlock
                             });
 
-                        if (_indexer.NextBlock != batchInitialBlock)
-                        {
-                            // This is needed to mitigate single IO operation latency
-                            await Task.WhenAll(batchBackgroundTasks);
-                            await _indexersRepository.Update(_indexer);
-                        }
-
                         break;
                     }
 
@@ -181,8 +174,7 @@ namespace Indexer.Worker.Jobs
                         // This is needed to mitigate single IO operation latency
                         await Task.WhenAll(batchBackgroundTasks);
 
-                        // TODO: Update indexer Version or re-read it from DB
-                        await _indexersRepository.Update(_indexer);
+                        _indexer = await _indexersRepository.Update(_indexer);
 
                         batchInitialBlock = _indexer.NextBlock;
                     }
@@ -197,6 +189,14 @@ namespace Indexer.Worker.Jobs
                 {
                     appInsightOperation.Stop();
                 }
+            }
+
+            if (_indexer.NextBlock != batchInitialBlock)
+            {
+                // This is needed to mitigate single IO operation latency
+                await Task.WhenAll(batchBackgroundTasks);
+
+                _indexer = await _indexersRepository.Update(_indexer);
             }
         }
     }

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using MassTransit;
 using Microsoft.Extensions.Logging;
@@ -29,6 +28,18 @@ namespace Indexer.Common.Domain.Indexing
                 startBlock,
                 startSequence,
                 version: 0);
+        }
+
+        public static OngoingIndexer Restore(string blockchainId,
+            in long nextBlock,
+            in long sequence,
+            in int version)
+        {
+            return new OngoingIndexer(
+                blockchainId,
+                nextBlock,
+                sequence,
+                version);
         }
 
         public async Task<IOngoingIndexingResult> IndexNextBlock(ILogger<OngoingIndexer> logger,
