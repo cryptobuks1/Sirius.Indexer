@@ -99,9 +99,7 @@ namespace Indexer.Worker.Jobs
                 Stop();
             }
 
-            // TODO: Update indexer Version or re-read it from DB
-
-            await _indexersRepository.Update(_indexer);
+            _indexer = await _indexersRepository.Update(_indexer);
         }
     }
 }

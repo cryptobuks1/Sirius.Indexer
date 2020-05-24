@@ -7,6 +7,6 @@ namespace Indexer.Common.Domain.Indexing
         Task<SecondPassIndexer> Get(string blockchainId);
         Task<SecondPassIndexer> GetOrDefault(string blockchainId);
         Task Add(SecondPassIndexer indexer);
-        Task Update(SecondPassIndexer indexer);
+        Task<SecondPassIndexer> Update(SecondPassIndexer indexer);
     }
 }

@@ -36,14 +36,14 @@ namespace IndexerTests.Mocks
             return Task.CompletedTask;
         }
 
-        public Task Update(SecondPassIndexer indexer)
+        public Task<SecondPassIndexer> Update(SecondPassIndexer indexer)
         {
             lock (_store)
             {
                 _store[indexer.BlockchainId] = indexer;
             }
 
-            return Task.CompletedTask;
+            return Task.FromResult(indexer);
         }
     }
 }

@@ -10,19 +10,18 @@ using Microsoft.Extensions.Logging;
 
 namespace Indexer.Common.Persistence
 {
-    public static class ServiceCollectionExtensions
+    public static class PersistenceServiceCollectionExtensions
     {
         public static IServiceCollection AddPersistence(this IServiceCollection services, string connectionString)
         {
             services.AddTransient<IAssetsRepository, AssetsRepository>();
             services.AddTransient<IBlockchainsRepository, BlockchainsRepository>();
             services.AddTransient<IObservedOperationsRepository, ObservedOperationsRepository>();
-
-            services.AddSingleton<IFirstPassIndexersRepository, FirstPassIndexersRepository>();
-            services.AddSingleton<ISecondPassIndexersRepository, InMemorySecondPassIndexersRepository>();
+            services.AddTransient<IBlocksRepository, BlocksRepository>();
+            services.AddTransient<IFirstPassIndexersRepository, FirstPassIndexersRepository>();
+            services.AddTransient<ISecondPassIndexersRepository, SecondPassIndexersRepository>();
             services.AddSingleton<IOngoingIndexersRepository, InMemoryOngoingIndexersRepository>();
-            services.AddSingleton<IBlocksRepository, BlocksRepository>();
-
+            
             services.AddSingleton<Func<DatabaseContext>>(x =>
             {
                 var optionsBuilder = new DbContextOptionsBuilder<DatabaseContext>();

@@ -12,7 +12,7 @@ namespace Indexer.Common.Domain.Indexing
         private SecondPassIndexer(string blockchainId,
             long nextBlock,
             long stopBlock,
-            long version)
+            int version)
         {
             BlockchainId = blockchainId;
             NextBlock = nextBlock;
@@ -23,7 +23,7 @@ namespace Indexer.Common.Domain.Indexing
         public string BlockchainId { get; }
         public long NextBlock { get; private set; }
         public long StopBlock { get; }
-        public long Version { get; }
+        public int Version { get; }
         public bool IsCompleted => NextBlock == StopBlock;
 
         public static SecondPassIndexer Create(string blockchainId, long startBlock, long stopBlock)
@@ -33,6 +33,18 @@ namespace Indexer.Common.Domain.Indexing
                 startBlock,
                 stopBlock,
                 version: 0);
+        }
+
+        public static SecondPassIndexer Restore(string blockchainId,
+            long nextBlock,
+            long stopBlock,
+            int version)
+        {
+            return new SecondPassIndexer(
+                blockchainId,
+                nextBlock,
+                stopBlock,
+                version);
         }
 
         public async Task<SecondPassIndexingResult> IndexAvailableBlocks(
