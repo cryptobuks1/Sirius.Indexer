@@ -14,6 +14,8 @@ namespace Indexer.Common.Domain.Indexing
 
         public async Task<BlockProcessingResult> ProcessBlock(Block block)
         {
+            // TODO: Having a cache of the last added block, we can avoid db IO in the most cases for the ongoing indexer
+
             var previousBlock = await _blocksRepository.GetOrDefault(block.BlockchainId, block.Number - 1);
 
             if (previousBlock == null)

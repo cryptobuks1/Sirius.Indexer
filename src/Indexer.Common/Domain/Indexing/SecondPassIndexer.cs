@@ -88,7 +88,7 @@ namespace Indexer.Common.Domain.Indexing
         
         private async Task StepForward(Block block, IPublishEndpoint publisher, IAppInsight appInsight)
         {
-            var appInsightOperation = appInsight.StartRequest("Second-pass block indexing",
+            var telemetry = appInsight.StartRequest("Second-pass block indexing",
                 new Dictionary<string, string>
                 {
                     ["blockchainId"] = BlockchainId,
@@ -104,13 +104,13 @@ namespace Indexer.Common.Domain.Indexing
             }
             catch (Exception ex)
             {
-                appInsightOperation.Fail(ex);
+                telemetry.Fail(ex);
 
                 throw;
             }
             finally
             {
-                appInsightOperation.Stop();
+                telemetry.Stop();
             }
         }
     }

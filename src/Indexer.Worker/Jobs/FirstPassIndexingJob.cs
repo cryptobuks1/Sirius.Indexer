@@ -119,7 +119,7 @@ namespace Indexer.Worker.Jobs
 
         private async Task<FirstPassIndexingResult> IndexNextBlock()
         {
-            var appInsightOperation = _appInsight.StartRequest("First-pass block indexing",
+            var telemetry = _appInsight.StartRequest("First-pass block indexing",
                 new Dictionary<string, string>
                 {
                     ["blockchainId"] = _indexer.BlockchainId,
@@ -128,21 +128,25 @@ namespace Indexer.Worker.Jobs
 
             try
             {
-                return await _indexer.IndexNextBlock(
+                var result = await _indexer.IndexNextBlock(
                     _loggerFactory.CreateLogger<FirstPassIndexer>(),
                     _blocksReader,
                     _blocksRepository,
                     _inMemoryBus);
+
+                telemetry.ResponseCode = result.ToString();
+
+                return result;
             }
             catch (Exception ex)
             {
-                appInsightOperation.Fail(ex);
+                telemetry.Fail(ex);
 
                 throw;
             }
             finally
             {
-                appInsightOperation.Stop();
+                telemetry.Stop();
             }
         }
 

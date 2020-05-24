@@ -10,14 +10,25 @@ namespace Indexer.Common.Telemetry
         private readonly TelemetryClient _client;
         private readonly IOperationHolder<RequestTelemetry> _holder;
 
+        public string ResponseCode { get; set; }
+
         internal AppInsightOperation(TelemetryClient client, IOperationHolder<RequestTelemetry> holder)
         {
             _client = client;
             _holder = holder;
         }
 
-        public void Stop()
+        public void Stop(string responseCode = null)
         {
+            if (responseCode != null)
+            {
+                _holder.Telemetry.ResponseCode = responseCode;
+            }
+            else if (ResponseCode != null)
+            {
+                _holder.Telemetry.ResponseCode = ResponseCode;
+            }
+            
             _client.StopOperation(_holder);
         }
 

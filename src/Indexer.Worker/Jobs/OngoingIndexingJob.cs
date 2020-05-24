@@ -134,7 +134,7 @@ namespace Indexer.Worker.Jobs
 
             while (!_cts.IsCancellationRequested)
             {
-                var appInsightOperation = _appInsight.StartRequest("Ongoing block indexing", new Dictionary<string, string>
+                var telemetry = _appInsight.StartRequest("Ongoing block indexing", new Dictionary<string, string>
                 {
                     ["job"] = "Ongoing indexing",
                     ["blockchainId"] = _indexer.BlockchainId,
@@ -152,6 +152,8 @@ namespace Indexer.Worker.Jobs
                         _publisher);
 
                     batchBackgroundTasks.AddRange(indexingResult.BackgroundTasks);
+
+                    telemetry.ResponseCode = indexingResult.BlockResult.ToString();
 
                     if (indexingResult.BlockResult == OngoingBlockIndexingResult.BlockNotFound)
                     {
@@ -181,13 +183,13 @@ namespace Indexer.Worker.Jobs
                 }
                 catch (Exception ex)
                 {
-                    appInsightOperation.Fail(ex);
+                    telemetry.Fail(ex);
 
                     throw;
                 }
                 finally
                 {
-                    appInsightOperation.Stop();
+                    telemetry.Stop();
                 }
             }
 
