@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data.Common;
 using System.Linq;
 using Microsoft.ApplicationInsights;
 using Microsoft.ApplicationInsights.DataContracts;
@@ -111,6 +112,11 @@ namespace Indexer.Common.Telemetry
             }
 
             return new AppInsightOperation(_client, _client.StartOperation(telemetry));
+        }
+
+        public SqlCommandAppInsightOperation StartSqlCommand(DbCommand command)
+        {
+            return new SqlCommandAppInsightOperation(this, command);
         }
 
         public void TrackException(Exception exception)

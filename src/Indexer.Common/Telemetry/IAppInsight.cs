@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data.Common;
 
 namespace Indexer.Common.Telemetry
 {
@@ -23,6 +24,8 @@ namespace Indexer.Common.Telemetry
         void TrackMetric(string name, double value, IReadOnlyDictionary<string, string> properties = null);
 
         AppInsightOperation StartRequest(string name, IReadOnlyDictionary<string, string> properties = null);
+
+        SqlCommandAppInsightOperation StartSqlCommand(DbCommand command);
         
         void TrackException(Exception exception);
     }

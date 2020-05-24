@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using Indexer.Common.Persistence.Entities;
 using Indexer.Common.ReadModel.Blockchains;
+using Indexer.Common.Telemetry;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using Swisschain.Extensions.Idempotency.EfCore;
@@ -13,10 +14,13 @@ namespace Indexer.Common.Persistence.DbContexts
         public const string SchemaName = "indexer";
         public const string MigrationHistoryTable = "__EFMigrationsHistory";
 
-        public DatabaseContext(DbContextOptions<DatabaseContext> options) :
+        public DatabaseContext(DbContextOptions<DatabaseContext> options, IAppInsight appInsight) :
             base(options)
         {
+            AppInsight = appInsight;
         }
+
+        public IAppInsight AppInsight { get; }
 
         public DbSet<ObservedOperationEntity> ObservedOperations { get; set; }
         public DbSet<BlockEntity> Blocks { get; set; }

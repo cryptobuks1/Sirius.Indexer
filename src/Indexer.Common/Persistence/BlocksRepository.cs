@@ -25,10 +25,19 @@ namespace Indexer.Common.Persistence
         {
             await using var context = _contextFactory.Invoke();
             await using var connection = context.Database.GetDbConnection();
-            await connection.OpenAsync();
+            
             await using var command = connection.CreateCommand();
 
-            command.CommandText = @$"
+            var telemetry = context.AppInsight.StartSqlCommand(command);
+
+            try
+            {
+                if (command.Connection.State != ConnectionState.Open)
+                {
+                    await connection.OpenAsync();
+                }
+
+                command.CommandText = @$"
 insert into {DatabaseContext.SchemaName}.{TableNames.Blocks} 
 (
     ""GlobalId"",
@@ -47,13 +56,25 @@ values
 ) 
 on conflict (""GlobalId"") do nothing";
 
-            command.Parameters.Add(new NpgsqlParameter("@globalId", DbType.String) {Value = block.GlobalId});
-            command.Parameters.Add(new NpgsqlParameter("@blockchainId", DbType.String) {Value = block.BlockchainId});
-            command.Parameters.Add(new NpgsqlParameter("@id", DbType.String) {Value = block.Id});
-            command.Parameters.Add(new NpgsqlParameter("@number", DbType.Int64) {Value = block.Number});
-            command.Parameters.Add(new NpgsqlParameter("@previousId", DbType.String) {Value = (object)block.PreviousId ?? DBNull.Value});
+                command.Parameters.Add(new NpgsqlParameter("@globalId", DbType.String) {Value = block.GlobalId});
+                command.Parameters.Add(
+                    new NpgsqlParameter("@blockchainId", DbType.String) {Value = block.BlockchainId});
+                command.Parameters.Add(new NpgsqlParameter("@id", DbType.String) {Value = block.Id});
+                command.Parameters.Add(new NpgsqlParameter("@number", DbType.Int64) {Value = block.Number});
+                command.Parameters.Add(
+                    new NpgsqlParameter("@previousId", DbType.String)
+                    {
+                        Value = (object) block.PreviousId ?? DBNull.Value
+                    });
 
-            await command.ExecuteNonQueryAsync();
+                await command.ExecuteNonQueryAsync();
+
+                telemetry.Complete();
+            }
+            catch (Exception ex)
+            {
+                telemetry.Fail(ex);
+            }
         }
 
         public async Task<Block> GetOrDefault(string blockchainId, long blockNumber)

@@ -37,7 +37,7 @@ namespace Indexer.Common.Persistence
 
                 DatabaseContext CreateDatabaseContext()
                 {
-                    return new DatabaseContext(optionsBuilder.Options);
+                    return new DatabaseContext(optionsBuilder.Options, x.GetRequiredService<IAppInsight>());
                 }
 
                 return CreateDatabaseContext;

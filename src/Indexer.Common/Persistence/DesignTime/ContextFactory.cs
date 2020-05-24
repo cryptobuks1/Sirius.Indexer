@@ -14,7 +14,7 @@ namespace Indexer.Common.Persistence.DesignTime
             var optionsBuilder = new DbContextOptionsBuilder<DatabaseContext>();
             optionsBuilder.UseNpgsql(connectionString);
 
-            return new DatabaseContext(optionsBuilder.Options);
+            return new DatabaseContext(optionsBuilder.Options, null);
         }
     }
 }
