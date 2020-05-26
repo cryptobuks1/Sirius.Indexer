@@ -69,7 +69,7 @@ namespace Indexer.Common.Domain.Indexing
                     BlockNumber = NextBlock
                 });
 
-                throw new InvalidOperationException($@"First-pass indexer {BlockchainId} has not found the block {NextBlock}.");
+                throw new InvalidOperationException($"First-pass indexer {BlockchainId} has not found the block {NextBlock}.");
             }
 
             await blocksRepository.InsertOrIgnore(block);
@@ -82,6 +82,16 @@ namespace Indexer.Common.Domain.Indexing
             });
             
             NextBlock++;
+
+            if (IsCompleted)
+            {
+                if (NextBlock > StopBlock)
+                {
+                    NextBlock = StopBlock;
+                }
+
+                return FirstPassIndexingResult.IndexingCompleted;
+            }
 
             return FirstPassIndexingResult.BlockIndexed;
         }

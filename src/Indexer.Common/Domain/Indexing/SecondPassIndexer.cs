@@ -24,7 +24,7 @@ namespace Indexer.Common.Domain.Indexing
         public long NextBlock { get; private set; }
         public long StopBlock { get; }
         public int Version { get; }
-        public bool IsCompleted => NextBlock == StopBlock;
+        public bool IsCompleted => NextBlock >= StopBlock;
 
         public static SecondPassIndexer Create(string blockchainId, long startBlock, long stopBlock)
         {
