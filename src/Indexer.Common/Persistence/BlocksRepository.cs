@@ -74,6 +74,8 @@ on conflict (""GlobalId"") do nothing";
             catch (Exception ex)
             {
                 telemetry.Fail(ex);
+
+                throw;
             }
         }
 
