@@ -12,38 +12,52 @@ namespace Indexer.Common.Domain.Indexing
         private SecondPassIndexer(string blockchainId,
             long nextBlock,
             long stopBlock,
+            DateTime startedAt,
+            DateTime updatedAt,
             int version)
         {
             BlockchainId = blockchainId;
             NextBlock = nextBlock;
             StopBlock = stopBlock;
+            StartedAt = startedAt;
+            UpdatedAt = updatedAt;
             Version = version;
         }
 
         public string BlockchainId { get; }
         public long NextBlock { get; private set; }
         public long StopBlock { get; }
+        public DateTime StartedAt { get; }
+        public DateTime UpdatedAt { get; private set; }
         public int Version { get; }
         public bool IsCompleted => NextBlock >= StopBlock;
 
-        public static SecondPassIndexer Create(string blockchainId, long startBlock, long stopBlock)
+        public static SecondPassIndexer Start(string blockchainId, long startBlock, long stopBlock)
         {
+            var now = DateTime.UtcNow;
+
             return new SecondPassIndexer(
                 blockchainId,
                 startBlock,
                 stopBlock,
+                now,
+                now,
                 version: 0);
         }
 
         public static SecondPassIndexer Restore(string blockchainId,
             long nextBlock,
             long stopBlock,
+            DateTime startedAt,
+            DateTime updatedAt,
             int version)
         {
             return new SecondPassIndexer(
                 blockchainId,
                 nextBlock,
                 stopBlock,
+                startedAt,
+                updatedAt,
                 version);
         }
 
@@ -97,10 +111,10 @@ namespace Indexer.Common.Domain.Indexing
 
             try
             {
-
                 // TODO: Index block data
 
                 NextBlock = block.Number + 1;
+                UpdatedAt = DateTime.UtcNow;
             }
             catch (Exception ex)
             {

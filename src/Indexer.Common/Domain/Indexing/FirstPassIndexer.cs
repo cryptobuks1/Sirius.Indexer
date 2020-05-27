@@ -11,11 +11,17 @@ namespace Indexer.Common.Domain.Indexing
         private FirstPassIndexer(FirstPassIndexerId id,
             long stopBlock,
             long nextBlock,
+            long stepSize,
+            DateTime startedAt,
+            DateTime updatedAt,
             int version)
         {
             Id = id;
             StopBlock = stopBlock;
             NextBlock = nextBlock;
+            StepSize = stepSize;
+            StartedAt = startedAt;
+            UpdatedAt = updatedAt;
             Version = version;
         }
 
@@ -24,15 +30,23 @@ namespace Indexer.Common.Domain.Indexing
         public long StartBlock => Id.StartBlock;
         public long StopBlock { get; }
         public long NextBlock { get; private set; }
+        public long StepSize { get; }
+        public DateTime StartedAt { get; }
+        public DateTime UpdatedAt { get; private set; }
         public int Version { get; }
         public bool IsCompleted => NextBlock >= StopBlock;
         
-        public static FirstPassIndexer Start(FirstPassIndexerId id, long stopBlock)
+        public static FirstPassIndexer Start(FirstPassIndexerId id, long stopBlock, long stepSize)
         {
+            var now = DateTime.UtcNow;
+
             return new FirstPassIndexer(
                 id,
                 stopBlock: stopBlock,
                 nextBlock: id.StartBlock,
+                stepSize: stepSize,
+                now,
+                now,
                 version: 0);
         }
 
@@ -40,12 +54,18 @@ namespace Indexer.Common.Domain.Indexing
             FirstPassIndexerId id,
             long stopBlock,
             long nextBlock,
+            long stepSize,
+            DateTime startedAt,
+            DateTime updatedAt,
             int version)
         {
             return new FirstPassIndexer(
                 id,
                 stopBlock,
                 nextBlock,
+                stepSize,
+                startedAt,
+                updatedAt,
                 version);
         }
 
@@ -66,34 +86,26 @@ namespace Indexer.Common.Domain.Indexing
                 logger.LogInformation($"First-pass indexer has not found the block. Likely `{nameof(BlockchainIndexingConfig.LastHistoricalBlockNumber)}` should be decreased. It should be existing block {{@context}}", new
                 {
                     BlockchainId = BlockchainId,
-                    BlockNumber = NextBlock
+                    StartBlock = StartBlock,
+                    NextBlock = NextBlock
                 });
 
-                throw new InvalidOperationException($"First-pass indexer {BlockchainId} has not found the block {NextBlock}.");
+                throw new InvalidOperationException($"First-pass indexer {Id} has not found the block {NextBlock}.");
             }
 
             await blocksRepository.InsertOrIgnore(block);
 
             // TODO: Add first-pass block data indexing
             
+            NextBlock += StepSize;
+            UpdatedAt = DateTime.UtcNow;
+
             await inMemoryBus.Publish(new FirstPassBlockDetected
             {
                 BlockchainId = BlockchainId
             });
             
-            NextBlock++;
-
-            if (IsCompleted)
-            {
-                if (NextBlock > StopBlock)
-                {
-                    NextBlock = StopBlock;
-                }
-
-                return FirstPassIndexingResult.IndexingCompleted;
-            }
-
-            return FirstPassIndexingResult.BlockIndexed;
+            return IsCompleted ? FirstPassIndexingResult.IndexingCompleted : FirstPassIndexingResult.BlockIndexed;
         }
     }
 }

@@ -123,6 +123,7 @@ namespace Indexer.Worker.Jobs
                 new Dictionary<string, string>
                 {
                     ["blockchainId"] = _indexer.BlockchainId,
+                    ["startBlock"] = _indexer.StartBlock.ToString(),
                     ["nextBlock"] = _indexer.NextBlock.ToString()
                 });
 

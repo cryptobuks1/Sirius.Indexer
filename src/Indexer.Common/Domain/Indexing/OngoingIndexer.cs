@@ -8,37 +8,60 @@ namespace Indexer.Common.Domain.Indexing
 {
     public sealed class OngoingIndexer
     {
-        private OngoingIndexer(string blockchainId, long nextBlock, long sequence, int version)
+        private OngoingIndexer(string blockchainId, 
+            long startBlock, 
+            long nextBlock, 
+            long sequence, 
+            DateTime startedAt,
+            DateTime updatedAt,
+            int version)
         {
             BlockchainId = blockchainId;
+            StartBlock = startBlock;
             NextBlock = nextBlock;
             Sequence = sequence;
+            StartedAt = startedAt;
+            UpdatedAt = updatedAt;
             Version = version;
         }
 
         public string BlockchainId { get; }
+        public long StartBlock { get; }
         public long NextBlock { get; private set; }
         public long Sequence { get; private set; }
+        public DateTime StartedAt { get; }
+        public DateTime UpdatedAt { get; private set; }
         public int Version { get; }
         
-        public static OngoingIndexer Create(string blockchainId, long startBlock, long startSequence)
+        public static OngoingIndexer Start(string blockchainId, long startBlock, long startSequence)
         {
+            var now = DateTime.UtcNow;
+
             return new OngoingIndexer(
                 blockchainId,
                 startBlock,
+                startBlock,
                 startSequence,
+                now,
+                now,
                 version: 0);
         }
 
         public static OngoingIndexer Restore(string blockchainId,
-            in long nextBlock,
-            in long sequence,
-            in int version)
+            long startBlock,
+            long nextBlock,
+            long sequence,
+            DateTime startedAt,
+            DateTime updatedAt,
+            int version)
         {
             return new OngoingIndexer(
                 blockchainId,
+                startBlock,
                 nextBlock,
                 sequence,
+                startedAt,
+                updatedAt,
                 version);
         }
 
@@ -56,6 +79,8 @@ namespace Indexer.Common.Domain.Indexing
 
             var indexingResult = OngoingIndexingResult.BlockIndexed();
             var processingResult = await processor.ProcessBlock(newBlock);
+
+            UpdatedAt = DateTime.UtcNow;
 
             switch (processingResult.IndexingDirection)
             {
@@ -76,7 +101,7 @@ namespace Indexer.Common.Domain.Indexing
 
                     NextBlock++;
                     Sequence++;
-
+                    
                     logger.LogInformation("Ongoing indexer has indexed the block {@context}", new
                     {
                         BlockchainId = BlockchainId,

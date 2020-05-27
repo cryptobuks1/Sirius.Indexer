@@ -79,6 +79,9 @@ namespace Indexer.Common.Persistence
                 new FirstPassIndexerId(entity.BlockchainId, entity.StartBlock),
                 entity.StopBlock,
                 entity.NextBlock,
+                entity.StepSize,
+                entity.StartedAt.UtcDateTime,
+                entity.UpdatedAt.UtcDateTime,
                 entity.Version);
         }
         
@@ -91,6 +94,9 @@ namespace Indexer.Common.Persistence
                 StartBlock = indexer.StartBlock,
                 StopBlock = indexer.StopBlock,
                 NextBlock = indexer.NextBlock,
+                StepSize = indexer.StepSize,
+                StartedAt = indexer.StartedAt,
+                UpdatedAt = indexer.UpdatedAt,
                 Version = indexer.Version
             };
         }

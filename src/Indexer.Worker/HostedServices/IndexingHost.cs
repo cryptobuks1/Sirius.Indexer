@@ -132,17 +132,13 @@ namespace Indexer.Worker.HostedServices
             BlockchainIndexingConfig blockchainConfig,
             BlockchainMetamodel blockchainMetamodel)
         {
-            var indexerBlocksCount = blockchainConfig.LastHistoricalBlockNumber /
-                                     blockchainConfig.FirstPassIndexersCount;
             var indexerFactoryTasks = Enumerable
                 .Range(0, blockchainConfig.FirstPassIndexersCount)
                 .Select(async i =>
                 {
-                    var startBlock = blockchainMetamodel.Protocol.StartBlockNumber + i * indexerBlocksCount;
-                    var isLastIndexer = i != blockchainConfig.FirstPassIndexersCount - 1;
-                    var stopBlock = isLastIndexer
-                        ? startBlock + indexerBlocksCount
-                        : blockchainConfig.LastHistoricalBlockNumber;
+                    var startBlock = blockchainMetamodel.Protocol.StartBlockNumber + i;
+                    var stopBlock = blockchainConfig.LastHistoricalBlockNumber;
+                    var stepSize = blockchainConfig.FirstPassIndexersCount;
                     var indexerId = new FirstPassIndexerId(blockchainId, startBlock);
                     var indexer = await _firstPassIndexersRepository.GetOrDefault(indexerId);
 
@@ -152,10 +148,11 @@ namespace Indexer.Worker.HostedServices
                         {
                             BlockchainId = indexerId.BlockchainId,
                             StartBlock = indexerId.StartBlock,
-                            StopBlock = stopBlock
+                            StopBlock = stopBlock,
+                            StepSize = stepSize
                         });
 
-                        indexer = FirstPassIndexer.Start(indexerId, stopBlock);
+                        indexer = FirstPassIndexer.Start(indexerId, stopBlock, stepSize);
 
                         await _firstPassIndexersRepository.Add(indexer);
                     }
@@ -199,7 +196,7 @@ namespace Indexer.Worker.HostedServices
                     StopBlock = blockchainConfig.LastHistoricalBlockNumber
                 });
 
-                indexer = SecondPassIndexer.Create(
+                indexer = SecondPassIndexer.Start(
                     blockchainId, 
                     startBlock: blockchainMetamodel.Protocol.StartBlockNumber,
                     stopBlock: blockchainConfig.LastHistoricalBlockNumber);
@@ -236,10 +233,10 @@ namespace Indexer.Worker.HostedServices
                 {
                     BlockchainId = blockchainId,
                     StartBlock = startBlock,
-                    StartSeqence = sequence
+                    Seqence = sequence
                 });
 
-                indexer = OngoingIndexer.Create(
+                indexer = OngoingIndexer.Start(
                     blockchainId, 
                     startBlock: blockchainConfig.LastHistoricalBlockNumber,
                     startSequence: blockchainConfig.LastHistoricalBlockNumber - blockchainMetamodel.Protocol.StartBlockNumber);

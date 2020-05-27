@@ -67,6 +67,8 @@ namespace Indexer.Common.Persistence
                 entity.BlockchainId,
                 entity.NextBlock,
                 entity.StopBlock,
+                entity.StartedAt.UtcDateTime,
+                entity.UpdatedAt.UtcDateTime,
                 entity.Version);
         }
 
@@ -77,6 +79,8 @@ namespace Indexer.Common.Persistence
                 BlockchainId = indexer.BlockchainId,
                 NextBlock = indexer.NextBlock,
                 StopBlock = indexer.StopBlock,
+                StartedAt = indexer.StartedAt,
+                UpdatedAt = indexer.UpdatedAt,
                 Version = indexer.Version
             };
         }

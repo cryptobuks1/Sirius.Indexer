@@ -1,4 +1,6 @@
-﻿namespace Indexer.Common.Persistence.Entities
+﻿using System;
+
+namespace Indexer.Common.Persistence.Entities
 {
     public class SecondPassIndexerEntity
     {
@@ -6,5 +8,7 @@
         public long NextBlock { get;  set; }
         public long StopBlock { get; set; }
         public int Version { get; set; }
+        public DateTimeOffset StartedAt { get; set; }
+        public DateTimeOffset UpdatedAt { get; set; }
     }
 }

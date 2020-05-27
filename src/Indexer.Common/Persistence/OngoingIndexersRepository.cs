@@ -65,8 +65,11 @@ namespace Indexer.Common.Persistence
         {
             return OngoingIndexer.Restore(
                 entity.BlockchainId,
+                entity.StartBlock,
                 entity.NextBlock,
                 entity.Sequence,
+                entity.StartedAt.UtcDateTime,
+                entity.UpdatedAt.UtcDateTime,
                 entity.Version);
         }
 
@@ -75,8 +78,11 @@ namespace Indexer.Common.Persistence
             return new OngoingIndexerEntity
             {
                 BlockchainId = indexer.BlockchainId,
+                StartBlock = indexer.StartBlock,
                 NextBlock = indexer.NextBlock,
                 Sequence = indexer.Sequence,
+                StartedAt = indexer.StartedAt,
+                UpdatedAt = indexer.UpdatedAt,
                 Version = indexer.Version
             };
         }
