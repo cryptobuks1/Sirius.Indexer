@@ -48,7 +48,7 @@ namespace Indexer.Worker.Jobs
             _appInsight = appInsight;
 
             _job = new BackgroundJob(
-                loggerFactory.CreateLogger<SecondPassIndexingJob>(),
+                _logger,
                 "First-pass indexing",
                 new
                 {

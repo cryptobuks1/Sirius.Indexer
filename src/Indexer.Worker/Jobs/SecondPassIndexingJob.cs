@@ -43,7 +43,7 @@ namespace Indexer.Worker.Jobs
             _appInsight = appInsight;
 
             _job = new BackgroundJob(
-                loggerFactory.CreateLogger<SecondPassIndexingJob>(),
+                _logger,
                 "Second-pass indexing",
                 new
                 {
@@ -81,7 +81,7 @@ namespace Indexer.Worker.Jobs
             // TODO: Move max blocks count to config
             var indexingResult = await _indexer.IndexAvailableBlocks(
                 _loggerFactory.CreateLogger<SecondPassIndexer>(), 
-                maxBlocksCount: 100,
+                maxBlocksCount: 100, // For the bitcoin-test on azure 100 is not enough. About 200 should be ok I guess
                 _blocksRepository,
                 _publisher,
                 _appInsight);
