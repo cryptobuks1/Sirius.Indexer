@@ -5,7 +5,7 @@ metadata:
     app: indexer
     environment: Development
   name: indexer
-  namespace: sirius
+  namespace: sirius-indexers
 spec:
   ports:
   - name: http

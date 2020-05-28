@@ -8,7 +8,7 @@ metadata:
     environment: Development
     tier: Service
   name: indexer
-  namespace: sirius
+  namespace: sirius-indexers
 spec:
   revisionHistoryLimit: 1
   minReadySeconds: 10
