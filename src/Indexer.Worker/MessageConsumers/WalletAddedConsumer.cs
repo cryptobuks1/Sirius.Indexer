@@ -3,6 +3,7 @@ using Indexer.Bilv1.Domain.Services;
 using MassTransit;
 using Microsoft.Extensions.Logging;
 using Swisschain.Sirius.VaultAgent.MessagingContract;
+using Swisschain.Sirius.VaultAgent.MessagingContract.Wallets;
 
 namespace Indexer.Worker.MessageConsumers
 {
