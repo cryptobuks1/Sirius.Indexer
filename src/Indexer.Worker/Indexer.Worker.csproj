@@ -15,7 +15,7 @@
     <PackageReference Include="Swisschain.Sdk.Server" Version="6.2.0" />
     <PackageReference Include="Swisschain.Sirius.Integrations.MessagingContract" Version="8.0.0" />
     <PackageReference Include="Swisschain.Sirius.Sdk" Version="5.0.0-beta.3" />
-    <PackageReference Include="Swisschain.Sirius.VaultAgent.MessagingContract" Version="1.2.0" />
+    <PackageReference Include="Swisschain.Sirius.VaultAgent.MessagingContract" Version="1.6.0" />
   </ItemGroup>
 
   <ItemGroup>
