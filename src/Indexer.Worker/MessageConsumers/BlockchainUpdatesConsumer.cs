@@ -22,6 +22,13 @@ namespace Indexer.Worker.MessageConsumers
         {
             var evt = context.Message;
 
+            if (evt.Protocol.Version != "bil-v1")
+            {
+                _logger.LogInformation("Indexer supports only bil-v1 blockchains at the moment, so skipping {@context}", evt);
+
+                return;
+            }
+
             await _blockchainsRepository.AddOrReplaceAsync(new Blockchain
             {
                 Id = evt.BlockchainId,
