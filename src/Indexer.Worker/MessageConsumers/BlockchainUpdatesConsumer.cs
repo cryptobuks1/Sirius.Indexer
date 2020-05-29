@@ -22,6 +22,13 @@ namespace Indexer.Worker.MessageConsumers
         {
             var evt = context.Message;
 
+            if (evt.Protocol.Version != "1.0")
+            {
+                _logger.LogInformation("Indexer supports only blockchains v1.0 at the moment, so skipping {@context}", evt);
+
+                return;
+            }
+
             await _blockchainsRepository.AddOrReplaceAsync(new BlockchainMetamodel
             {
                 Id = evt.BlockchainId,
