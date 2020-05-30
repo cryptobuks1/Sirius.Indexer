@@ -15,7 +15,7 @@ namespace Indexer.Worker.Jobs
         private readonly string _blockchainId;
         private readonly long _stopBlock;
         private readonly ISecondPassIndexersRepository _indexersRepository;
-        private readonly IBlocksRepository _blocksRepository;
+        private readonly IBlockHeadersRepository _blockHeadersRepository;
         private readonly IPublishEndpoint _publisher;
         private readonly OngoingIndexingJobsManager _ongoingIndexingJobsManager;
         private readonly IAppInsight _appInsight;
@@ -27,7 +27,7 @@ namespace Indexer.Worker.Jobs
             string blockchainId,
             long stopBlock,
             ISecondPassIndexersRepository indexersRepository,
-            IBlocksRepository blocksRepository,
+            IBlockHeadersRepository blockHeadersRepository,
             IPublishEndpoint publisher,
             OngoingIndexingJobsManager ongoingIndexingJobsManager,
             IAppInsight appInsight)
@@ -37,7 +37,7 @@ namespace Indexer.Worker.Jobs
             _blockchainId = blockchainId;
             _stopBlock = stopBlock;
             _indexersRepository = indexersRepository;
-            _blocksRepository = blocksRepository;
+            _blockHeadersRepository = blockHeadersRepository;
             _publisher = publisher;
             _ongoingIndexingJobsManager = ongoingIndexingJobsManager;
             _appInsight = appInsight;
@@ -82,7 +82,7 @@ namespace Indexer.Worker.Jobs
             var indexingResult = await _indexer.IndexAvailableBlocks(
                 _loggerFactory.CreateLogger<SecondPassIndexer>(), 
                 maxBlocksCount: 100, // For the bitcoin-test on azure 100 is not enough. About 200 should be ok I guess
-                _blocksRepository,
+                _blockHeadersRepository,
                 _publisher,
                 _appInsight);
 

@@ -23,7 +23,7 @@ namespace Indexer.Common.Persistence.DbContexts
         public IAppInsight AppInsight { get; }
 
         public DbSet<ObservedOperationEntity> ObservedOperations { get; set; }
-        public DbSet<BlockEntity> Blocks { get; set; }
+        public DbSet<BlockHeaderEntity> BlockHeaders { get; set; }
         public DbSet<FirstPassIndexerEntity> FirstPassHistoryIndexers { get; set; }
         public DbSet<SecondPassIndexerEntity> SecondPassIndexers { get; set; }
         public DbSet<OngoingIndexerEntity> OngoingIndexers { get; set; }
@@ -43,7 +43,7 @@ namespace Indexer.Common.Persistence.DbContexts
 
             BuildBlockchain(modelBuilder);
             BuildObservedOperation(modelBuilder);
-            BuildBlocks(modelBuilder);
+            BuildBlockHeaders(modelBuilder);
             BuildFirstPassIndexers(modelBuilder);
             BuildSecondPassIndexers(modelBuilder);
             BuildOngoingIndexers(modelBuilder);
@@ -100,11 +100,11 @@ namespace Indexer.Common.Persistence.DbContexts
             });
         }
 
-        private static void BuildBlocks(ModelBuilder modelBuilder)
+        private static void BuildBlockHeaders(ModelBuilder modelBuilder)
         {
-            modelBuilder.Entity<BlockEntity>(e =>
+            modelBuilder.Entity<BlockHeaderEntity>(e =>
             {
-                e.ToTable(TableNames.Blocks);
+                e.ToTable(TableNames.BlockHeaders);
                 e.HasKey(x => x.GlobalId);
 
                 e.HasIndex(x => new
@@ -113,7 +113,7 @@ namespace Indexer.Common.Persistence.DbContexts
                         x.Id
                     })
                     .IsUnique()
-                    .HasName("IX_Blocks_Blockchain_Id");
+                    .HasName("IX_BlockHeaders_BlockchainId_Id");
 
                 e.HasIndex(x => new
                     {
@@ -121,7 +121,7 @@ namespace Indexer.Common.Persistence.DbContexts
                         x.Number
                     })
                     .IsUnique()
-                    .HasName("IX_Blocks_Blockchain_Number");
+                    .HasName("IX_Blocks_BlockchainId_Number");
 
                 e.Property(x => x.BlockchainId).IsRequired();
                 e.Property(x => x.Id).IsRequired();

@@ -71,7 +71,7 @@ namespace Indexer.Common.Domain.Indexing
 
         public async Task<FirstPassIndexingResult> IndexNextBlock(ILogger<FirstPassIndexer> logger,
             IBlocksReader blocksReader,
-            IBlocksRepository blocksRepository,
+            IBlockHeadersRepository blockHeadersRepository,
             IInMemoryBus inMemoryBus)
         {
             if (IsCompleted)
@@ -93,7 +93,7 @@ namespace Indexer.Common.Domain.Indexing
                 throw new InvalidOperationException($"First-pass indexer {Id} has not found the block {NextBlock}.");
             }
 
-            await blocksRepository.InsertOrIgnore(block);
+            await blockHeadersRepository.InsertOrIgnore(block);
 
             // TODO: Add first-pass block data indexing
             

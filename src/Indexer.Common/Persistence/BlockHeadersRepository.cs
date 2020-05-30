@@ -4,6 +4,7 @@ using System.Data;
 using System.Linq;
 using System.Threading.Tasks;
 using Indexer.Common.Domain;
+using Indexer.Common.Domain.Blocks;
 using Indexer.Common.Persistence.DbContexts;
 using Indexer.Common.Persistence.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -12,16 +13,16 @@ using Z.EntityFramework.Plus;
 
 namespace Indexer.Common.Persistence
 {
-    internal class BlocksRepository : IBlocksRepository
+    internal class BlockHeadersRepository : IBlockHeadersRepository
     {
         private readonly Func<DatabaseContext> _contextFactory;
 
-        public BlocksRepository(Func<DatabaseContext> contextFactory)
+        public BlockHeadersRepository(Func<DatabaseContext> contextFactory)
         {
             _contextFactory = contextFactory;
         }
 
-        public async Task InsertOrIgnore(Block block)
+        public async Task InsertOrIgnore(BlockHeader blockHeader)
         {
             await using var context = _contextFactory.Invoke();
             await using var connection = context.Database.GetDbConnection();
@@ -38,13 +39,14 @@ namespace Indexer.Common.Persistence
                 }
 
                 command.CommandText = @$"
-insert into {DatabaseContext.SchemaName}.{TableNames.Blocks} 
+insert into {DatabaseContext.SchemaName}.{TableNames.BlockHeaders} 
 (
     ""GlobalId"",
     ""BlockchainId"",
     ""Id"",
     ""Number"",
-    ""PreviousId""
+    ""PreviousId"",
+    ""MinedAt""
 ) 
 values 
 (
@@ -52,20 +54,20 @@ values
     @blockchainId,
     @id,
     @number,
-    @previousId
+    @previousId,
+    @minedAt
 ) 
 on conflict (""GlobalId"") do nothing";
 
-                command.Parameters.Add(new NpgsqlParameter("@globalId", DbType.String) {Value = block.GlobalId});
-                command.Parameters.Add(
-                    new NpgsqlParameter("@blockchainId", DbType.String) {Value = block.BlockchainId});
-                command.Parameters.Add(new NpgsqlParameter("@id", DbType.String) {Value = block.Id});
-                command.Parameters.Add(new NpgsqlParameter("@number", DbType.Int64) {Value = block.Number});
-                command.Parameters.Add(
-                    new NpgsqlParameter("@previousId", DbType.String)
-                    {
-                        Value = (object) block.PreviousId ?? DBNull.Value
-                    });
+                command.Parameters.Add(new NpgsqlParameter("@globalId", DbType.String) {Value = blockHeader.GlobalId});
+                command.Parameters.Add(new NpgsqlParameter("@blockchainId", DbType.String) {Value = blockHeader.BlockchainId});
+                command.Parameters.Add(new NpgsqlParameter("@id", DbType.String) {Value = blockHeader.Id});
+                command.Parameters.Add(new NpgsqlParameter("@number", DbType.Int64) {Value = blockHeader.Number});
+                command.Parameters.Add(new NpgsqlParameter("@previousId", DbType.String)
+                {
+                    Value = (object) blockHeader.PreviousId ?? DBNull.Value
+                });
+                command.Parameters.Add(new NpgsqlParameter("@minedAt", DbType.DateTime) {Value = blockHeader.MinedAt});
 
                 await command.ExecuteNonQueryAsync();
 
@@ -79,11 +81,11 @@ on conflict (""GlobalId"") do nothing";
             }
         }
 
-        public async Task<Block> GetOrDefault(string blockchainId, long blockNumber)
+        public async Task<BlockHeader> GetOrDefault(string blockchainId, long blockNumber)
         {
             await using var context = _contextFactory.Invoke();
 
-            var entity = context.Blocks.SingleOrDefault(x => x.BlockchainId == blockchainId && x.Number == blockNumber);
+            var entity = context.BlockHeaders.SingleOrDefault(x => x.BlockchainId == blockchainId && x.Number == blockNumber);
 
             return entity != null ? MapFromEntity(entity) : null;
         }
@@ -92,14 +94,14 @@ on conflict (""GlobalId"") do nothing";
         {
             await using var context = _contextFactory.Invoke();
 
-            await context.Blocks.Where(x => x.GlobalId == globalId).DeleteAsync();
+            await context.BlockHeaders.Where(x => x.GlobalId == globalId).DeleteAsync();
         }
 
-        public async Task<IEnumerable<Block>> GetBatch(string blockchainId, long startBlockNumber, int limit)
+        public async Task<IEnumerable<BlockHeader>> GetBatch(string blockchainId, long startBlockNumber, int limit)
         {
             await using var context = _contextFactory.Invoke();
 
-            var entities = await context.Blocks
+            var entities = await context.BlockHeaders
                 .Where(x => x.BlockchainId == blockchainId && x.Number >= startBlockNumber)
                 .OrderBy(x => x.Number)
                 .Take(limit)
@@ -108,13 +110,14 @@ on conflict (""GlobalId"") do nothing";
             return entities.Select(MapFromEntity);
         }
 
-        private static Block MapFromEntity(BlockEntity entity)
+        private static BlockHeader MapFromEntity(BlockHeaderEntity entity)
         {
-            return new Block(
+            return new BlockHeader(
                 entity.BlockchainId,
                 entity.Id,
                 entity.Number,
-                entity.PreviousId);
+                entity.PreviousId,
+                new DateTime(entity.MinedAt.Ticks, DateTimeKind.Utc));
         }
     }
 }

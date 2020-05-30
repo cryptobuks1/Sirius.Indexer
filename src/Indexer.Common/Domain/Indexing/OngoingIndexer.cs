@@ -117,8 +117,8 @@ namespace Indexer.Common.Domain.Indexing
                         publisher.Publish(new BlockCancelled
                         {
                             BlockchainId = BlockchainId,
-                            BlockId = processingResult.PreviousBlock.Id,
-                            BlockNumber = processingResult.PreviousBlock.Number,
+                            BlockId = processingResult.PreviousBlockHeader.Id,
+                            BlockNumber = processingResult.PreviousBlockHeader.Number,
                             ChainSequence = Sequence
                         }));
 
@@ -131,8 +131,8 @@ namespace Indexer.Common.Domain.Indexing
                     logger.LogInformation("Ongoing indexer has reverted the block {@context}", new
                     {
                         BlockchainId = BlockchainId,
-                        BlockNumber = processingResult.PreviousBlock.Number,
-                        BlockId = processingResult.PreviousBlock.Id
+                        BlockNumber = processingResult.PreviousBlockHeader.Number,
+                        BlockId = processingResult.PreviousBlockHeader.Id
                     });
 
                     break;

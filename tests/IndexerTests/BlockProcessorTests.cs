@@ -2,7 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Indexer.Common.Domain;
+using Indexer.Common.Domain.Blocks;
 using Indexer.Common.Domain.Indexing;
 using IndexerTests.Mocks;
 using Shouldly;
@@ -18,11 +18,11 @@ namespace IndexerTests
         public async Task ProcessInitialBlock()
         {
             // arrange
-            var initialBlock = new Block(BlockchainId, number: 10, id: "B", previousBlockId: "A");
-            var blockRepository = new InMemoryBlocksRepository();
+            var initialBlock = new BlockHeader(BlockchainId, number: 10, id: "B", previousBlockId: "A", minedAt: DateTime.UtcNow);
+            var blockRepository = new InMemoryBlockHeadersRepository();
             var processor = new BlocksProcessor(blockRepository);
 
-            await blockRepository.InsertOrIgnore(new Block(BlockchainId, number: 9, id: "A", previousBlockId: "C"));
+            await blockRepository.InsertOrIgnore(new BlockHeader(BlockchainId, number: 9, id: "A", previousBlockId: "C", minedAt: DateTime.UtcNow));
 
             // act
             var output = await processor.ProcessBlock(initialBlock);
@@ -35,8 +35,8 @@ namespace IndexerTests
         public async Task ProcessWithoutInitialBlock()
         {
             // arrange
-            var block = new Block(BlockchainId, number: 10, id: "B", previousBlockId: "A");
-            var blockRepository = new InMemoryBlocksRepository();
+            var block = new BlockHeader(BlockchainId, number: 10, id: "B", previousBlockId: "A", minedAt: DateTime.UtcNow);
+            var blockRepository = new InMemoryBlockHeadersRepository();
             var processor = new BlocksProcessor(blockRepository);
 
             // assert
@@ -47,7 +47,7 @@ namespace IndexerTests
         public async Task ProcessBlocksInOrder()
         {
             // arrange
-            var blockRepository = new InMemoryBlocksRepository();
+            var blockRepository = new InMemoryBlockHeadersRepository();
             var processor = new BlocksProcessor(blockRepository);
             var results = new List<BlockProcessingResult>();
 
@@ -55,10 +55,10 @@ namespace IndexerTests
             var order = new List<string> { "A", "B", "C", "D" };
             var blocks = new BlockSet
             {
-                new Block(BlockchainId, number: 10, id: "A", previousBlockId: "Z"),
-                new Block(BlockchainId, number: 11, id: "B", previousBlockId: "A"),
-                new Block(BlockchainId, number: 12, id: "C", previousBlockId: "B"),
-                new Block(BlockchainId, number: 13, id: "D", previousBlockId: "C"),
+                new BlockHeader(BlockchainId, number: 10, id: "A", previousBlockId: "Z", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 11, id: "B", previousBlockId: "A", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 12, id: "C", previousBlockId: "B", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 13, id: "D", previousBlockId: "C", minedAt: DateTime.UtcNow),
             };
 
             var expectedOutputs = new List<BlockProcessingResult>
@@ -69,7 +69,7 @@ namespace IndexerTests
                 BlockProcessingResult.CreateForward(),
             };
 
-            await blockRepository.InsertOrIgnore(new Block(BlockchainId, number: 9, id: "Z", previousBlockId: "X"));
+            await blockRepository.InsertOrIgnore(new BlockHeader(BlockchainId, number: 9, id: "Z", previousBlockId: "X", minedAt: DateTime.UtcNow));
 
             // act
             foreach (var id in order)
@@ -85,12 +85,12 @@ namespace IndexerTests
         public async Task StoresBlock()
         {
             // arrange
-            var initialBlock = new Block(BlockchainId, number: 10, id: "A", previousBlockId: "Z");
-            var regularBlock = new Block(BlockchainId, number: 11, id: "B", previousBlockId: "A");
-            var blockRepository = new InMemoryBlocksRepository();
+            var initialBlock = new BlockHeader(BlockchainId, number: 10, id: "A", previousBlockId: "Z", minedAt: DateTime.UtcNow);
+            var regularBlock = new BlockHeader(BlockchainId, number: 11, id: "B", previousBlockId: "A", minedAt: DateTime.UtcNow);
+            var blockRepository = new InMemoryBlockHeadersRepository();
             var processor = new BlocksProcessor(blockRepository);
 
-            await blockRepository.InsertOrIgnore(new Block(BlockchainId, number: 9, id: "Z", previousBlockId: "X"));
+            await blockRepository.InsertOrIgnore(new BlockHeader(BlockchainId, number: 9, id: "Z", previousBlockId: "X", minedAt: DateTime.UtcNow));
 
             // act
             await processor.ProcessBlock(initialBlock);
@@ -105,8 +105,8 @@ namespace IndexerTests
         public async Task DoesNotStoreUnexpectedBlock()
         {
             // arrange
-            var block = new Block(BlockchainId, number: 10, id: "B", previousBlockId: "A");
-            var blockRepository = new InMemoryBlocksRepository();
+            var block = new BlockHeader(BlockchainId, number: 10, id: "B", previousBlockId: "A", minedAt: DateTime.UtcNow);
+            var blockRepository = new InMemoryBlockHeadersRepository();
             var processor = new BlocksProcessor(blockRepository);
 
             // assert
@@ -121,7 +121,7 @@ namespace IndexerTests
         public async Task ProcessBlocksChallengeNumber01()
         {
             // arrange
-            var blockRepository = new InMemoryBlocksRepository();
+            var blockRepository = new InMemoryBlockHeadersRepository();
             var processor = new BlocksProcessor(blockRepository);
             var results = new List<BlockProcessingResult>();
 
@@ -131,22 +131,22 @@ namespace IndexerTests
             var order = new List<string> { "A", "B", "D", "C", "D" };
             var blocks = new BlockSet
             {
-                new Block(BlockchainId, number: 1, id: "A", previousBlockId: "Z"),
-                new Block(BlockchainId, number: 2, id: "B", previousBlockId: "A"),
-                new Block(BlockchainId, number: 2, id: "C", previousBlockId: "A"),
-                new Block(BlockchainId, number: 3, id: "D", previousBlockId: "C"),
+                new BlockHeader(BlockchainId, number: 1, id: "A", previousBlockId: "Z", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 2, id: "B", previousBlockId: "A", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 2, id: "C", previousBlockId: "A", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 3, id: "D", previousBlockId: "C", minedAt: DateTime.UtcNow),
             };
 
             var expectedOutputs = new List<BlockProcessingResult>
             {
                 BlockProcessingResult.CreateForward(),
                 BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateBackward(previousBlock: blocks["B"]),
+                BlockProcessingResult.CreateBackward(previousBlockHeader: blocks["B"]),
                 BlockProcessingResult.CreateForward(),
                 BlockProcessingResult.CreateForward(),
             };
 
-            await blockRepository.InsertOrIgnore(new Block(BlockchainId, number: 0, id: "Z", previousBlockId: "X"));
+            await blockRepository.InsertOrIgnore(new BlockHeader(BlockchainId, number: 0, id: "Z", previousBlockId: "X", minedAt: DateTime.UtcNow));
 
             // act
             foreach (var id in order)
@@ -162,7 +162,7 @@ namespace IndexerTests
         public async Task ProcessBlocksChallengeNumber02()
         {
             // arrange
-            var blockRepository = new InMemoryBlocksRepository();
+            var blockRepository = new InMemoryBlockHeadersRepository();
             var processor = new BlocksProcessor(blockRepository);
             var results = new List<BlockProcessingResult>();
 
@@ -172,12 +172,12 @@ namespace IndexerTests
             var order = new List<string> { "A", "B", "D", "F", "E", "C", "E", "F" };
             var blocks = new BlockSet
             {
-                new Block(BlockchainId, number: 1, id: "A", previousBlockId: "Z"),
-                new Block(BlockchainId, number: 2, id: "B", previousBlockId: "A"),
-                new Block(BlockchainId, number: 2, id: "C", previousBlockId: "A"),
-                new Block(BlockchainId, number: 3, id: "D", previousBlockId: "B"),
-                new Block(BlockchainId, number: 3, id: "E", previousBlockId: "C"),
-                new Block(BlockchainId, number: 4, id: "F", previousBlockId: "E"),
+                new BlockHeader(BlockchainId, number: 1, id: "A", previousBlockId: "Z", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 2, id: "B", previousBlockId: "A", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 2, id: "C", previousBlockId: "A", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 3, id: "D", previousBlockId: "B", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 3, id: "E", previousBlockId: "C", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 4, id: "F", previousBlockId: "E", minedAt: DateTime.UtcNow),
             };
 
             var expectedOutputs = new List<BlockProcessingResult>
@@ -185,14 +185,14 @@ namespace IndexerTests
                 BlockProcessingResult.CreateForward(),
                 BlockProcessingResult.CreateForward(),
                 BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateBackward(previousBlock: blocks["D"]),
-                BlockProcessingResult.CreateBackward(previousBlock: blocks["B"]),
+                BlockProcessingResult.CreateBackward(previousBlockHeader: blocks["D"]),
+                BlockProcessingResult.CreateBackward(previousBlockHeader: blocks["B"]),
                 BlockProcessingResult.CreateForward(),
                 BlockProcessingResult.CreateForward(),
                 BlockProcessingResult.CreateForward(),
             };
 
-            await blockRepository.InsertOrIgnore(new Block(BlockchainId, number: 0, id: "Z", previousBlockId: "X"));
+            await blockRepository.InsertOrIgnore(new BlockHeader(BlockchainId, number: 0, id: "Z", previousBlockId: "X", minedAt: DateTime.UtcNow));
 
             // act
             foreach (var id in order)
@@ -208,7 +208,7 @@ namespace IndexerTests
         public async Task ProcessBlocksChallengeNumber03()
         {
             // arrange
-            var blockRepository = new InMemoryBlocksRepository();
+            var blockRepository = new InMemoryBlockHeadersRepository();
             var processor = new BlocksProcessor(blockRepository);
             var results = new List<BlockProcessingResult>();
 
@@ -220,22 +220,22 @@ namespace IndexerTests
             var order = new List<string> { "A", "B", "C", "E", "H", "K", "N", "L", "I", "F", "D", "F", "I", "L", "N", "P", "O", "M", "J", "G", "J", "M", "O", "P" };
             var blocks = new BlockSet
             {
-                new Block(BlockchainId, number: 1, id: "A", previousBlockId: "Z"),
-                new Block(BlockchainId, number: 2, id: "B", previousBlockId: "A"),
-                new Block(BlockchainId, number: 3, id: "C", previousBlockId: "B"),
-                new Block(BlockchainId, number: 3, id: "D", previousBlockId: "B"),
-                new Block(BlockchainId, number: 4, id: "E", previousBlockId: "C"),
-                new Block(BlockchainId, number: 4, id: "F", previousBlockId: "D"),
-                new Block(BlockchainId, number: 4, id: "G", previousBlockId: "D"),
-                new Block(BlockchainId, number: 5, id: "H", previousBlockId: "E"),
-                new Block(BlockchainId, number: 5, id: "I", previousBlockId: "F"),
-                new Block(BlockchainId, number: 5, id: "J", previousBlockId: "G"),
-                new Block(BlockchainId, number: 6, id: "K", previousBlockId: "H"),
-                new Block(BlockchainId, number: 6, id: "L", previousBlockId: "I"),
-                new Block(BlockchainId, number: 6, id: "M", previousBlockId: "J"),
-                new Block(BlockchainId, number: 7, id: "N", previousBlockId: "L"),
-                new Block(BlockchainId, number: 7, id: "O", previousBlockId: "M"),
-                new Block(BlockchainId, number: 8, id: "P", previousBlockId: "O"),
+                new BlockHeader(BlockchainId, number: 1, id: "A", previousBlockId: "Z", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 2, id: "B", previousBlockId: "A", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 3, id: "C", previousBlockId: "B", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 3, id: "D", previousBlockId: "B", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 4, id: "E", previousBlockId: "C", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 4, id: "F", previousBlockId: "D", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 4, id: "G", previousBlockId: "D", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 5, id: "H", previousBlockId: "E", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 5, id: "I", previousBlockId: "F", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 5, id: "J", previousBlockId: "G", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 6, id: "K", previousBlockId: "H", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 6, id: "L", previousBlockId: "I", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 6, id: "M", previousBlockId: "J", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 7, id: "N", previousBlockId: "L", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 7, id: "O", previousBlockId: "M", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 8, id: "P", previousBlockId: "O", minedAt: DateTime.UtcNow),
             };
 
             var expectedOutputs = new List<BlockProcessingResult>
@@ -246,19 +246,19 @@ namespace IndexerTests
                 BlockProcessingResult.CreateForward(),
                 BlockProcessingResult.CreateForward(),
                 BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateBackward(previousBlock: blocks["K"]),
-                BlockProcessingResult.CreateBackward(previousBlock: blocks["H"]),
-                BlockProcessingResult.CreateBackward(previousBlock: blocks["E"]),
-                BlockProcessingResult.CreateBackward(previousBlock: blocks["C"]),
+                BlockProcessingResult.CreateBackward(previousBlockHeader: blocks["K"]),
+                BlockProcessingResult.CreateBackward(previousBlockHeader: blocks["H"]),
+                BlockProcessingResult.CreateBackward(previousBlockHeader: blocks["E"]),
+                BlockProcessingResult.CreateBackward(previousBlockHeader: blocks["C"]),
                 BlockProcessingResult.CreateForward(),
                 BlockProcessingResult.CreateForward(),
                 BlockProcessingResult.CreateForward(),
                 BlockProcessingResult.CreateForward(),
                 BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateBackward(previousBlock: blocks["N"]),
-                BlockProcessingResult.CreateBackward(previousBlock: blocks["L"]),
-                BlockProcessingResult.CreateBackward(previousBlock: blocks["I"]),
-                BlockProcessingResult.CreateBackward(previousBlock: blocks["F"]),
+                BlockProcessingResult.CreateBackward(previousBlockHeader: blocks["N"]),
+                BlockProcessingResult.CreateBackward(previousBlockHeader: blocks["L"]),
+                BlockProcessingResult.CreateBackward(previousBlockHeader: blocks["I"]),
+                BlockProcessingResult.CreateBackward(previousBlockHeader: blocks["F"]),
                 BlockProcessingResult.CreateForward(),
                 BlockProcessingResult.CreateForward(),
                 BlockProcessingResult.CreateForward(),
@@ -266,7 +266,7 @@ namespace IndexerTests
                 BlockProcessingResult.CreateForward(),
             };
 
-            await blockRepository.InsertOrIgnore(new Block(BlockchainId, number: 0, id: "Z", previousBlockId: "X"));
+            await blockRepository.InsertOrIgnore(new BlockHeader(BlockchainId, number: 0, id: "Z", previousBlockId: "X", minedAt: DateTime.UtcNow));
 
             // act
             foreach (var id in order)
@@ -282,7 +282,7 @@ namespace IndexerTests
         public async Task ProcessBlocksChallengeNumber03NastyVariant()
         {
             // arrange
-            var blockRepository = new InMemoryBlocksRepository();
+            var blockRepository = new InMemoryBlockHeadersRepository();
             var processor = new BlocksProcessor(blockRepository);
             var results = new List<BlockProcessingResult>();
 
@@ -295,22 +295,22 @@ namespace IndexerTests
             var order = new List<string> { "A", "B", "C", "E", "H", "K", "N", "L", "J", "G", "D", "G", "J", "M", "O", "P" };
             var blocks = new BlockSet
             {
-                new Block(BlockchainId, number: 1, id: "A", previousBlockId: "Z"),
-                new Block(BlockchainId, number: 2, id: "B", previousBlockId: "A"),
-                new Block(BlockchainId, number: 3, id: "C", previousBlockId: "B"),
-                new Block(BlockchainId, number: 3, id: "D", previousBlockId: "B"),
-                new Block(BlockchainId, number: 4, id: "E", previousBlockId: "C"),
-                new Block(BlockchainId, number: 4, id: "F", previousBlockId: "D"),
-                new Block(BlockchainId, number: 4, id: "G", previousBlockId: "D"),
-                new Block(BlockchainId, number: 5, id: "H", previousBlockId: "E"),
-                new Block(BlockchainId, number: 5, id: "I", previousBlockId: "F"),
-                new Block(BlockchainId, number: 5, id: "J", previousBlockId: "G"),
-                new Block(BlockchainId, number: 6, id: "K", previousBlockId: "H"),
-                new Block(BlockchainId, number: 6, id: "L", previousBlockId: "I"),
-                new Block(BlockchainId, number: 6, id: "M", previousBlockId: "J"),
-                new Block(BlockchainId, number: 7, id: "N", previousBlockId: "L"),
-                new Block(BlockchainId, number: 7, id: "O", previousBlockId: "M"),
-                new Block(BlockchainId, number: 8, id: "P", previousBlockId: "O"),
+                new BlockHeader(BlockchainId, number: 1, id: "A", previousBlockId: "Z", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 2, id: "B", previousBlockId: "A", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 3, id: "C", previousBlockId: "B", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 3, id: "D", previousBlockId: "B", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 4, id: "E", previousBlockId: "C", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 4, id: "F", previousBlockId: "D", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 4, id: "G", previousBlockId: "D", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 5, id: "H", previousBlockId: "E", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 5, id: "I", previousBlockId: "F", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 5, id: "J", previousBlockId: "G", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 6, id: "K", previousBlockId: "H", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 6, id: "L", previousBlockId: "I", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 6, id: "M", previousBlockId: "J", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 7, id: "N", previousBlockId: "L", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 7, id: "O", previousBlockId: "M", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 8, id: "P", previousBlockId: "O", minedAt: DateTime.UtcNow),
             };
 
             var expectedOutputs = new List<BlockProcessingResult>
@@ -321,10 +321,10 @@ namespace IndexerTests
                 BlockProcessingResult.CreateForward(),
                 BlockProcessingResult.CreateForward(),
                 BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateBackward(previousBlock: blocks["K"]),
-                BlockProcessingResult.CreateBackward(previousBlock: blocks["H"]),
-                BlockProcessingResult.CreateBackward(previousBlock: blocks["E"]),
-                BlockProcessingResult.CreateBackward(previousBlock: blocks["C"]),
+                BlockProcessingResult.CreateBackward(previousBlockHeader: blocks["K"]),
+                BlockProcessingResult.CreateBackward(previousBlockHeader: blocks["H"]),
+                BlockProcessingResult.CreateBackward(previousBlockHeader: blocks["E"]),
+                BlockProcessingResult.CreateBackward(previousBlockHeader: blocks["C"]),
                 BlockProcessingResult.CreateForward(),
                 BlockProcessingResult.CreateForward(),
                 BlockProcessingResult.CreateForward(),
@@ -333,7 +333,7 @@ namespace IndexerTests
                 BlockProcessingResult.CreateForward(),
             };
 
-            await blockRepository.InsertOrIgnore(new Block(BlockchainId, number: 0, id: "Z", previousBlockId: "X"));
+            await blockRepository.InsertOrIgnore(new BlockHeader(BlockchainId, number: 0, id: "Z", previousBlockId: "X", minedAt: DateTime.UtcNow));
 
             // act
             foreach (var id in order)
@@ -349,7 +349,7 @@ namespace IndexerTests
         public async Task ProcessBlocksChallengeNumber04()
         {
             // arrange
-            var blockRepository = new InMemoryBlocksRepository();
+            var blockRepository = new InMemoryBlockHeadersRepository();
             var processor = new BlocksProcessor(blockRepository);
             var results = new List<BlockProcessingResult>();
 
@@ -362,16 +362,16 @@ namespace IndexerTests
             var order = new List<string> { "1A", "2A", "3A", "4A", "5B", "4B", "3B", "4B", "5B", "6C", "5C", "4C", "3A", "4C", "5C", "6C" };
             var blocks = new BlockSet
             {
-                new Block(BlockchainId, number: 1, id: "1A", previousBlockId: "Z"),
-                new Block(BlockchainId, number: 2, id: "2A", previousBlockId: "1A"),
-                new Block(BlockchainId, number: 3, id: "3A", previousBlockId: "2A"),
-                new Block(BlockchainId, number: 4, id: "4A", previousBlockId: "3A"),
-                new Block(BlockchainId, number: 3, id: "3B", previousBlockId: "2A"),
-                new Block(BlockchainId, number: 4, id: "4B", previousBlockId: "3B"),
-                new Block(BlockchainId, number: 5, id: "5B", previousBlockId: "4B"),
-                new Block(BlockchainId, number: 4, id: "4C", previousBlockId: "3A"),
-                new Block(BlockchainId, number: 5, id: "5C", previousBlockId: "4C"),
-                new Block(BlockchainId, number: 6, id: "6C", previousBlockId: "5C"),
+                new BlockHeader(BlockchainId, number: 1, id: "1A", previousBlockId: "Z", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 2, id: "2A", previousBlockId: "1A", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 3, id: "3A", previousBlockId: "2A", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 4, id: "4A", previousBlockId: "3A", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 3, id: "3B", previousBlockId: "2A", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 4, id: "4B", previousBlockId: "3B", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 5, id: "5B", previousBlockId: "4B", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 4, id: "4C", previousBlockId: "3A", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 5, id: "5C", previousBlockId: "4C", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 6, id: "6C", previousBlockId: "5C", minedAt: DateTime.UtcNow),
             };
 
             var expectedOutputs = new List<BlockProcessingResult>
@@ -380,21 +380,21 @@ namespace IndexerTests
                 BlockProcessingResult.CreateForward(),
                 BlockProcessingResult.CreateForward(),
                 BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateBackward(previousBlock: blocks["4A"]),
-                BlockProcessingResult.CreateBackward(previousBlock: blocks["3A"]),
+                BlockProcessingResult.CreateBackward(previousBlockHeader: blocks["4A"]),
+                BlockProcessingResult.CreateBackward(previousBlockHeader: blocks["3A"]),
                 BlockProcessingResult.CreateForward(),
                 BlockProcessingResult.CreateForward(),
                 BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateBackward(previousBlock: blocks["5B"]),
-                BlockProcessingResult.CreateBackward(previousBlock: blocks["4B"]),
-                BlockProcessingResult.CreateBackward(previousBlock: blocks["3B"]),
+                BlockProcessingResult.CreateBackward(previousBlockHeader: blocks["5B"]),
+                BlockProcessingResult.CreateBackward(previousBlockHeader: blocks["4B"]),
+                BlockProcessingResult.CreateBackward(previousBlockHeader: blocks["3B"]),
                 BlockProcessingResult.CreateForward(),
                 BlockProcessingResult.CreateForward(),
                 BlockProcessingResult.CreateForward(),
                 BlockProcessingResult.CreateForward(),
             };
 
-            await blockRepository.InsertOrIgnore(new Block(BlockchainId, number: 0, id: "Z", previousBlockId: "X"));
+            await blockRepository.InsertOrIgnore(new BlockHeader(BlockchainId, number: 0, id: "Z", previousBlockId: "X", minedAt: DateTime.UtcNow));
 
             // act
             foreach (var id in order)
@@ -410,7 +410,7 @@ namespace IndexerTests
         public async Task ProcessBlocksChallengeNumber05()
         {
             // arrange
-            var blockRepository = new InMemoryBlocksRepository();
+            var blockRepository = new InMemoryBlockHeadersRepository();
             var processor = new BlocksProcessor(blockRepository);
             var results = new List<BlockProcessingResult>();
 
@@ -423,17 +423,17 @@ namespace IndexerTests
             var order = new List<string> { "1A", "2A", "3A", "4A", "5B", "4B", "3B", "4B", "5B", "6C", "5C", "4C", "3C", "4C", "5C", "6C" };
             var blocks = new BlockSet
             {
-                new Block(BlockchainId, number: 1, id: "1A", previousBlockId: "Z"),
-                new Block(BlockchainId, number: 2, id: "2A", previousBlockId: "1A"),
-                new Block(BlockchainId, number: 3, id: "3A", previousBlockId: "2A"),
-                new Block(BlockchainId, number: 4, id: "4A", previousBlockId: "3A"),
-                new Block(BlockchainId, number: 3, id: "3B", previousBlockId: "2A"),
-                new Block(BlockchainId, number: 4, id: "4B", previousBlockId: "3B"),
-                new Block(BlockchainId, number: 5, id: "5B", previousBlockId: "4B"),
-                new Block(BlockchainId, number: 3, id: "3C", previousBlockId: "2A"),
-                new Block(BlockchainId, number: 4, id: "4C", previousBlockId: "3C"),
-                new Block(BlockchainId, number: 5, id: "5C", previousBlockId: "4C"),
-                new Block(BlockchainId, number: 6, id: "6C", previousBlockId: "5C"),
+                new BlockHeader(BlockchainId, number: 1, id: "1A", previousBlockId: "Z", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 2, id: "2A", previousBlockId: "1A", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 3, id: "3A", previousBlockId: "2A", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 4, id: "4A", previousBlockId: "3A", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 3, id: "3B", previousBlockId: "2A", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 4, id: "4B", previousBlockId: "3B", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 5, id: "5B", previousBlockId: "4B", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 3, id: "3C", previousBlockId: "2A", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 4, id: "4C", previousBlockId: "3C", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 5, id: "5C", previousBlockId: "4C", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 6, id: "6C", previousBlockId: "5C", minedAt: DateTime.UtcNow),
             };
 
             var expectedOutputs = new List<BlockProcessingResult>
@@ -442,21 +442,21 @@ namespace IndexerTests
                 BlockProcessingResult.CreateForward(),
                 BlockProcessingResult.CreateForward(),
                 BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateBackward(previousBlock: blocks["4A"]),
-                BlockProcessingResult.CreateBackward(previousBlock: blocks["3A"]),
+                BlockProcessingResult.CreateBackward(previousBlockHeader: blocks["4A"]),
+                BlockProcessingResult.CreateBackward(previousBlockHeader: blocks["3A"]),
                 BlockProcessingResult.CreateForward(),
                 BlockProcessingResult.CreateForward(),
                 BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateBackward(previousBlock: blocks["5B"]),
-                BlockProcessingResult.CreateBackward(previousBlock: blocks["4B"]),
-                BlockProcessingResult.CreateBackward(previousBlock: blocks["3B"]),
+                BlockProcessingResult.CreateBackward(previousBlockHeader: blocks["5B"]),
+                BlockProcessingResult.CreateBackward(previousBlockHeader: blocks["4B"]),
+                BlockProcessingResult.CreateBackward(previousBlockHeader: blocks["3B"]),
                 BlockProcessingResult.CreateForward(),
                 BlockProcessingResult.CreateForward(),
                 BlockProcessingResult.CreateForward(),
                 BlockProcessingResult.CreateForward(),
             };
 
-            await blockRepository.InsertOrIgnore(new Block(BlockchainId, number: 0, id: "Z", previousBlockId: "X"));
+            await blockRepository.InsertOrIgnore(new BlockHeader(BlockchainId, number: 0, id: "Z", previousBlockId: "X", minedAt: DateTime.UtcNow));
 
             // act
             foreach (var id in order)
@@ -472,7 +472,7 @@ namespace IndexerTests
         public async Task ProcessBlocksChallengeNumber06()
         {
             // arrange
-            var blockRepository = new InMemoryBlocksRepository();
+            var blockRepository = new InMemoryBlockHeadersRepository();
             var processor = new BlocksProcessor(blockRepository);
             var results = new List<BlockProcessingResult>();
 
@@ -485,18 +485,18 @@ namespace IndexerTests
             var order = new List<string> { "1A", "2A", "3A", "4A", "5B", "4B", "3B", "4B", "5B", "6C", "5C", "4C", "3C", "2C", "3C", "4C", "5C", "6C" };
             var blocks = new BlockSet
             {
-                new Block(BlockchainId, number: 1, id: "1A", previousBlockId: "Z"),
-                new Block(BlockchainId, number: 2, id: "2A", previousBlockId: "1A"),
-                new Block(BlockchainId, number: 3, id: "3A", previousBlockId: "2A"),
-                new Block(BlockchainId, number: 4, id: "4A", previousBlockId: "3A"),
-                new Block(BlockchainId, number: 3, id: "3B", previousBlockId: "2A"),
-                new Block(BlockchainId, number: 4, id: "4B", previousBlockId: "3B"),
-                new Block(BlockchainId, number: 5, id: "5B", previousBlockId: "4B"),
-                new Block(BlockchainId, number: 2, id: "2C", previousBlockId: "1A"),
-                new Block(BlockchainId, number: 3, id: "3C", previousBlockId: "2C"),
-                new Block(BlockchainId, number: 4, id: "4C", previousBlockId: "3C"),
-                new Block(BlockchainId, number: 5, id: "5C", previousBlockId: "4C"),
-                new Block(BlockchainId, number: 6, id: "6C", previousBlockId: "5C"),
+                new BlockHeader(BlockchainId, number: 1, id: "1A", previousBlockId: "Z", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 2, id: "2A", previousBlockId: "1A", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 3, id: "3A", previousBlockId: "2A", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 4, id: "4A", previousBlockId: "3A", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 3, id: "3B", previousBlockId: "2A", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 4, id: "4B", previousBlockId: "3B", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 5, id: "5B", previousBlockId: "4B", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 2, id: "2C", previousBlockId: "1A", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 3, id: "3C", previousBlockId: "2C", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 4, id: "4C", previousBlockId: "3C", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 5, id: "5C", previousBlockId: "4C", minedAt: DateTime.UtcNow),
+                new BlockHeader(BlockchainId, number: 6, id: "6C", previousBlockId: "5C", minedAt: DateTime.UtcNow),
             };
 
             var expectedOutputs = new List<BlockProcessingResult>
@@ -505,15 +505,15 @@ namespace IndexerTests
                 BlockProcessingResult.CreateForward(),
                 BlockProcessingResult.CreateForward(),
                 BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateBackward(previousBlock: blocks["4A"]),
-                BlockProcessingResult.CreateBackward(previousBlock: blocks["3A"]),
+                BlockProcessingResult.CreateBackward(previousBlockHeader: blocks["4A"]),
+                BlockProcessingResult.CreateBackward(previousBlockHeader: blocks["3A"]),
                 BlockProcessingResult.CreateForward(),
                 BlockProcessingResult.CreateForward(),
                 BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateBackward(previousBlock: blocks["5B"]),
-                BlockProcessingResult.CreateBackward(previousBlock: blocks["4B"]),
-                BlockProcessingResult.CreateBackward(previousBlock: blocks["3B"]),
-                BlockProcessingResult.CreateBackward(previousBlock: blocks["2A"]),
+                BlockProcessingResult.CreateBackward(previousBlockHeader: blocks["5B"]),
+                BlockProcessingResult.CreateBackward(previousBlockHeader: blocks["4B"]),
+                BlockProcessingResult.CreateBackward(previousBlockHeader: blocks["3B"]),
+                BlockProcessingResult.CreateBackward(previousBlockHeader: blocks["2A"]),
                 BlockProcessingResult.CreateForward(),
                 BlockProcessingResult.CreateForward(),
                 BlockProcessingResult.CreateForward(),
@@ -521,7 +521,7 @@ namespace IndexerTests
                 BlockProcessingResult.CreateForward(),
             };
 
-            await blockRepository.InsertOrIgnore(new Block(BlockchainId, number: 0, id: "Z", previousBlockId: "X"));
+            await blockRepository.InsertOrIgnore(new BlockHeader(BlockchainId, number: 0, id: "Z", previousBlockId: "X", minedAt: DateTime.UtcNow));
 
             // act
             foreach (var id in order)
@@ -542,22 +542,22 @@ namespace IndexerTests
                 var expectedOutput = expectedOutputs[index];
 
                 output.IndexingDirection.ShouldBe(expectedOutput.IndexingDirection);
-                output.PreviousBlock?.GlobalId.ShouldBe(expectedOutput.PreviousBlock?.GlobalId);
+                output.PreviousBlockHeader?.GlobalId.ShouldBe(expectedOutput.PreviousBlockHeader?.GlobalId);
             }
         }
 
-        private class BlockSet : IEnumerable<Block>
+        private class BlockSet : IEnumerable<BlockHeader>
         {
-            private readonly Dictionary<string, Block> _inner = new Dictionary<string, Block>();
+            private readonly Dictionary<string, BlockHeader> _inner = new Dictionary<string, BlockHeader>();
 
-            public Block this[string id]
+            public BlockHeader this[string id]
             {
                 get => _inner.TryGetValue(id, out var block) ? block : null;
             }
 
-            public void Add(Block block) => _inner.Add(block.Id, block);
+            public void Add(BlockHeader blockHeader) => _inner.Add(blockHeader.Id, blockHeader);
 
-            public IEnumerator<Block> GetEnumerator() => _inner.Values.GetEnumerator();
+            public IEnumerator<BlockHeader> GetEnumerator() => _inner.Values.GetEnumerator();
 
             IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
         }

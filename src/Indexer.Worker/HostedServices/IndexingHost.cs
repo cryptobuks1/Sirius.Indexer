@@ -25,7 +25,7 @@ namespace Indexer.Worker.HostedServices
         private readonly IFirstPassIndexersRepository _firstPassIndexersRepository;
         private readonly ISecondPassIndexersRepository _secondPassIndexersRepository;
         private readonly IOngoingIndexersRepository _ongoingIndexersRepository;
-        private readonly IBlocksRepository _blocksRepository;
+        private readonly IBlockHeadersRepository _blockHeadersRepository;
         private readonly IInMemoryBus _inMemoryBus;
         private readonly SecondPassIndexingJobsManager _secondPassIndexingJobsManager;
         private readonly OngoingIndexingJobsManager _ongoingIndexingJobsManager;
@@ -40,7 +40,7 @@ namespace Indexer.Worker.HostedServices
             IFirstPassIndexersRepository firstPassIndexersRepository,
             ISecondPassIndexersRepository secondPassIndexersRepository,
             IOngoingIndexersRepository ongoingIndexersRepository,
-            IBlocksRepository blocksRepository,
+            IBlockHeadersRepository blockHeadersRepository,
             IInMemoryBus inMemoryBus,
             SecondPassIndexingJobsManager secondPassIndexingJobsManager,
             OngoingIndexingJobsManager ongoingIndexingJobsManager,
@@ -54,7 +54,7 @@ namespace Indexer.Worker.HostedServices
             _firstPassIndexersRepository = firstPassIndexersRepository;
             _secondPassIndexersRepository = secondPassIndexersRepository;
             _ongoingIndexersRepository = ongoingIndexersRepository;
-            _blocksRepository = blocksRepository;
+            _blockHeadersRepository = blockHeadersRepository;
             _inMemoryBus = inMemoryBus;
             _secondPassIndexingJobsManager = secondPassIndexingJobsManager;
             _ongoingIndexingJobsManager = ongoingIndexingJobsManager;
@@ -281,7 +281,7 @@ namespace Indexer.Worker.HostedServices
                         indexer.StopBlock,
                         _firstPassIndexersRepository,
                         blocksReader,
-                        _blocksRepository,
+                        _blockHeadersRepository,
                         _inMemoryBus,
                         _secondPassIndexingJobsManager,
                         _appInsight);

@@ -2,27 +2,28 @@
 using System.Linq;
 using System.Threading.Tasks;
 using Indexer.Common.Domain;
+using Indexer.Common.Domain.Blocks;
 
 namespace IndexerTests.Mocks
 {
-    public class InMemoryBlocksRepository : IBlocksRepository
+    public class InMemoryBlockHeadersRepository : IBlockHeadersRepository
     {
-        private readonly Dictionary<string, Block> _store = new Dictionary<string, Block>();
+        private readonly Dictionary<string, BlockHeader> _store = new Dictionary<string, BlockHeader>();
 
-        public Task InsertOrIgnore(Block block)
+        public Task InsertOrIgnore(BlockHeader blockHeader)
         {
             lock (_store)
             {
-                if (!_store.ContainsKey(block.GlobalId))
+                if (!_store.ContainsKey(blockHeader.GlobalId))
                 {
-                    _store[block.GlobalId] = block;
+                    _store[blockHeader.GlobalId] = blockHeader;
                 }
             }
 
             return Task.CompletedTask;
         }
 
-        public Task<Block> GetOrDefault(string blockchainId, long blockNumber)
+        public Task<BlockHeader> GetOrDefault(string blockchainId, long blockNumber)
         {
             lock (_store)
             {
@@ -42,7 +43,7 @@ namespace IndexerTests.Mocks
             return Task.CompletedTask;
         }
 
-        public Task<IEnumerable<Block>> GetBatch(string blockchainId, long startBlockNumber, int limit)
+        public Task<IEnumerable<BlockHeader>> GetBatch(string blockchainId, long startBlockNumber, int limit)
         {
             lock (_store)
             {
@@ -53,7 +54,7 @@ namespace IndexerTests.Mocks
                     .Take(limit)
                     .ToArray();
 
-                return Task.FromResult<IEnumerable<Block>>(blocks);
+                return Task.FromResult<IEnumerable<BlockHeader>>(blocks);
             }
         }
     }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Indexer.Common.Domain.Blocks;
 using Indexer.Common.Telemetry;
 using MassTransit;
 using Microsoft.Extensions.Logging;
@@ -64,7 +65,7 @@ namespace Indexer.Common.Domain.Indexing
         public async Task<SecondPassIndexingResult> IndexAvailableBlocks(
             ILogger<SecondPassIndexer> logger,
             int maxBlocksCount,
-            IBlocksRepository blocksRepository,
+            IBlockHeadersRepository blockHeadersRepository,
             IPublishEndpoint publisher,
             IAppInsight appInsight)
         {
@@ -73,7 +74,7 @@ namespace Indexer.Common.Domain.Indexing
                 return SecondPassIndexingResult.IndexingCompleted;
             }
 
-            var blocks = await blocksRepository.GetBatch(BlockchainId, NextBlock, maxBlocksCount);
+            var blocks = await blockHeadersRepository.GetBatch(BlockchainId, NextBlock, maxBlocksCount);
 
             try
             {
@@ -100,7 +101,7 @@ namespace Indexer.Common.Domain.Indexing
             return SecondPassIndexingResult.IndexingInProgress;
         }
         
-        private async Task StepForward(Block block, IPublishEndpoint publisher, IAppInsight appInsight)
+        private async Task StepForward(BlockHeader blockHeader, IPublishEndpoint publisher, IAppInsight appInsight)
         {
             var telemetry = appInsight.StartRequest("Second-pass block indexing",
                 new Dictionary<string, string>
@@ -113,7 +114,7 @@ namespace Indexer.Common.Domain.Indexing
             {
                 // TODO: Index block data
 
-                NextBlock = block.Number + 1;
+                NextBlock = blockHeader.Number + 1;
                 UpdatedAt = DateTime.UtcNow;
             }
             catch (Exception ex)

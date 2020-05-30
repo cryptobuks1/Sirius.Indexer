@@ -17,7 +17,7 @@ namespace Indexer.Common.Persistence
             services.AddTransient<IAssetsRepository, AssetsRepository>();
             services.AddTransient<IBlockchainsRepository, BlockchainsRepository>();
             services.AddTransient<IObservedOperationsRepository, ObservedOperationsRepository>();
-            services.AddTransient<IBlocksRepository, BlocksRepository>();
+            services.AddTransient<IBlockHeadersRepository, BlockHeadersRepository>();
             services.AddTransient<IFirstPassIndexersRepository, FirstPassIndexersRepository>();
             services.AddTransient<ISecondPassIndexersRepository, SecondPassIndexersRepository>();
             services.AddTransient<IOngoingIndexersRepository, OngoingIndexersRepository>();

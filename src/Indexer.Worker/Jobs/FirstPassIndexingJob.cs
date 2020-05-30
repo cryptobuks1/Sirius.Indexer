@@ -18,7 +18,7 @@ namespace Indexer.Worker.Jobs
         private readonly long _stopBlock;
         private readonly IFirstPassIndexersRepository _indexersRepository;
         private readonly IBlocksReader _blocksReader;
-        private readonly IBlocksRepository _blocksRepository;
+        private readonly IBlockHeadersRepository _blockHeadersRepository;
         private readonly IInMemoryBus _inMemoryBus;
         private readonly SecondPassIndexingJobsManager _secondPassIndexingJobsManager;
         private readonly IAppInsight _appInsight;
@@ -31,7 +31,7 @@ namespace Indexer.Worker.Jobs
             long stopBlock,
             IFirstPassIndexersRepository indexersRepository,
             IBlocksReader blocksReader,
-            IBlocksRepository blocksRepository,
+            IBlockHeadersRepository blockHeadersRepository,
             IInMemoryBus inMemoryBus,
             SecondPassIndexingJobsManager secondPassIndexingJobsManager,
             IAppInsight appInsight)
@@ -42,7 +42,7 @@ namespace Indexer.Worker.Jobs
             _stopBlock = stopBlock;
             _indexersRepository = indexersRepository;
             _blocksReader = blocksReader;
-            _blocksRepository = blocksRepository;
+            _blockHeadersRepository = blockHeadersRepository;
             _inMemoryBus = inMemoryBus;
             _secondPassIndexingJobsManager = secondPassIndexingJobsManager;
             _appInsight = appInsight;
@@ -132,7 +132,7 @@ namespace Indexer.Worker.Jobs
                 var result = await _indexer.IndexNextBlock(
                     _loggerFactory.CreateLogger<FirstPassIndexer>(),
                     _blocksReader,
-                    _blocksRepository,
+                    _blockHeadersRepository,
                     _inMemoryBus);
 
                 telemetry.ResponseCode = result.ToString();

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
+using Indexer.Common.Domain.Blocks;
 using Indexer.Common.ReadModel.Blockchains;
 using Microsoft.Extensions.Logging;
 using Swisschain.Sirius.Sdk.Integrations.Client;
@@ -24,7 +25,7 @@ namespace Indexer.Common.Domain.Indexing
             _blockchainMetamodel = blockchainMetamodel;
         }
 
-        public async Task<Block> ReadBlockOrDefaultAsync(long blockNumber)
+        public async Task<BlockHeader> ReadBlockOrDefaultAsync(long blockNumber)
         {
             var doubleSpendingProtectionType = _blockchainMetamodel.Protocol.DoubleSpendingProtectionType;
 
@@ -39,7 +40,7 @@ namespace Indexer.Common.Domain.Indexing
             }
         }
 
-        private async Task<Block> ReadCoinsBlock(long blockNumber)
+        private async Task<BlockHeader> ReadCoinsBlock(long blockNumber)
         {
             var response = await _client.Blocks.ReadCoinsBlockAsync(new ReadBlockRequest {BlockNumber = blockNumber});
 
@@ -61,11 +62,12 @@ namespace Indexer.Common.Domain.Indexing
                 throw new InvalidOperationException($@"Failed to read coins block {blockNumber} from blockchain {_blockchainMetamodel.Id}. Error code: {response.Error.Code}, Error message: {response.Error.Message}");
             }
 
-            return new Block(
+            return new BlockHeader(
                 _blockchainMetamodel.Id,
                 response.Block.Base.Id,
                 response.Block.Base.Number,
-                response.Block.Base.PreviousId);
+                response.Block.Base.PreviousId,
+                response.Block.Base.MinedAt.ToDateTime());
         }
     }
 }

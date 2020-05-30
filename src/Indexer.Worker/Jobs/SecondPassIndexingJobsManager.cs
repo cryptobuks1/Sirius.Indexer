@@ -16,7 +16,7 @@ namespace Indexer.Worker.Jobs
         private readonly ILoggerFactory _loggerFactory;
         private readonly AppConfig _appConfig;
         private readonly ISecondPassIndexersRepository _indexersRepository;
-        private readonly IBlocksRepository _blocksRepository;
+        private readonly IBlockHeadersRepository _blockHeadersRepository;
         private readonly IPublishEndpoint _publisher;
         private readonly OngoingIndexingJobsManager _ongoingIndexingJobsManager;
         private readonly IAppInsight _appInsight;
@@ -26,7 +26,7 @@ namespace Indexer.Worker.Jobs
         public SecondPassIndexingJobsManager(ILoggerFactory loggerFactory, 
             AppConfig appConfig,
             ISecondPassIndexersRepository indexersRepository,
-            IBlocksRepository blocksRepository,
+            IBlockHeadersRepository blockHeadersRepository,
             IPublishEndpoint publisher,
             OngoingIndexingJobsManager ongoingIndexingJobsManager,
             IAppInsight appInsight)
@@ -34,7 +34,7 @@ namespace Indexer.Worker.Jobs
             _loggerFactory = loggerFactory;
             _appConfig = appConfig;
             _indexersRepository = indexersRepository;
-            _blocksRepository = blocksRepository;
+            _blockHeadersRepository = blockHeadersRepository;
             _publisher = publisher;
             _ongoingIndexingJobsManager = ongoingIndexingJobsManager;
             _appInsight = appInsight;
@@ -59,7 +59,7 @@ namespace Indexer.Worker.Jobs
                         blockchainId,
                         blockchainConfig.LastHistoricalBlockNumber,
                         _indexersRepository,
-                        _blocksRepository,
+                        _blockHeadersRepository,
                         _publisher,
                         _ongoingIndexingJobsManager,
                         _appInsight);

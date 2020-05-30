@@ -1,8 +1,10 @@
-﻿namespace Indexer.Common.Domain
+﻿using System;
+
+namespace Indexer.Common.Domain.Blocks
 {
-    public class Block
+    public sealed class BlockHeader
     {
-        public Block(string blockchainId, string id, long number, string previousBlockId)
+        public BlockHeader(string blockchainId, string id, long number, string previousBlockId, DateTime minedAt)
         {
             GlobalId = $"{blockchainId}-{id}";
 
@@ -10,6 +12,7 @@
             Id = id;
             Number = number;
             PreviousId = previousBlockId;
+            MinedAt = minedAt;
         }
 
         public string GlobalId { get; }
@@ -17,6 +20,7 @@
         public string Id { get; }
         public long Number { get; }
         public string PreviousId { get; }
+        public DateTime MinedAt { get; }
 
         public override string ToString()
         {

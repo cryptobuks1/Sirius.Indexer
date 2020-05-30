@@ -16,21 +16,21 @@ namespace Indexer.Worker.MessageConsumers
         private static readonly ConcurrencyLimiter ConcurrencyLimiter = new ConcurrencyLimiter(1);
 
         private readonly ILoggerFactory _loggerFactory;
-        private readonly IBlocksRepository _blocksRepository;
+        private readonly IBlockHeadersRepository _blockHeadersRepository;
         private readonly ISecondPassIndexersRepository _secondPassIndexersRepository;
         private readonly IPublishEndpoint _persistentPublisher;
         private readonly OngoingIndexingJobsManager _ongoingIndexingJobsManager;
         private readonly IAppInsight _appInsight;
 
         public FirstPassBlockDetectedConsumer(ILoggerFactory loggerFactory,
-            IBlocksRepository blocksRepository,
+            IBlockHeadersRepository blockHeadersRepository,
             ISecondPassIndexersRepository secondPassIndexersRepository,
             IPublishEndpoint persistentPublisher,
             OngoingIndexingJobsManager ongoingIndexingJobsManager,
             IAppInsight appInsight)
         {
             _loggerFactory = loggerFactory;
-            _blocksRepository = blocksRepository;
+            _blockHeadersRepository = blockHeadersRepository;
             _secondPassIndexersRepository = secondPassIndexersRepository;
             _persistentPublisher = persistentPublisher;
             _ongoingIndexingJobsManager = ongoingIndexingJobsManager;
@@ -55,7 +55,7 @@ namespace Indexer.Worker.MessageConsumers
                 _loggerFactory.CreateLogger<SecondPassIndexer>(),
                 // TODO: To config
                 100,
-                _blocksRepository,
+                _blockHeadersRepository,
                 _persistentPublisher,
                 _appInsight);
 
