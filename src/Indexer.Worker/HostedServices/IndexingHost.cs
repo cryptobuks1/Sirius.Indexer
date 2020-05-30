@@ -68,7 +68,7 @@ namespace Indexer.Worker.HostedServices
         {
             _logger.LogInformation("Indexing is being started...");
 
-            foreach (var (blockchainId, blockchainConfig) in _config.Indexing.Blockchains)
+            foreach (var (blockchainId, blockchainConfig) in _config.Indexing?.Blockchains ?? new Dictionary<string, BlockchainIndexingConfig>())
             {
                 _logger.LogInformation(@"Blockchain indexing is being provisioned {@context}...",
                     new
