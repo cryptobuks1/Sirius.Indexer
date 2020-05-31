@@ -17,7 +17,7 @@ namespace Indexer.Worker.Jobs
         private readonly TimeSpan _delayOnBlockNotFound;
         private readonly IOngoingIndexersRepository _indexersRepository;
         private readonly IBlocksReader _blocksReader;
-        private readonly BlocksProcessor _blocksProcessor;
+        private readonly ChainWalker _chainWalker;
         private readonly IPublishEndpoint _publisher;
         private readonly IAppInsight _appInsight;
         private readonly Timer _timer;
@@ -31,7 +31,7 @@ namespace Indexer.Worker.Jobs
             TimeSpan delayOnBlockNotFound,
             IOngoingIndexersRepository indexersRepository,
             IBlocksReader blocksReader,
-            BlocksProcessor blocksProcessor,
+            ChainWalker chainWalker,
             IPublishEndpoint publisher,
             IAppInsight appInsight)
         {
@@ -41,7 +41,7 @@ namespace Indexer.Worker.Jobs
             _delayOnBlockNotFound = delayOnBlockNotFound;
             _indexersRepository = indexersRepository;
             _blocksReader = blocksReader;
-            _blocksProcessor = blocksProcessor;
+            _chainWalker = chainWalker;
             _publisher = publisher;
             _appInsight = appInsight;
 
@@ -148,7 +148,7 @@ namespace Indexer.Worker.Jobs
                     var indexingResult = await _indexer.IndexNextBlock(
                         _loggerFactory.CreateLogger<OngoingIndexer>(),
                         _blocksReader,
-                        _blocksProcessor,
+                        _chainWalker,
                         _publisher);
 
                     batchBackgroundTasks.AddRange(indexingResult.BackgroundTasks);

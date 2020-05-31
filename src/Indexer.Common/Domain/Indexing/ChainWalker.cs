@@ -4,16 +4,16 @@ using Indexer.Common.Domain.Blocks;
 
 namespace Indexer.Common.Domain.Indexing
 {
-    public sealed class BlocksProcessor
+    public sealed class ChainWalker
     {
         private readonly IBlockHeadersRepository _blockHeadersRepository;
 
-        public BlocksProcessor(IBlockHeadersRepository blockHeadersRepository)
+        public ChainWalker(IBlockHeadersRepository blockHeadersRepository)
         {
             _blockHeadersRepository = blockHeadersRepository;
         }
 
-        public async Task<BlockProcessingResult> ProcessBlock(BlockHeader blockHeader)
+        public async Task<ChainWalkerMovement> MoveTo(BlockHeader blockHeader)
         {
             // TODO: Having a cache of the last added block, we can avoid db IO in the most cases for the ongoing indexer
 
@@ -30,12 +30,12 @@ namespace Indexer.Common.Domain.Indexing
 
                 await _blockHeadersRepository.Remove(previousBlock.GlobalId);
 
-                return BlockProcessingResult.CreateBackward(previousBlock);
+                return ChainWalkerMovement.CreateBackward(previousBlock);
             }
 
             await _blockHeadersRepository.InsertOrIgnore(blockHeader);
 
-            return BlockProcessingResult.CreateForward();
+            return ChainWalkerMovement.CreateForward();
         }
     }
 }

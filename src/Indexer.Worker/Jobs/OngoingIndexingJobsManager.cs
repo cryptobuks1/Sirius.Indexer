@@ -16,7 +16,7 @@ namespace Indexer.Worker.Jobs
         private readonly AppConfig _appConfig;
         private readonly IOngoingIndexersRepository _indexersRepository;
         private readonly IBlockReadersProvider _blockReadersProvider;
-        private readonly BlocksProcessor _blocksProcessor;
+        private readonly ChainWalker _chainWalker;
         private readonly IPublishEndpoint _publisher;
         private readonly IAppInsight _appInsight;
         private readonly SemaphoreSlim _lock;
@@ -26,7 +26,7 @@ namespace Indexer.Worker.Jobs
             AppConfig appConfig,
             IOngoingIndexersRepository indexersRepository,
             IBlockReadersProvider blockReadersProvider,
-            BlocksProcessor blocksProcessor,
+            ChainWalker chainWalker,
             IPublishEndpoint publisher,
             IAppInsight appInsight)
         {
@@ -34,7 +34,7 @@ namespace Indexer.Worker.Jobs
             _appConfig = appConfig;
             _indexersRepository = indexersRepository;
             _blockReadersProvider = blockReadersProvider;
-            _blocksProcessor = blocksProcessor;
+            _chainWalker = chainWalker;
             _publisher = publisher;
             _appInsight = appInsight;
 
@@ -60,7 +60,7 @@ namespace Indexer.Worker.Jobs
                         blockchainConfig.DelayOnBlockNotFound,
                         _indexersRepository,
                         blocksReader,
-                        _blocksProcessor,
+                        _chainWalker,
                         _publisher,
                         _appInsight);
 

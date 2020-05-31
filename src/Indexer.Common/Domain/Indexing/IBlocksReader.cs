@@ -5,6 +5,7 @@ namespace Indexer.Common.Domain.Indexing
 {
     public interface IBlocksReader
     {
-        Task<BlockHeader> ReadBlockOrDefaultAsync(long blockNumber);
+        Task<CoinsBlock> ReadCoinsBlockOrDefault(long blockNumber);
+        Task<NonceBlock> ReadNonceBlockOrDefault(long blockNumber);
     }
 }

@@ -1,6 +1,6 @@
 ﻿namespace Indexer.Common.Domain.Indexing
 {
-    public enum IndexingDirection
+    public enum MovementDirection
     {
         Forward,
         Backward

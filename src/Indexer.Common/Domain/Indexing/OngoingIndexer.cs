@@ -67,10 +67,10 @@ namespace Indexer.Common.Domain.Indexing
 
         public async Task<IOngoingIndexingResult> IndexNextBlock(ILogger<OngoingIndexer> logger,
             IBlocksReader reader,
-            BlocksProcessor processor,
+            ChainWalker chainWalker,
             IPublishEndpoint publisher)
         {
-            var newBlock = await reader.ReadBlockOrDefaultAsync(NextBlock);
+            var newBlock = await reader.ReadCoinsBlockOrDefault(NextBlock);
 
             if (newBlock == null)
             {
@@ -78,21 +78,21 @@ namespace Indexer.Common.Domain.Indexing
             }
 
             var indexingResult = OngoingIndexingResult.BlockIndexed();
-            var processingResult = await processor.ProcessBlock(newBlock);
+            var chainWalkerMovement = await chainWalker.MoveTo(newBlock.Header);
 
             UpdatedAt = DateTime.UtcNow;
 
-            switch (processingResult.IndexingDirection)
+            switch (chainWalkerMovement.Direction)
             {
-                case IndexingDirection.Forward:
+                case MovementDirection.Forward:
                     // This is needed to mitigate events publishing latency
                     indexingResult.AddBackgroundTask(
                         publisher.Publish(new BlockDetected
                         {
                             BlockchainId = BlockchainId,
-                            BlockId = newBlock.Id,
-                            BlockNumber = newBlock.Number,
-                            PreviousBlockId = newBlock.PreviousId,
+                            BlockId = newBlock.Header.Id,
+                            BlockNumber = newBlock.Header.Number,
+                            PreviousBlockId = newBlock.Header.PreviousId,
                             ChainSequence = Sequence
                         }));
 
@@ -105,20 +105,20 @@ namespace Indexer.Common.Domain.Indexing
                     logger.LogInformation("Ongoing indexer has indexed the block {@context}", new
                     {
                         BlockchainId = BlockchainId,
-                        BlockNumber = newBlock.Number,
-                        BlockId = newBlock.Id
+                        BlockNumber = newBlock.Header.Number,
+                        BlockId = newBlock.Header.Id
                     });
 
                     break;
 
-                case IndexingDirection.Backward:
+                case MovementDirection.Backward:
                     // This is needed to mitigate events publishing latency
                     indexingResult.AddBackgroundTask(
                         publisher.Publish(new BlockCancelled
                         {
                             BlockchainId = BlockchainId,
-                            BlockId = processingResult.PreviousBlockHeader.Id,
-                            BlockNumber = processingResult.PreviousBlockHeader.Number,
+                            BlockId = chainWalkerMovement.EvictedBlockHeader.Id,
+                            BlockNumber = chainWalkerMovement.EvictedBlockHeader.Number,
                             ChainSequence = Sequence
                         }));
 
@@ -131,14 +131,14 @@ namespace Indexer.Common.Domain.Indexing
                     logger.LogInformation("Ongoing indexer has reverted the block {@context}", new
                     {
                         BlockchainId = BlockchainId,
-                        BlockNumber = processingResult.PreviousBlockHeader.Number,
-                        BlockId = processingResult.PreviousBlockHeader.Id
+                        BlockNumber = chainWalkerMovement.EvictedBlockHeader.Number,
+                        BlockId = chainWalkerMovement.EvictedBlockHeader.Id
                     });
 
                     break;
 
                 default:
-                    throw new ArgumentOutOfRangeException(nameof(processingResult.IndexingDirection), processingResult.IndexingDirection, string.Empty);
+                    throw new ArgumentOutOfRangeException(nameof(chainWalkerMovement.Direction), chainWalkerMovement.Direction, string.Empty);
             }
 
             return indexingResult;

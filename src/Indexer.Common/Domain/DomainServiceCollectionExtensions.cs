@@ -7,7 +7,7 @@ namespace Indexer.Common.Domain
     {
         public static IServiceCollection AddDomain(this IServiceCollection services)
         {
-            services.AddTransient<BlocksProcessor>();
+            services.AddTransient<ChainWalker>();
             services.AddSingleton<IBlockReadersProvider, BlockReadersProvider>();
 
             return services;

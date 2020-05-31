@@ -79,7 +79,7 @@ namespace Indexer.Common.Domain.Indexing
                 return FirstPassIndexingResult.IndexingCompleted;
             }
 
-            var block = await blocksReader.ReadBlockOrDefaultAsync(NextBlock);
+            var block = await blocksReader.ReadCoinsBlockOrDefault(NextBlock);
 
             if (block == null)
             {
@@ -93,7 +93,7 @@ namespace Indexer.Common.Domain.Indexing
                 throw new InvalidOperationException($"First-pass indexer {Id} has not found the block {NextBlock}.");
             }
 
-            await blockHeadersRepository.InsertOrIgnore(block);
+            await blockHeadersRepository.InsertOrIgnore(block.Header);
 
             // TODO: Add first-pass block data indexing
             

@@ -1,11 +1,18 @@
 ﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Indexer.Common.Domain.Blocks;
+using Indexer.Common.Domain.Transactions;
 using Indexer.Common.ReadModel.Blockchains;
 using Microsoft.Extensions.Logging;
 using Swisschain.Sirius.Sdk.Integrations.Client;
 using Swisschain.Sirius.Sdk.Integrations.Contract.Blocks;
-using Swisschain.Sirius.Sdk.Primitives;
+using Swisschain.Sirius.Sdk.Integrations.Contract.Transactions.Transfers;
+using CoinId = Swisschain.Sirius.Sdk.Primitives.CoinId;
+using CoinsBlock = Indexer.Common.Domain.Blocks.CoinsBlock;
+using CoinsTransferTransaction = Indexer.Common.Domain.Transactions.Transfers.CoinsTransferTransaction;
+using NonceBlock = Indexer.Common.Domain.Blocks.NonceBlock;
+using OutputCoin = Indexer.Common.Domain.Transactions.Transfers.OutputCoin;
 
 namespace Indexer.Common.Domain.Indexing
 {
@@ -25,22 +32,7 @@ namespace Indexer.Common.Domain.Indexing
             _blockchainMetamodel = blockchainMetamodel;
         }
 
-        public async Task<BlockHeader> ReadBlockOrDefaultAsync(long blockNumber)
-        {
-            var doubleSpendingProtectionType = _blockchainMetamodel.Protocol.DoubleSpendingProtectionType;
-
-            switch (doubleSpendingProtectionType)
-            {
-                case DoubleSpendingProtectionType.Coins:
-                    return await ReadCoinsBlock(blockNumber);
-
-                case DoubleSpendingProtectionType.Nonce:
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(doubleSpendingProtectionType), doubleSpendingProtectionType, "");
-            }
-        }
-
-        private async Task<BlockHeader> ReadCoinsBlock(long blockNumber)
+        public async Task<CoinsBlock> ReadCoinsBlockOrDefault(long blockNumber)
         {
             var response = await _client.Blocks.ReadCoinsBlockAsync(new ReadBlockRequest {BlockNumber = blockNumber});
 
@@ -62,12 +54,42 @@ namespace Indexer.Common.Domain.Indexing
                 throw new InvalidOperationException($@"Failed to read coins block {blockNumber} from blockchain {_blockchainMetamodel.Id}. Error code: {response.Error.Code}, Error message: {response.Error.Message}");
             }
 
-            return new BlockHeader(
+            var blockHeader = new BlockHeader(
                 _blockchainMetamodel.Id,
                 response.Block.Base.Id,
                 response.Block.Base.Number,
                 response.Block.Base.PreviousId,
                 response.Block.Base.MinedAt.ToDateTime());
+
+            var transfers = response.Block.Transfers.Select(tx =>
+            {
+                var txHeader = new TransactionHeader(
+                    tx.Base.Id,
+                    tx.Base.Number,
+                    tx.Base.Error);
+
+                var inputCoins = tx.InputCoins.Select(x => (CoinId) x).ToArray();
+                var outputCoins = tx.OutputCoins
+                    .Select(x => new OutputCoin(
+                        x.Number,
+                        x.Unit,
+                        x.Address,
+                        x.Tag,
+                        DestinationTagTypeMapper.ToDomain(x.TagType)))
+                    .ToArray();
+
+                return new CoinsTransferTransaction(
+                    txHeader,
+                    inputCoins,
+                    outputCoins);
+            });
+
+            return new CoinsBlock(blockHeader, transfers.ToArray());
+        }
+
+        public Task<NonceBlock> ReadNonceBlockOrDefault(long blockNumber)
+        {
+            throw new NotImplementedException();
         }
     }
 }

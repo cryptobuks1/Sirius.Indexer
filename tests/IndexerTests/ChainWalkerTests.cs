@@ -10,7 +10,7 @@ using Xunit;
 
 namespace IndexerTests
 {
-    public class BlockProcessorTests
+    public class ChainWalkerTests
     {
         private const string BlockchainId = "test-blockchain";
 
@@ -20,15 +20,15 @@ namespace IndexerTests
             // arrange
             var initialBlock = new BlockHeader(BlockchainId, number: 10, id: "B", previousBlockId: "A", minedAt: DateTime.UtcNow);
             var blockRepository = new InMemoryBlockHeadersRepository();
-            var processor = new BlocksProcessor(blockRepository);
+            var walker = new ChainWalker(blockRepository);
 
             await blockRepository.InsertOrIgnore(new BlockHeader(BlockchainId, number: 9, id: "A", previousBlockId: "C", minedAt: DateTime.UtcNow));
 
             // act
-            var output = await processor.ProcessBlock(initialBlock);
+            var output = await walker.MoveTo(initialBlock);
 
             // assert
-            output.IndexingDirection.ShouldBe(IndexingDirection.Forward);
+            output.Direction.ShouldBe(MovementDirection.Forward);
         }
 
         [Fact]
@@ -37,10 +37,10 @@ namespace IndexerTests
             // arrange
             var block = new BlockHeader(BlockchainId, number: 10, id: "B", previousBlockId: "A", minedAt: DateTime.UtcNow);
             var blockRepository = new InMemoryBlockHeadersRepository();
-            var processor = new BlocksProcessor(blockRepository);
+            var walker = new ChainWalker(blockRepository);
 
             // assert
-            await processor.ProcessBlock(block).ShouldThrowAsync<NotSupportedException>();
+            await walker.MoveTo(block).ShouldThrowAsync<NotSupportedException>();
         }
 
         [Fact]
@@ -48,8 +48,8 @@ namespace IndexerTests
         {
             // arrange
             var blockRepository = new InMemoryBlockHeadersRepository();
-            var processor = new BlocksProcessor(blockRepository);
-            var results = new List<BlockProcessingResult>();
+            var walker = new ChainWalker(blockRepository);
+            var results = new List<ChainWalkerMovement>();
 
             // i: 1(A)-2(B)-3(C)-4(D)
             var order = new List<string> { "A", "B", "C", "D" };
@@ -61,12 +61,12 @@ namespace IndexerTests
                 new BlockHeader(BlockchainId, number: 13, id: "D", previousBlockId: "C", minedAt: DateTime.UtcNow),
             };
 
-            var expectedOutputs = new List<BlockProcessingResult>
+            var expectedOutputs = new List<ChainWalkerMovement>
             {
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateForward(),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateForward(),
             };
 
             await blockRepository.InsertOrIgnore(new BlockHeader(BlockchainId, number: 9, id: "Z", previousBlockId: "X", minedAt: DateTime.UtcNow));
@@ -74,7 +74,7 @@ namespace IndexerTests
             // act
             foreach (var id in order)
             {
-                results.Add(await processor.ProcessBlock(blocks[id]));
+                results.Add(await walker.MoveTo(blocks[id]));
             }
 
             // assert
@@ -88,13 +88,13 @@ namespace IndexerTests
             var initialBlock = new BlockHeader(BlockchainId, number: 10, id: "A", previousBlockId: "Z", minedAt: DateTime.UtcNow);
             var regularBlock = new BlockHeader(BlockchainId, number: 11, id: "B", previousBlockId: "A", minedAt: DateTime.UtcNow);
             var blockRepository = new InMemoryBlockHeadersRepository();
-            var processor = new BlocksProcessor(blockRepository);
+            var walker = new ChainWalker(blockRepository);
 
             await blockRepository.InsertOrIgnore(new BlockHeader(BlockchainId, number: 9, id: "Z", previousBlockId: "X", minedAt: DateTime.UtcNow));
 
             // act
-            await processor.ProcessBlock(initialBlock);
-            await processor.ProcessBlock(regularBlock);
+            await walker.MoveTo(initialBlock);
+            await walker.MoveTo(regularBlock);
 
             var readBlock = await blockRepository.GetOrDefault(BlockchainId, 11);
 
@@ -107,10 +107,10 @@ namespace IndexerTests
             // arrange
             var block = new BlockHeader(BlockchainId, number: 10, id: "B", previousBlockId: "A", minedAt: DateTime.UtcNow);
             var blockRepository = new InMemoryBlockHeadersRepository();
-            var processor = new BlocksProcessor(blockRepository);
+            var walker = new ChainWalker(blockRepository);
 
             // assert
-            await Should.ThrowAsync<NotSupportedException>(() => processor.ProcessBlock(block));
+            await Should.ThrowAsync<NotSupportedException>(() => walker.MoveTo(block));
 
             var readBlock = await blockRepository.GetOrDefault(BlockchainId, 10);
 
@@ -122,8 +122,8 @@ namespace IndexerTests
         {
             // arrange
             var blockRepository = new InMemoryBlockHeadersRepository();
-            var processor = new BlocksProcessor(blockRepository);
-            var results = new List<BlockProcessingResult>();
+            var walker = new ChainWalker(blockRepository);
+            var results = new List<ChainWalkerMovement>();
 
             // i: 1(A)-2(B)
             //        \
@@ -137,13 +137,13 @@ namespace IndexerTests
                 new BlockHeader(BlockchainId, number: 3, id: "D", previousBlockId: "C", minedAt: DateTime.UtcNow),
             };
 
-            var expectedOutputs = new List<BlockProcessingResult>
+            var expectedOutputs = new List<ChainWalkerMovement>
             {
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateBackward(previousBlockHeader: blocks["B"]),
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateForward(),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateBackward(previousBlockHeader: blocks["B"]),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateForward(),
             };
 
             await blockRepository.InsertOrIgnore(new BlockHeader(BlockchainId, number: 0, id: "Z", previousBlockId: "X", minedAt: DateTime.UtcNow));
@@ -151,7 +151,7 @@ namespace IndexerTests
             // act
             foreach (var id in order)
             {
-                results.Add(await processor.ProcessBlock(blocks[id]));
+                results.Add(await walker.MoveTo(blocks[id]));
             }
 
             // assert
@@ -163,8 +163,8 @@ namespace IndexerTests
         {
             // arrange
             var blockRepository = new InMemoryBlockHeadersRepository();
-            var processor = new BlocksProcessor(blockRepository);
-            var results = new List<BlockProcessingResult>();
+            var walker = new ChainWalker(blockRepository);
+            var results = new List<ChainWalkerMovement>();
 
             // i: 1(A)-2(B)-3(D)
             //        \
@@ -180,16 +180,16 @@ namespace IndexerTests
                 new BlockHeader(BlockchainId, number: 4, id: "F", previousBlockId: "E", minedAt: DateTime.UtcNow),
             };
 
-            var expectedOutputs = new List<BlockProcessingResult>
+            var expectedOutputs = new List<ChainWalkerMovement>
             {
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateBackward(previousBlockHeader: blocks["D"]),
-                BlockProcessingResult.CreateBackward(previousBlockHeader: blocks["B"]),
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateForward(),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateBackward(previousBlockHeader: blocks["D"]),
+                ChainWalkerMovement.CreateBackward(previousBlockHeader: blocks["B"]),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateForward(),
             };
 
             await blockRepository.InsertOrIgnore(new BlockHeader(BlockchainId, number: 0, id: "Z", previousBlockId: "X", minedAt: DateTime.UtcNow));
@@ -197,7 +197,7 @@ namespace IndexerTests
             // act
             foreach (var id in order)
             {
-                results.Add(await processor.ProcessBlock(blocks[id]));
+                results.Add(await walker.MoveTo(blocks[id]));
             }
 
             // assert
@@ -209,8 +209,8 @@ namespace IndexerTests
         {
             // arrange
             var blockRepository = new InMemoryBlockHeadersRepository();
-            var processor = new BlocksProcessor(blockRepository);
-            var results = new List<BlockProcessingResult>();
+            var walker = new ChainWalker(blockRepository);
+            var results = new List<ChainWalkerMovement>();
 
             // i: 1(A)-2(B)-3(C)-4(E)-5(H)-6(K)
             //             \
@@ -238,32 +238,32 @@ namespace IndexerTests
                 new BlockHeader(BlockchainId, number: 8, id: "P", previousBlockId: "O", minedAt: DateTime.UtcNow),
             };
 
-            var expectedOutputs = new List<BlockProcessingResult>
+            var expectedOutputs = new List<ChainWalkerMovement>
             {
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateBackward(previousBlockHeader: blocks["K"]),
-                BlockProcessingResult.CreateBackward(previousBlockHeader: blocks["H"]),
-                BlockProcessingResult.CreateBackward(previousBlockHeader: blocks["E"]),
-                BlockProcessingResult.CreateBackward(previousBlockHeader: blocks["C"]),
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateBackward(previousBlockHeader: blocks["N"]),
-                BlockProcessingResult.CreateBackward(previousBlockHeader: blocks["L"]),
-                BlockProcessingResult.CreateBackward(previousBlockHeader: blocks["I"]),
-                BlockProcessingResult.CreateBackward(previousBlockHeader: blocks["F"]),
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateForward(),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateBackward(previousBlockHeader: blocks["K"]),
+                ChainWalkerMovement.CreateBackward(previousBlockHeader: blocks["H"]),
+                ChainWalkerMovement.CreateBackward(previousBlockHeader: blocks["E"]),
+                ChainWalkerMovement.CreateBackward(previousBlockHeader: blocks["C"]),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateBackward(previousBlockHeader: blocks["N"]),
+                ChainWalkerMovement.CreateBackward(previousBlockHeader: blocks["L"]),
+                ChainWalkerMovement.CreateBackward(previousBlockHeader: blocks["I"]),
+                ChainWalkerMovement.CreateBackward(previousBlockHeader: blocks["F"]),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateForward(),
             };
 
             await blockRepository.InsertOrIgnore(new BlockHeader(BlockchainId, number: 0, id: "Z", previousBlockId: "X", minedAt: DateTime.UtcNow));
@@ -271,7 +271,7 @@ namespace IndexerTests
             // act
             foreach (var id in order)
             {
-                results.Add(await processor.ProcessBlock(blocks[id]));
+                results.Add(await walker.MoveTo(blocks[id]));
             }
 
             // assert
@@ -283,8 +283,8 @@ namespace IndexerTests
         {
             // arrange
             var blockRepository = new InMemoryBlockHeadersRepository();
-            var processor = new BlocksProcessor(blockRepository);
-            var results = new List<BlockProcessingResult>();
+            var walker = new ChainWalker(blockRepository);
+            var results = new List<ChainWalkerMovement>();
 
             // i: 1(A)-2(B)-3(C)-4(E)-5(H)-6(K)
             //             \
@@ -313,24 +313,24 @@ namespace IndexerTests
                 new BlockHeader(BlockchainId, number: 8, id: "P", previousBlockId: "O", minedAt: DateTime.UtcNow),
             };
 
-            var expectedOutputs = new List<BlockProcessingResult>
+            var expectedOutputs = new List<ChainWalkerMovement>
             {
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateBackward(previousBlockHeader: blocks["K"]),
-                BlockProcessingResult.CreateBackward(previousBlockHeader: blocks["H"]),
-                BlockProcessingResult.CreateBackward(previousBlockHeader: blocks["E"]),
-                BlockProcessingResult.CreateBackward(previousBlockHeader: blocks["C"]),
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateForward(),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateBackward(previousBlockHeader: blocks["K"]),
+                ChainWalkerMovement.CreateBackward(previousBlockHeader: blocks["H"]),
+                ChainWalkerMovement.CreateBackward(previousBlockHeader: blocks["E"]),
+                ChainWalkerMovement.CreateBackward(previousBlockHeader: blocks["C"]),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateForward(),
             };
 
             await blockRepository.InsertOrIgnore(new BlockHeader(BlockchainId, number: 0, id: "Z", previousBlockId: "X", minedAt: DateTime.UtcNow));
@@ -338,7 +338,7 @@ namespace IndexerTests
             // act
             foreach (var id in order)
             {
-                results.Add(await processor.ProcessBlock(blocks[id]));
+                results.Add(await walker.MoveTo(blocks[id]));
             }
 
             // assert
@@ -350,8 +350,8 @@ namespace IndexerTests
         {
             // arrange
             var blockRepository = new InMemoryBlockHeadersRepository();
-            var processor = new BlocksProcessor(blockRepository);
-            var results = new List<BlockProcessingResult>();
+            var walker = new ChainWalker(blockRepository);
+            var results = new List<ChainWalkerMovement>();
 
             // case: 3
             // C:       4-5-6
@@ -374,24 +374,24 @@ namespace IndexerTests
                 new BlockHeader(BlockchainId, number: 6, id: "6C", previousBlockId: "5C", minedAt: DateTime.UtcNow),
             };
 
-            var expectedOutputs = new List<BlockProcessingResult>
+            var expectedOutputs = new List<ChainWalkerMovement>
             {
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateBackward(previousBlockHeader: blocks["4A"]),
-                BlockProcessingResult.CreateBackward(previousBlockHeader: blocks["3A"]),
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateBackward(previousBlockHeader: blocks["5B"]),
-                BlockProcessingResult.CreateBackward(previousBlockHeader: blocks["4B"]),
-                BlockProcessingResult.CreateBackward(previousBlockHeader: blocks["3B"]),
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateForward(),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateBackward(previousBlockHeader: blocks["4A"]),
+                ChainWalkerMovement.CreateBackward(previousBlockHeader: blocks["3A"]),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateBackward(previousBlockHeader: blocks["5B"]),
+                ChainWalkerMovement.CreateBackward(previousBlockHeader: blocks["4B"]),
+                ChainWalkerMovement.CreateBackward(previousBlockHeader: blocks["3B"]),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateForward(),
             };
 
             await blockRepository.InsertOrIgnore(new BlockHeader(BlockchainId, number: 0, id: "Z", previousBlockId: "X", minedAt: DateTime.UtcNow));
@@ -399,7 +399,7 @@ namespace IndexerTests
             // act
             foreach (var id in order)
             {
-                results.Add(await processor.ProcessBlock(blocks[id]));
+                results.Add(await walker.MoveTo(blocks[id]));
             }
 
             // assert
@@ -411,8 +411,8 @@ namespace IndexerTests
         {
             // arrange
             var blockRepository = new InMemoryBlockHeadersRepository();
-            var processor = new BlocksProcessor(blockRepository);
-            var results = new List<BlockProcessingResult>();
+            var walker = new ChainWalker(blockRepository);
+            var results = new List<ChainWalkerMovement>();
 
             // case: 4
             // C:     3-4-5-6
@@ -436,24 +436,24 @@ namespace IndexerTests
                 new BlockHeader(BlockchainId, number: 6, id: "6C", previousBlockId: "5C", minedAt: DateTime.UtcNow),
             };
 
-            var expectedOutputs = new List<BlockProcessingResult>
+            var expectedOutputs = new List<ChainWalkerMovement>
             {
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateBackward(previousBlockHeader: blocks["4A"]),
-                BlockProcessingResult.CreateBackward(previousBlockHeader: blocks["3A"]),
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateBackward(previousBlockHeader: blocks["5B"]),
-                BlockProcessingResult.CreateBackward(previousBlockHeader: blocks["4B"]),
-                BlockProcessingResult.CreateBackward(previousBlockHeader: blocks["3B"]),
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateForward(),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateBackward(previousBlockHeader: blocks["4A"]),
+                ChainWalkerMovement.CreateBackward(previousBlockHeader: blocks["3A"]),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateBackward(previousBlockHeader: blocks["5B"]),
+                ChainWalkerMovement.CreateBackward(previousBlockHeader: blocks["4B"]),
+                ChainWalkerMovement.CreateBackward(previousBlockHeader: blocks["3B"]),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateForward(),
             };
 
             await blockRepository.InsertOrIgnore(new BlockHeader(BlockchainId, number: 0, id: "Z", previousBlockId: "X", minedAt: DateTime.UtcNow));
@@ -461,7 +461,7 @@ namespace IndexerTests
             // act
             foreach (var id in order)
             {
-                results.Add(await processor.ProcessBlock(blocks[id]));
+                results.Add(await walker.MoveTo(blocks[id]));
             }
 
             // assert
@@ -473,8 +473,8 @@ namespace IndexerTests
         {
             // arrange
             var blockRepository = new InMemoryBlockHeadersRepository();
-            var processor = new BlocksProcessor(blockRepository);
-            var results = new List<BlockProcessingResult>();
+            var walker = new ChainWalker(blockRepository);
+            var results = new List<ChainWalkerMovement>();
 
             // case: 6
             // C:   2-3-4-5-6
@@ -499,26 +499,26 @@ namespace IndexerTests
                 new BlockHeader(BlockchainId, number: 6, id: "6C", previousBlockId: "5C", minedAt: DateTime.UtcNow),
             };
 
-            var expectedOutputs = new List<BlockProcessingResult>
+            var expectedOutputs = new List<ChainWalkerMovement>
             {
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateBackward(previousBlockHeader: blocks["4A"]),
-                BlockProcessingResult.CreateBackward(previousBlockHeader: blocks["3A"]),
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateBackward(previousBlockHeader: blocks["5B"]),
-                BlockProcessingResult.CreateBackward(previousBlockHeader: blocks["4B"]),
-                BlockProcessingResult.CreateBackward(previousBlockHeader: blocks["3B"]),
-                BlockProcessingResult.CreateBackward(previousBlockHeader: blocks["2A"]),
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateForward(),
-                BlockProcessingResult.CreateForward(),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateBackward(previousBlockHeader: blocks["4A"]),
+                ChainWalkerMovement.CreateBackward(previousBlockHeader: blocks["3A"]),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateBackward(previousBlockHeader: blocks["5B"]),
+                ChainWalkerMovement.CreateBackward(previousBlockHeader: blocks["4B"]),
+                ChainWalkerMovement.CreateBackward(previousBlockHeader: blocks["3B"]),
+                ChainWalkerMovement.CreateBackward(previousBlockHeader: blocks["2A"]),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateForward(),
+                ChainWalkerMovement.CreateForward(),
             };
 
             await blockRepository.InsertOrIgnore(new BlockHeader(BlockchainId, number: 0, id: "Z", previousBlockId: "X", minedAt: DateTime.UtcNow));
@@ -526,14 +526,14 @@ namespace IndexerTests
             // act
             foreach (var id in order)
             {
-                results.Add(await processor.ProcessBlock(blocks[id]));
+                results.Add(await walker.MoveTo(blocks[id]));
             }
 
             // assert
             AssertResults(results, expectedOutputs);
         }
 
-        private static void AssertResults(List<BlockProcessingResult> results, List<BlockProcessingResult> expectedOutputs)
+        private static void AssertResults(List<ChainWalkerMovement> results, List<ChainWalkerMovement> expectedOutputs)
         {
             results.Count.ShouldBe(expectedOutputs.Count);
             for (var index = 0; index < expectedOutputs.Count; index++)
@@ -541,8 +541,8 @@ namespace IndexerTests
                 var output = results[index];
                 var expectedOutput = expectedOutputs[index];
 
-                output.IndexingDirection.ShouldBe(expectedOutput.IndexingDirection);
-                output.PreviousBlockHeader?.GlobalId.ShouldBe(expectedOutput.PreviousBlockHeader?.GlobalId);
+                output.Direction.ShouldBe(expectedOutput.Direction);
+                output.EvictedBlockHeader?.GlobalId.ShouldBe(expectedOutput.EvictedBlockHeader?.GlobalId);
             }
         }
 
