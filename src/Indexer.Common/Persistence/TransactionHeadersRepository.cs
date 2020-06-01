@@ -22,7 +22,7 @@ namespace Indexer.Common.Persistence
 
         static TransactionHeadersRepository()
         {
-            CopyHelper = new PostgreSQLCopyHelper<TransactionHeaderEntity>(TableNames.TransactionHeaders)
+            CopyHelper = new PostgreSQLCopyHelper<TransactionHeaderEntity>(DatabaseContext.SchemaName, TableNames.TransactionHeaders)
                 .UsePostgresQuoting()
                 .MapVarchar(nameof(TransactionHeaderEntity.GlobalId), p => p.GlobalId)
                 .MapVarchar(nameof(TransactionHeaderEntity.BlockchainId), p => p.BlockchainId)
