@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Threading.Tasks;
-using Indexer.Common.Domain;
 using Indexer.Common.Domain.Blocks;
 using Indexer.Common.Persistence.DbContexts;
 using Indexer.Common.Persistence.Entities;
@@ -39,25 +38,25 @@ namespace Indexer.Common.Persistence
                 }
 
                 command.CommandText = @$"
-insert into {DatabaseContext.SchemaName}.{TableNames.BlockHeaders} 
-(
-    ""GlobalId"",
-    ""BlockchainId"",
-    ""Id"",
-    ""Number"",
-    ""PreviousId"",
-    ""MinedAt""
-) 
-values 
-(
-    @globalId,
-    @blockchainId,
-    @id,
-    @number,
-    @previousId,
-    @minedAt
-) 
-on conflict (""GlobalId"") do nothing";
+                    insert into {DatabaseContext.SchemaName}.{TableNames.BlockHeaders} 
+                    (
+                        ""GlobalId"",
+                        ""BlockchainId"",
+                        ""Id"",
+                        ""Number"",
+                        ""PreviousId"",
+                        ""MinedAt""
+                    ) 
+                    values 
+                    (
+                        @globalId,
+                        @blockchainId,
+                        @id,
+                        @number,
+                        @previousId,
+                        @minedAt
+                    ) 
+                    on conflict (""GlobalId"") do nothing";
 
                 command.Parameters.Add(new NpgsqlParameter("@globalId", DbType.String) {Value = blockHeader.GlobalId});
                 command.Parameters.Add(new NpgsqlParameter("@blockchainId", DbType.String) {Value = blockHeader.BlockchainId});

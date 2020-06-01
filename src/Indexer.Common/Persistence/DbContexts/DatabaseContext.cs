@@ -24,6 +24,7 @@ namespace Indexer.Common.Persistence.DbContexts
 
         public DbSet<ObservedOperationEntity> ObservedOperations { get; set; }
         public DbSet<BlockHeaderEntity> BlockHeaders { get; set; }
+        public DbSet<TransactionHeaderEntity> TransactionHeaders { get; set; }
         public DbSet<FirstPassIndexerEntity> FirstPassHistoryIndexers { get; set; }
         public DbSet<SecondPassIndexerEntity> SecondPassIndexers { get; set; }
         public DbSet<OngoingIndexerEntity> OngoingIndexers { get; set; }
@@ -44,11 +45,33 @@ namespace Indexer.Common.Persistence.DbContexts
             BuildBlockchain(modelBuilder);
             BuildObservedOperation(modelBuilder);
             BuildBlockHeaders(modelBuilder);
+            BuildTransactionHeaders(modelBuilder);
             BuildFirstPassIndexers(modelBuilder);
             BuildSecondPassIndexers(modelBuilder);
             BuildOngoingIndexers(modelBuilder);
 
             base.OnModelCreating(modelBuilder);
+        }
+
+        private static void BuildTransactionHeaders(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<TransactionHeaderEntity>(entityBuilder =>
+            {
+                entityBuilder.ToTable(TableNames.TransactionHeaders);
+                entityBuilder.HasKey(x => x.GlobalId);
+                
+                entityBuilder.Property(x => x.BlockchainId).IsRequired();
+                entityBuilder.Property(x => x.BlockId).IsRequired();
+                entityBuilder.Property(x => x.Id).IsRequired();
+
+                entityBuilder
+                    .HasIndex(x => new
+                    {
+                        x.BlockchainId,
+                        x.BlockId
+                    })
+                    .HasName("IX_TransactionHeaders_BlockchainId_BlockId");
+            });
         }
 
         private static void BuildOngoingIndexers(ModelBuilder modelBuilder)
@@ -106,14 +129,6 @@ namespace Indexer.Common.Persistence.DbContexts
             {
                 e.ToTable(TableNames.BlockHeaders);
                 e.HasKey(x => x.GlobalId);
-
-                e.HasIndex(x => new
-                    {
-                        x.BlockchainId,
-                        x.Id
-                    })
-                    .IsUnique()
-                    .HasName("IX_BlockHeaders_BlockchainId_Id");
 
                 e.HasIndex(x => new
                     {

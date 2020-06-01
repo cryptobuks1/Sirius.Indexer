@@ -4,7 +4,6 @@ using Grpc.Core;
 using Indexer.Common.Domain.ObservedOperations;
 using Indexer.Common.Persistence.ObservedOperations;
 using Swisschain.Extensions.Idempotency;
-using Swisschain.Sdk.Server.Common;
 using Swisschain.Sirius.Indexer.ApiContract;
 
 namespace Indexer.GrpcServices

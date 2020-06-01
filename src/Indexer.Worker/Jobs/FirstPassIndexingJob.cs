@@ -2,8 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Indexer.Common.Domain;
+using Indexer.Common.Domain.Blocks;
 using Indexer.Common.Domain.Indexing;
+using Indexer.Common.Domain.Transactions;
 using Indexer.Common.Messaging.InMemoryBus;
 using Indexer.Common.Telemetry;
 using Microsoft.Extensions.Logging;
@@ -19,6 +20,7 @@ namespace Indexer.Worker.Jobs
         private readonly IFirstPassIndexersRepository _indexersRepository;
         private readonly IBlocksReader _blocksReader;
         private readonly IBlockHeadersRepository _blockHeadersRepository;
+        private readonly ITransactionHeadersRepository _transactionHeadersRepository;
         private readonly IInMemoryBus _inMemoryBus;
         private readonly SecondPassIndexingJobsManager _secondPassIndexingJobsManager;
         private readonly IAppInsight _appInsight;
@@ -32,6 +34,7 @@ namespace Indexer.Worker.Jobs
             IFirstPassIndexersRepository indexersRepository,
             IBlocksReader blocksReader,
             IBlockHeadersRepository blockHeadersRepository,
+            ITransactionHeadersRepository transactionHeadersRepository,
             IInMemoryBus inMemoryBus,
             SecondPassIndexingJobsManager secondPassIndexingJobsManager,
             IAppInsight appInsight)
@@ -43,6 +46,7 @@ namespace Indexer.Worker.Jobs
             _indexersRepository = indexersRepository;
             _blocksReader = blocksReader;
             _blockHeadersRepository = blockHeadersRepository;
+            _transactionHeadersRepository = transactionHeadersRepository;
             _inMemoryBus = inMemoryBus;
             _secondPassIndexingJobsManager = secondPassIndexingJobsManager;
             _appInsight = appInsight;
@@ -133,6 +137,7 @@ namespace Indexer.Worker.Jobs
                     _loggerFactory.CreateLogger<FirstPassIndexer>(),
                     _blocksReader,
                     _blockHeadersRepository,
+                    _transactionHeadersRepository,
                     _inMemoryBus);
 
                 telemetry.ResponseCode = result.ToString();

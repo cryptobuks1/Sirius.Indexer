@@ -3,15 +3,17 @@ using System;
 using Indexer.Common.Persistence.DbContexts;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 namespace Indexer.Common.Migrations
 {
     [DbContext(typeof(DatabaseContext))]
-    partial class DatabaseContextModelSnapshot : ModelSnapshot
+    [Migration("20200601120106_TransactionHeaders")]
+    partial class TransactionHeaders
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -217,9 +219,6 @@ namespace Indexer.Common.Migrations
                         .HasColumnType("integer");
 
                     b.HasKey("GlobalId");
-
-                    b.HasIndex("BlockchainId", "BlockId")
-                        .HasName("IX_TransactionHeaders_BlockchainId_BlockId");
 
                     b.ToTable("transaction_headers");
                 });

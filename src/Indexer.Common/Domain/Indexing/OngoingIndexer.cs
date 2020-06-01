@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
+using Indexer.Common.Domain.Transactions;
 using MassTransit;
 using Microsoft.Extensions.Logging;
 using Swisschain.Sirius.Indexer.MessagingContract;
@@ -68,6 +70,7 @@ namespace Indexer.Common.Domain.Indexing
         public async Task<IOngoingIndexingResult> IndexNextBlock(ILogger<OngoingIndexer> logger,
             IBlocksReader reader,
             ChainWalker chainWalker,
+            ITransactionHeadersRepository transactionHeadersRepository,
             IPublishEndpoint publisher)
         {
             var newBlock = await reader.ReadCoinsBlockOrDefault(NextBlock);
@@ -96,8 +99,8 @@ namespace Indexer.Common.Domain.Indexing
                             ChainSequence = Sequence
                         }));
 
-                    // TODO:
-                    //await block.ExecuteAsync(this.Blockchain, this.NetworkType, this.executionRouter);
+                    await transactionHeadersRepository.InsertOrIgnore(newBlock.Transfers.Select(x => x.Header));
+                    // TODO: Save rest of the data
 
                     NextBlock++;
                     Sequence++;
@@ -122,8 +125,9 @@ namespace Indexer.Common.Domain.Indexing
                             ChainSequence = Sequence
                         }));
 
-                    // TODO:
-                    //await this.canceler.Cancel(processingResult.PreviousBlockHash);
+                    await transactionHeadersRepository.RemoveByBlock(BlockchainId, chainWalkerMovement.EvictedBlockHeader.Id);
+
+                    // TODO: Remove rest of the data
 
                     NextBlock--;
                     Sequence++;

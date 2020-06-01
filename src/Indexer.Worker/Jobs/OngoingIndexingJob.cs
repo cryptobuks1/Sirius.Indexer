@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Indexer.Common.Domain.Indexing;
+using Indexer.Common.Domain.Transactions;
 using Indexer.Common.Telemetry;
 using MassTransit;
 using Microsoft.Extensions.Logging;
@@ -16,6 +17,7 @@ namespace Indexer.Worker.Jobs
         private readonly string _blockchainId;
         private readonly TimeSpan _delayOnBlockNotFound;
         private readonly IOngoingIndexersRepository _indexersRepository;
+        private readonly ITransactionHeadersRepository _transactionHeadersRepository;
         private readonly IBlocksReader _blocksReader;
         private readonly ChainWalker _chainWalker;
         private readonly IPublishEndpoint _publisher;
@@ -30,6 +32,7 @@ namespace Indexer.Worker.Jobs
             string blockchainId,
             TimeSpan delayOnBlockNotFound,
             IOngoingIndexersRepository indexersRepository,
+            ITransactionHeadersRepository transactionHeadersRepository,
             IBlocksReader blocksReader,
             ChainWalker chainWalker,
             IPublishEndpoint publisher,
@@ -40,6 +43,7 @@ namespace Indexer.Worker.Jobs
             _blockchainId = blockchainId;
             _delayOnBlockNotFound = delayOnBlockNotFound;
             _indexersRepository = indexersRepository;
+            _transactionHeadersRepository = transactionHeadersRepository;
             _blocksReader = blocksReader;
             _chainWalker = chainWalker;
             _publisher = publisher;
@@ -149,6 +153,7 @@ namespace Indexer.Worker.Jobs
                         _loggerFactory.CreateLogger<OngoingIndexer>(),
                         _blocksReader,
                         _chainWalker,
+                        _transactionHeadersRepository,
                         _publisher);
 
                     batchBackgroundTasks.AddRange(indexingResult.BackgroundTasks);

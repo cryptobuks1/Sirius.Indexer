@@ -1,6 +1,7 @@
 ﻿using System;
-using Indexer.Common.Domain;
+using Indexer.Common.Domain.Blocks;
 using Indexer.Common.Domain.Indexing;
+using Indexer.Common.Domain.Transactions;
 using Indexer.Common.Persistence.DbContexts;
 using Indexer.Common.Persistence.ObservedOperations;
 using Indexer.Common.Telemetry;
@@ -18,6 +19,7 @@ namespace Indexer.Common.Persistence
             services.AddTransient<IBlockchainsRepository, BlockchainsRepository>();
             services.AddTransient<IObservedOperationsRepository, ObservedOperationsRepository>();
             services.AddTransient<IBlockHeadersRepository, BlockHeadersRepository>();
+            services.AddTransient<ITransactionHeadersRepository, TransactionHeadersRepository>();
             services.AddTransient<IFirstPassIndexersRepository, FirstPassIndexersRepository>();
             services.AddTransient<ISecondPassIndexersRepository, SecondPassIndexersRepository>();
             services.AddTransient<IOngoingIndexersRepository, OngoingIndexersRepository>();

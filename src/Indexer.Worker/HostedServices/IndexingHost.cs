@@ -4,8 +4,9 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Indexer.Common.Configuration;
-using Indexer.Common.Domain;
+using Indexer.Common.Domain.Blocks;
 using Indexer.Common.Domain.Indexing;
+using Indexer.Common.Domain.Transactions;
 using Indexer.Common.Messaging.InMemoryBus;
 using Indexer.Common.Persistence;
 using Indexer.Common.ReadModel.Blockchains;
@@ -26,6 +27,7 @@ namespace Indexer.Worker.HostedServices
         private readonly ISecondPassIndexersRepository _secondPassIndexersRepository;
         private readonly IOngoingIndexersRepository _ongoingIndexersRepository;
         private readonly IBlockHeadersRepository _blockHeadersRepository;
+        private readonly ITransactionHeadersRepository _transactionHeadersRepository;
         private readonly IInMemoryBus _inMemoryBus;
         private readonly SecondPassIndexingJobsManager _secondPassIndexingJobsManager;
         private readonly OngoingIndexingJobsManager _ongoingIndexingJobsManager;
@@ -41,6 +43,7 @@ namespace Indexer.Worker.HostedServices
             ISecondPassIndexersRepository secondPassIndexersRepository,
             IOngoingIndexersRepository ongoingIndexersRepository,
             IBlockHeadersRepository blockHeadersRepository,
+            ITransactionHeadersRepository transactionHeadersRepository,
             IInMemoryBus inMemoryBus,
             SecondPassIndexingJobsManager secondPassIndexingJobsManager,
             OngoingIndexingJobsManager ongoingIndexingJobsManager,
@@ -55,6 +58,7 @@ namespace Indexer.Worker.HostedServices
             _secondPassIndexersRepository = secondPassIndexersRepository;
             _ongoingIndexersRepository = ongoingIndexersRepository;
             _blockHeadersRepository = blockHeadersRepository;
+            _transactionHeadersRepository = transactionHeadersRepository;
             _inMemoryBus = inMemoryBus;
             _secondPassIndexingJobsManager = secondPassIndexingJobsManager;
             _ongoingIndexingJobsManager = ongoingIndexingJobsManager;
@@ -282,6 +286,7 @@ namespace Indexer.Worker.HostedServices
                         _firstPassIndexersRepository,
                         blocksReader,
                         _blockHeadersRepository,
+                        _transactionHeadersRepository,
                         _inMemoryBus,
                         _secondPassIndexingJobsManager,
                         _appInsight);

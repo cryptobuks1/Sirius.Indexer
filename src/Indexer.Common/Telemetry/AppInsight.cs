@@ -119,6 +119,11 @@ namespace Indexer.Common.Telemetry
             return new SqlCommandAppInsightOperation(this, command);
         }
 
+        public SqlCopyCommandAppInsightOperation StartSqlCopyCommand<TEntity>()
+        {
+            return new SqlCopyCommandAppInsightOperation(this, typeof(TEntity).Name);
+        }
+
         public void TrackException(Exception exception)
         {
             _client.TrackException(exception);

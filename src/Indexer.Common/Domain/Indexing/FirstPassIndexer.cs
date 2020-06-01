@@ -1,6 +1,9 @@
 ﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Indexer.Common.Configuration;
+using Indexer.Common.Domain.Blocks;
+using Indexer.Common.Domain.Transactions;
 using Indexer.Common.Messaging.InMemoryBus;
 using Microsoft.Extensions.Logging;
 
@@ -72,6 +75,7 @@ namespace Indexer.Common.Domain.Indexing
         public async Task<FirstPassIndexingResult> IndexNextBlock(ILogger<FirstPassIndexer> logger,
             IBlocksReader blocksReader,
             IBlockHeadersRepository blockHeadersRepository,
+            ITransactionHeadersRepository transactionHeadersRepository,
             IInMemoryBus inMemoryBus)
         {
             if (IsCompleted)
@@ -83,7 +87,7 @@ namespace Indexer.Common.Domain.Indexing
 
             if (block == null)
             {
-                logger.LogInformation($"First-pass indexer has not found the block. Likely `{nameof(BlockchainIndexingConfig.LastHistoricalBlockNumber)}` should be decreased. It should be existing block {{@context}}", new
+                logger.LogWarning($"First-pass indexer has not found the block. Likely `{nameof(BlockchainIndexingConfig.LastHistoricalBlockNumber)}` should be decreased. It should be existing block {{@context}}", new
                 {
                     BlockchainId = BlockchainId,
                     StartBlock = StartBlock,
@@ -94,8 +98,9 @@ namespace Indexer.Common.Domain.Indexing
             }
 
             await blockHeadersRepository.InsertOrIgnore(block.Header);
+            await transactionHeadersRepository.InsertOrIgnore(block.Transfers.Select(x => x.Header));
 
-            // TODO: Add first-pass block data indexing
+            // TODO: Add rest of the data
             
             NextBlock += StepSize;
             UpdatedAt = DateTime.UtcNow;

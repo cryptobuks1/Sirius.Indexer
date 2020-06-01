@@ -22,11 +22,9 @@ namespace Indexer.Common.Telemetry
             IReadOnlyDictionary<string, string> properties = null);
 
         void TrackMetric(string name, double value, IReadOnlyDictionary<string, string> properties = null);
-
         AppInsightOperation StartRequest(string name, IReadOnlyDictionary<string, string> properties = null);
-
         SqlCommandAppInsightOperation StartSqlCommand(DbCommand command);
-        
+        SqlCopyCommandAppInsightOperation StartSqlCopyCommand<TEntity>();
         void TrackException(Exception exception);
     }
 }

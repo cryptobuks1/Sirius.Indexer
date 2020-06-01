@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
-using Indexer.Common.Domain;
+using Indexer.Common.Domain.Blocks;
 using Indexer.Common.Domain.Indexing;
 using Indexer.Common.Telemetry;
 using Indexer.Worker.Jobs;

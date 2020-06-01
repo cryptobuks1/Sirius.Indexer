@@ -64,6 +64,8 @@ namespace Indexer.Common.Domain.Indexing
             var transfers = response.Block.Transfers.Select(tx =>
             {
                 var txHeader = new TransactionHeader(
+                    blockHeader.BlockchainId,
+                    blockHeader.Id,
                     tx.Base.Id,
                     tx.Base.Number,
                     tx.Base.Error);
