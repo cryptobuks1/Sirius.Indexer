@@ -4,6 +4,7 @@ using Indexer.Common.Domain.Indexing;
 using Indexer.Common.Domain.Transactions;
 using Indexer.Common.Persistence.DbContexts;
 using Indexer.Common.Persistence.ObservedOperations;
+using Indexer.Common.Persistence.RetryDecorators;
 using Indexer.Common.Telemetry;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -18,11 +19,21 @@ namespace Indexer.Common.Persistence
             services.AddTransient<IAssetsRepository, AssetsRepository>();
             services.AddTransient<IBlockchainsRepository, BlockchainsRepository>();
             services.AddTransient<IObservedOperationsRepository, ObservedOperationsRepository>();
-            services.AddTransient<IBlockHeadersRepository, BlockHeadersRepository>();
-            services.AddTransient<ITransactionHeadersRepository, TransactionHeadersRepository>();
-            services.AddTransient<IFirstPassIndexersRepository, FirstPassIndexersRepository>();
-            services.AddTransient<ISecondPassIndexersRepository, SecondPassIndexersRepository>();
-            services.AddTransient<IOngoingIndexersRepository, OngoingIndexersRepository>();
+            services.AddTransient<IBlockHeadersRepository>(c =>
+                new BlockHeadersRepositoryRetryDecorator(
+                    new BlockHeadersRepository(c.GetRequiredService<Func<DatabaseContext>>())));
+            services.AddTransient<ITransactionHeadersRepository>(c =>
+                new TransactionHeadersRepositoryRetryDecorator(
+                    new TransactionHeadersRepository(c.GetRequiredService<Func<DatabaseContext>>())));
+            services.AddTransient<IFirstPassIndexersRepository>(c => 
+                new FirstPassIndexersRepositoryRetryDecorator(
+                    new FirstPassIndexersRepository(c.GetRequiredService<Func<DatabaseContext>>())));
+            services.AddTransient<ISecondPassIndexersRepository>(c =>
+                new SecondPassIndexersRepositoryRetryDecorator(
+                    new SecondPassIndexersRepository(c.GetRequiredService<Func<DatabaseContext>>())));
+            services.AddTransient<IOngoingIndexersRepository>(c =>
+                new OngoingIndexersRepositoryRetryDecorator(
+                    new OngoingIndexersRepository(c.GetRequiredService<Func<DatabaseContext>>())));
             
             services.AddSingleton<Func<DatabaseContext>>(x =>
             {

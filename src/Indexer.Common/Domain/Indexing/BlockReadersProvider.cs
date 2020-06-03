@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Indexer.Common.Domain.Indexing.RetryDecorators;
 using Indexer.Common.Persistence;
 using Microsoft.Extensions.Logging;
 using Swisschain.Sirius.Sdk.Integrations.Client;
@@ -42,10 +43,12 @@ namespace Indexer.Common.Domain.Indexing
                 
                 var integrationClient = new SiriusIntegrationClient(blockchainMetamodel.IntegrationUrl, unencrypted: true);
 
-                blocksReader = new BlocksReader(
+                var blocksReaderImpl = new BlocksReader(
                     _loggerFactory.CreateLogger<BlocksReader>(),
                     integrationClient,
                     blockchainMetamodel);
+
+                blocksReader = new BlocksReaderRetryDecorator(blocksReaderImpl);
 
                 _blockReaders.TryAdd(blockchainId, blocksReader);
                 _integrationClients.Add(integrationClient);
