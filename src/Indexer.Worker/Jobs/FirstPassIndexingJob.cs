@@ -7,6 +7,7 @@ using Indexer.Common.Domain.Indexing;
 using Indexer.Common.Domain.Transactions;
 using Indexer.Common.Messaging.InMemoryBus;
 using Indexer.Common.Telemetry;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace Indexer.Worker.Jobs
@@ -87,38 +88,48 @@ namespace Indexer.Worker.Jobs
 
         private async Task IndexBlocksBatch()
         {
-            var batchInitialBlock = _indexer.NextBlock;
-
-            // TODO: Move batch size to the config
-
-            while (!_job.IsCancellationRequested &&
-                   _indexer.NextBlock - batchInitialBlock < 100)
+            try
             {
-                // TODO: Add some delay in case of an error to reduce workload on the integration and DB
+                var batchInitialBlock = _indexer.NextBlock;
 
-                var indexingResult = await IndexNextBlock();
+                // TODO: Move batch size to the config
 
-                if (indexingResult == FirstPassIndexingResult.IndexingCompleted)
+                while (!_job.IsCancellationRequested &&
+                       _indexer.NextBlock - batchInitialBlock < 100)
                 {
-                    _logger.LogInformation("First-pass indexing job is completed {@context}", new
+                    // TODO: Add some delay in case of an error to reduce workload on the integration and DB
+
+                    var indexingResult = await IndexNextBlock();
+
+                    if (indexingResult == FirstPassIndexingResult.IndexingCompleted)
                     {
-                        BlockchainId = _indexerId.BlockchainId,
-                        StartBlock = _indexerId.StartBlock,
-                        StopBlock = _stopBlock
-                    });
+                        _logger.LogInformation("First-pass indexing job is completed {@context}",
+                            new
+                            {
+                                BlockchainId = _indexerId.BlockchainId,
+                                StartBlock = _indexerId.StartBlock,
+                                StopBlock = _stopBlock
+                            });
 
-                    _indexer = await _indexersRepository.Update(_indexer);
+                        _indexer = await _indexersRepository.Update(_indexer);
 
-                    await StartSecondPassIndexerJobIfFirstPassDone();
+                        await StartSecondPassIndexerJobIfFirstPassDone();
 
-                    Stop();
+                        Stop();
 
-                    return;
+                        return;
+                    }
                 }
-            }
 
-            // Saves the indexer state only in the end of the batch
-            _indexer = await _indexersRepository.Update(_indexer);
+                // Saves the indexer state only in the end of the batch
+                _indexer = await _indexersRepository.Update(_indexer);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to execute first-pass indexing job");
+
+                _indexer = await _indexersRepository.Get(_indexerId);
+            }
         }
 
         private async Task<FirstPassIndexingResult> IndexNextBlock()

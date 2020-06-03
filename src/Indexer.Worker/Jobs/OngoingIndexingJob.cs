@@ -133,77 +133,87 @@ namespace Indexer.Worker.Jobs
 
         private async Task IndexAvailableBlocks()
         {
-            var batchInitialBlock = _indexer.NextBlock;
-            var batchBackgroundTasks = new List<Task>();
-
-            while (!_cts.IsCancellationRequested)
+            try
             {
-                var telemetry = _appInsight.StartRequest("Ongoing block indexing", new Dictionary<string, string>
+                var batchInitialBlock = _indexer.NextBlock;
+                var batchBackgroundTasks = new List<Task>();
+
+                while (!_cts.IsCancellationRequested)
                 {
-                    ["job"] = "Ongoing indexing",
-                    ["blockchainId"] = _indexer.BlockchainId,
-                    ["nextBlock"] = _indexer.NextBlock.ToString()
-                });
+                    var telemetry = _appInsight.StartRequest("Ongoing block indexing",
+                        new Dictionary<string, string>
+                        {
+                            ["job"] = "Ongoing indexing",
+                            ["blockchainId"] = _indexer.BlockchainId,
+                            ["nextBlock"] = _indexer.NextBlock.ToString()
+                        });
 
-                try
-                {
-                    // TODO: Add some delay in case of an error to reduce workload on the integration and DB
-
-                    var indexingResult = await _indexer.IndexNextBlock(
-                        _loggerFactory.CreateLogger<OngoingIndexer>(),
-                        _blocksReader,
-                        _chainWalker,
-                        _transactionHeadersRepository,
-                        _publisher);
-
-                    batchBackgroundTasks.AddRange(indexingResult.BackgroundTasks);
-
-                    telemetry.ResponseCode = indexingResult.BlockResult.ToString();
-
-                    if (indexingResult.BlockResult == OngoingBlockIndexingResult.BlockNotFound)
+                    try
                     {
-                        _logger.LogDebug("Ongoing block is not found {@context}",
-                            new
-                            {
-                                BlockchainId = _indexer.BlockchainId,
-                                NextBlock = _indexer.NextBlock
-                            });
+                        // TODO: Add some delay in case of an error to reduce workload on the integration and DB
 
-                        break;
+                        var indexingResult = await _indexer.IndexNextBlock(
+                            _loggerFactory.CreateLogger<OngoingIndexer>(),
+                            _blocksReader,
+                            _chainWalker,
+                            _transactionHeadersRepository,
+                            _publisher);
+
+                        batchBackgroundTasks.AddRange(indexingResult.BackgroundTasks);
+
+                        telemetry.ResponseCode = indexingResult.BlockResult.ToString();
+
+                        if (indexingResult.BlockResult == OngoingBlockIndexingResult.BlockNotFound)
+                        {
+                            _logger.LogDebug("Ongoing block is not found {@context}",
+                                new
+                                {
+                                    BlockchainId = _indexer.BlockchainId,
+                                    NextBlock = _indexer.NextBlock
+                                });
+
+                            break;
+                        }
+
+                        // Saves the indexer state only every 100 blocks
+
+                        // TODO: Move batch size to the config
+
+                        if (_indexer.NextBlock - batchInitialBlock >= 100)
+                        {
+                            // This is needed to mitigate single IO operation latency
+                            await Task.WhenAll(batchBackgroundTasks);
+
+                            _indexer = await _indexersRepository.Update(_indexer);
+
+                            batchInitialBlock = _indexer.NextBlock;
+                        }
                     }
-
-                    // Saves the indexer state only every 100 blocks
-
-                    // TODO: Move batch size to the config
-
-                    if (_indexer.NextBlock - batchInitialBlock >= 100)
+                    catch (Exception ex)
                     {
-                        // This is needed to mitigate single IO operation latency
-                        await Task.WhenAll(batchBackgroundTasks);
+                        telemetry.Fail(ex);
 
-                        _indexer = await _indexersRepository.Update(_indexer);
-
-                        batchInitialBlock = _indexer.NextBlock;
+                        throw;
+                    }
+                    finally
+                    {
+                        telemetry.Stop();
                     }
                 }
-                catch (Exception ex)
-                {
-                    telemetry.Fail(ex);
 
-                    throw;
-                }
-                finally
+                if (_indexer.NextBlock != batchInitialBlock)
                 {
-                    telemetry.Stop();
+                    // This is needed to mitigate single IO operation latency
+                    await Task.WhenAll(batchBackgroundTasks);
+
+                    _indexer = await _indexersRepository.Update(_indexer);
                 }
             }
-
-            if (_indexer.NextBlock != batchInitialBlock)
+            catch (Exception ex)
             {
-                // This is needed to mitigate single IO operation latency
-                await Task.WhenAll(batchBackgroundTasks);
+                _logger.LogError(ex, "Failed to execute ongoing indexing job");
 
-                _indexer = await _indexersRepository.Update(_indexer);
+                _indexer = await _indexersRepository.Get(_blockchainId);
             }
         }
     }

@@ -77,29 +77,40 @@ namespace Indexer.Worker.Jobs
 
         private async Task IndexBlocksBatch()
         {
-            // TODO: Add some delay in case of an error to reduce workload on the DB
-            // TODO: Move max blocks count to config
-            var indexingResult = await _indexer.IndexAvailableBlocks(
-                _loggerFactory.CreateLogger<SecondPassIndexer>(), 
-                maxBlocksCount: 100, // For the bitcoin-test on azure 100 is not enough. About 200 should be ok I guess
-                _blockHeadersRepository,
-                _publisher,
-                _appInsight);
-
-            if (indexingResult == SecondPassIndexingResult.IndexingCompleted)
+            try
             {
-                _logger.LogInformation("Second-pass indexing job is completed {@context}", new
+                // TODO: Add some delay in case of an error to reduce workload on the DB
+                // TODO: Move max blocks count to config
+                var indexingResult = await _indexer.IndexAvailableBlocks(
+                    _loggerFactory.CreateLogger<SecondPassIndexer>(),
+                    maxBlocksCount:
+                    100, // For the bitcoin-test on azure 100 is not enough. About 200 should be ok I guess
+                    _blockHeadersRepository,
+                    _publisher,
+                    _appInsight);
+
+                if (indexingResult == SecondPassIndexingResult.IndexingCompleted)
                 {
-                    BlockchainId = _blockchainId,
-                    StopBlock = _stopBlock
-                });
+                    _logger.LogInformation("Second-pass indexing job is completed {@context}",
+                        new
+                        {
+                            BlockchainId = _blockchainId,
+                            StopBlock = _stopBlock
+                        });
 
-                await _ongoingIndexingJobsManager.EnsureStarted(_blockchainId);
+                    await _ongoingIndexingJobsManager.EnsureStarted(_blockchainId);
 
-                Stop();
+                    Stop();
+                }
+
+                _indexer = await _indexersRepository.Update(_indexer);
             }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to execute second-pass indexing job");
 
-            _indexer = await _indexersRepository.Update(_indexer);
+                _indexer = await _indexersRepository.Get(_blockchainId);
+            }
         }
     }
 }
