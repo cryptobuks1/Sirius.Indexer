@@ -1,13 +1,13 @@
 ﻿using System;
 using System.Linq;
 using System.Threading.Tasks;
-using Indexer.Common.Domain.Blocks;
 using Indexer.Common.Domain.Transactions;
 using Indexer.Common.ReadModel.Blockchains;
 using Microsoft.Extensions.Logging;
 using Swisschain.Sirius.Sdk.Integrations.Client;
 using Swisschain.Sirius.Sdk.Integrations.Contract.Blocks;
 using Swisschain.Sirius.Sdk.Integrations.Contract.Transactions.Transfers;
+using BlockHeader = Indexer.Common.Domain.Blocks.BlockHeader;
 using CoinId = Swisschain.Sirius.Sdk.Primitives.CoinId;
 using CoinsBlock = Indexer.Common.Domain.Blocks.CoinsBlock;
 using CoinsTransferTransaction = Indexer.Common.Domain.Transactions.Transfers.CoinsTransferTransaction;
@@ -56,19 +56,19 @@ namespace Indexer.Common.Domain.Indexing
 
             var blockHeader = new BlockHeader(
                 _blockchainMetamodel.Id,
-                response.Block.Base.Id,
-                response.Block.Base.Number,
-                response.Block.Base.PreviousId,
-                response.Block.Base.MinedAt.ToDateTime());
+                response.Block.Header.Id,
+                response.Block.Header.Number,
+                response.Block.Header.PreviousId,
+                response.Block.Header.MinedAt.ToDateTime());
 
             var transfers = response.Block.Transfers.Select(tx =>
             {
                 var txHeader = new TransactionHeader(
                     blockHeader.BlockchainId,
                     blockHeader.Id,
-                    tx.Base.Id,
-                    tx.Base.Number,
-                    tx.Base.Error);
+                    tx.Header.Id,
+                    tx.Header.Number,
+                    tx.Header.Error);
 
                 var inputCoins = tx.InputCoins.Select(x => (CoinId) x).ToArray();
                 var outputCoins = tx.OutputCoins
