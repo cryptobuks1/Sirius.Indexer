@@ -1,4 +1,4 @@
-﻿namespace Indexer.Common.Persistence.DbContexts
+﻿namespace Indexer.Common.Persistence.EntityFramework
 {
     public static class TableNames
     {

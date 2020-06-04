@@ -6,6 +6,21 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Persistence\SqlScripts\initial.sql" />
+    <None Remove="Persistence\SqlScripts\Modifications\after-indexing.sql" />
+    <None Remove="Persistence\SqlScripts\Modifications\before-indexing.sql" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Persistence\SqlScripts\Modifications\after-indexing.sql" />
+    <EmbeddedResource Include="Persistence\SqlScripts\Modifications\before-indexing.sql" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Persistence\SqlScripts\initial.sql" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="MassTransit" Version="6.2.4" />
     <PackageReference Include="Microsoft.ApplicationInsights" Version="2.14.0" />
     <PackageReference Include="Microsoft.ApplicationInsights.DependencyCollector" Version="2.14.0" />
@@ -36,6 +51,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Indexer.MessagingContract\Indexer.MessagingContract.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Persistence\SqlScripts\Migrations\" />
   </ItemGroup>
 
 </Project>

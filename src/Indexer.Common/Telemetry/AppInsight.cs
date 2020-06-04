@@ -111,7 +111,12 @@ namespace Indexer.Common.Telemetry
                 }
             }
 
-            return new AppInsightOperation(_client, _client.StartOperation(telemetry));
+            return new AppInsightOperation(this, _client.StartOperation(telemetry));
+        }
+
+        public void StopOperation(AppInsightOperation operation)
+        {
+            _client.StopOperation(operation.Holder);
         }
 
         public SqlCommandAppInsightOperation StartSqlCommand(DbCommand command)

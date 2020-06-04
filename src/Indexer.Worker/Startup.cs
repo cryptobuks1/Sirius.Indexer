@@ -39,7 +39,6 @@ namespace Indexer.Worker
                 options.AddDefaultProperty("app-version", ApplicationInformation.AppVersion);
             });
 
-           
             services.AddHostedService<MigrationHost>();
 
             services.AddInMemoryBus((provider, cfg) =>

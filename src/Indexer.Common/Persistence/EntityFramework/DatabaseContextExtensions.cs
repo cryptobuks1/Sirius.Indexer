@@ -2,9 +2,9 @@
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 
-namespace Indexer.Common.Persistence.DbContexts
+namespace Indexer.Common.Persistence.EntityFramework
 {
-    public static class DatabaseExtensions
+    public static class DatabaseContextExtensions
     {
         public static async Task<long> GetNextId(this DatabaseContext context, string tableName, string idName)
         {

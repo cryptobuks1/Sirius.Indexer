@@ -1,5 +1,4 @@
 ﻿using System;
-using Microsoft.ApplicationInsights;
 using Microsoft.ApplicationInsights.DataContracts;
 using Microsoft.ApplicationInsights.Extensibility;
 
@@ -7,39 +6,40 @@ namespace Indexer.Common.Telemetry
 {
     public sealed class AppInsightOperation
     {
-        private readonly TelemetryClient _client;
-        private readonly IOperationHolder<RequestTelemetry> _holder;
-
-        public string ResponseCode { get; set; }
-
-        internal AppInsightOperation(TelemetryClient client, IOperationHolder<RequestTelemetry> holder)
+        private readonly IAppInsight _appInsight;
+        
+        internal AppInsightOperation(IAppInsight appInsight, IOperationHolder<RequestTelemetry> holder)
         {
-            _client = client;
-            _holder = holder;
+            _appInsight = appInsight;
+
+            Holder = holder;
         }
+
+        public IOperationHolder<RequestTelemetry> Holder { get; }
+        public string ResponseCode { get; set; }
 
         public void Stop(string responseCode = null)
         {
             if (responseCode != null)
             {
-                _holder.Telemetry.ResponseCode = responseCode;
+                Holder.Telemetry.ResponseCode = responseCode;
             }
             else if (ResponseCode != null)
             {
-                _holder.Telemetry.ResponseCode = ResponseCode;
+                Holder.Telemetry.ResponseCode = ResponseCode;
             }
             
-            _client.StopOperation(_holder);
+            _appInsight.StopOperation(this);
         }
 
         public void TrackException(Exception exception)
         {
-            _client.TrackException(exception);
+            _appInsight.TrackException(exception);
         }
 
         public void Fail()
         {
-            _holder.Telemetry.Success = false;
+            Holder.Telemetry.Success = false;
             Stop();
         }
 

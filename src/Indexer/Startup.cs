@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging;
 using Indexer.Common.Configuration;
 using Indexer.Common.HostedServices;
 using Indexer.Common.Persistence;
-using Indexer.Common.Persistence.DbContexts;
+using Indexer.Common.Persistence.EntityFramework;
 using Indexer.Common.ServiceFunctions;
 using Indexer.GrpcServices;
 using Swisschain.Extensions.Idempotency;

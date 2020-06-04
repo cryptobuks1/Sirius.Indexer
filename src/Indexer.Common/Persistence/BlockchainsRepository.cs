@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Indexer.Common.Persistence.DbContexts;
+using Indexer.Common.Persistence.EntityFramework;
 using Indexer.Common.ReadModel.Blockchains;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;

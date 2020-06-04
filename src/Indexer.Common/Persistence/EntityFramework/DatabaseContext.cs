@@ -7,7 +7,7 @@ using Newtonsoft.Json;
 using Swisschain.Extensions.Idempotency.EfCore;
 using Swisschain.Sirius.Sdk.Primitives;
 
-namespace Indexer.Common.Persistence.DbContexts
+namespace Indexer.Common.Persistence.EntityFramework
 {
     public class DatabaseContext : DbContext, IDbContextWithOutbox
     {

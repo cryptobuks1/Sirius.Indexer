@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Indexer.Common.Domain.Indexing;
-using Indexer.Common.Persistence.DbContexts;
 using Indexer.Common.Persistence.Entities;
+using Indexer.Common.Persistence.EntityFramework;
 
 namespace Indexer.Common.Persistence
 {

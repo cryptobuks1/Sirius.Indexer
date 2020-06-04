@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Indexer.Common.Domain.ObservedOperations;
-using Indexer.Common.Persistence.DbContexts;
 using Indexer.Common.Persistence.Entities;
+using Indexer.Common.Persistence.EntityFramework;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 

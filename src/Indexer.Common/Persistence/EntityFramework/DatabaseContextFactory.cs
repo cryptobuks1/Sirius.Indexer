@@ -1,11 +1,10 @@
 ﻿using System;
-using Indexer.Common.Persistence.DbContexts;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 
-namespace Indexer.Common.Persistence.DesignTime
+namespace Indexer.Common.Persistence.EntityFramework
 {
-    public class ContextFactory : IDesignTimeDbContextFactory<DatabaseContext>
+    public class DatabaseContextFactory : IDesignTimeDbContextFactory<DatabaseContext>
     {
         public DatabaseContext CreateDbContext(string[] args)
         {
