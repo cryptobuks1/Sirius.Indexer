@@ -19,9 +19,7 @@ namespace Indexer.Common.Telemetry
             {
                 services.AddSingleton<IAppInsight>(x => new TurnedOffAppInsight());
             }
-
-            services.AddSingleton<IAppInsight>(x => new AppInsight(options));
-
+            
             return services;
         }
     }
