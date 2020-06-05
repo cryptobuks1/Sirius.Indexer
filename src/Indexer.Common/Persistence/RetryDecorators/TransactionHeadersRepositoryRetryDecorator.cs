@@ -17,7 +17,7 @@ namespace Indexer.Common.Persistence.RetryDecorators
             _retryPolicy = Policies.DefaultRepositoryRetryPolicy();
         }
 
-        public Task InsertOrIgnore(IEnumerable<TransactionHeader> transactionHeaders)
+        public Task InsertOrIgnore(IReadOnlyCollection<TransactionHeader> transactionHeaders)
         {
             return _retryPolicy.ExecuteAsync(() => _impl.InsertOrIgnore(transactionHeaders));
         }

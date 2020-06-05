@@ -6,8 +6,6 @@ namespace Indexer.Common.Domain.Blocks
     {
         public BlockHeader(string blockchainId, string id, long number, string previousBlockId, DateTime minedAt)
         {
-            GlobalId = $"{blockchainId}-{id}";
-
             BlockchainId = blockchainId;
             Id = id;
             Number = number;
@@ -15,7 +13,6 @@ namespace Indexer.Common.Domain.Blocks
             MinedAt = minedAt;
         }
 
-        public string GlobalId { get; }
         public string BlockchainId { get; }
         public string Id { get; }
         public long Number { get; }
@@ -24,7 +21,7 @@ namespace Indexer.Common.Domain.Blocks
 
         public override string ToString()
         {
-            return GlobalId;
+            return $"{BlockchainId}:{Id}";
         }
     }
 }

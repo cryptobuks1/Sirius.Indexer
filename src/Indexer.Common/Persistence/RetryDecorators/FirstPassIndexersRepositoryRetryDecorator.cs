@@ -41,5 +41,10 @@ namespace Indexer.Common.Persistence.RetryDecorators
         {
             return _retryPolicy.ExecuteAsync(() => _impl.GetByBlockchain(blockchainId));
         }
+
+        public Task Remove(string blockchainId)
+        {
+            return _retryPolicy.ExecuteAsync(() => _impl.Remove(blockchainId));
+        }
     }
 }

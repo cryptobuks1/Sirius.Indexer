@@ -542,7 +542,8 @@ namespace IndexerTests
                 var expectedOutput = expectedOutputs[index];
 
                 output.Direction.ShouldBe(expectedOutput.Direction);
-                output.EvictedBlockHeader?.GlobalId.ShouldBe(expectedOutput.EvictedBlockHeader?.GlobalId);
+                output.EvictedBlockHeader?.BlockchainId.ShouldBe(expectedOutput.EvictedBlockHeader?.BlockchainId);
+                output.EvictedBlockHeader?.Id.ShouldBe(expectedOutput.EvictedBlockHeader?.Id);
             }
         }
 

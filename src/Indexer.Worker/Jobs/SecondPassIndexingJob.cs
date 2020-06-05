@@ -48,7 +48,8 @@ namespace Indexer.Worker.Jobs
                 new
                 {
                     BlockchainId = _blockchainId,
-                    StopBlock = _stopBlock
+                    StopBlock = _stopBlock,
+                    NextBlock = _indexer?.NextBlock
                 },
                 IndexBlocksBatch);
         }

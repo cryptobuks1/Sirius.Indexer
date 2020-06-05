@@ -17,7 +17,7 @@ namespace Indexer.Common.Persistence
             const string primaryKeyNamePrefix = "PK_";
 
             return string.Equals(e.SqlState, constraintViolationErrorCode, StringComparison.InvariantCultureIgnoreCase)
-                   && e.ConstraintName.StartsWith(primaryKeyNamePrefix);
+                   && e.ConstraintName.StartsWith(primaryKeyNamePrefix, StringComparison.InvariantCultureIgnoreCase);
         }
     }
 }

@@ -22,6 +22,7 @@ namespace Indexer.Worker.HostedServices
         private readonly ILogger<IndexingHost> _logger;
         private readonly ILoggerFactory _loggerFactory;
         private readonly AppConfig _config;
+        private readonly IBlockchainSchemaBuilder _blockchainSchemaBuilder;
         private readonly IBlockchainsRepository _blockchainsRepository;
         private readonly IFirstPassIndexersRepository _firstPassIndexersRepository;
         private readonly ISecondPassIndexersRepository _secondPassIndexersRepository;
@@ -38,6 +39,7 @@ namespace Indexer.Worker.HostedServices
         public IndexingHost(ILogger<IndexingHost> logger,
             ILoggerFactory loggerFactory,
             AppConfig config,
+            IBlockchainSchemaBuilder blockchainSchemaBuilder,
             IBlockchainsRepository blockchainsRepository,
             IFirstPassIndexersRepository firstPassIndexersRepository,
             ISecondPassIndexersRepository secondPassIndexersRepository,
@@ -53,6 +55,7 @@ namespace Indexer.Worker.HostedServices
             _logger = logger;
             _loggerFactory = loggerFactory;
             _config = config;
+            _blockchainSchemaBuilder = blockchainSchemaBuilder;
             _blockchainsRepository = blockchainsRepository;
             _firstPassIndexersRepository = firstPassIndexersRepository;
             _secondPassIndexersRepository = secondPassIndexersRepository;
@@ -84,6 +87,7 @@ namespace Indexer.Worker.HostedServices
                 var blockchainMetamodel = await _blockchainsRepository.GetAsync(blockchainId);
                 var blocksReader = await _blockReadersProvider.Get(blockchainId);
 
+                await ProvisionSchema(blockchainId);
                 var firstPassIndexers = await ProvisionFirstPassIndexers(blockchainId, blockchainConfig, blockchainMetamodel);
                 var secondPassIndexer = await ProvisionSecondPassIndexer(blockchainId, blockchainConfig, blockchainMetamodel);
                 var ongoingIndexer = await ProvisionOngoingIndexer(blockchainId, blockchainConfig, blockchainMetamodel);
@@ -130,6 +134,20 @@ namespace Indexer.Worker.HostedServices
             
             _secondPassIndexingJobsManager.Dispose();
             _ongoingIndexingJobsManager.Dispose();
+        }
+
+        private async Task ProvisionSchema(string blockchainId)
+        {
+            if (await _blockchainSchemaBuilder.ProvisionForIndexing(blockchainId))
+            {
+                _logger.LogInformation("Cleaning {@blockchainId} indexers up since schema was just created...");
+
+                await _firstPassIndexersRepository.Remove(blockchainId);
+                await _secondPassIndexersRepository.Remove(blockchainId);
+                await _ongoingIndexersRepository.Remove(blockchainId);
+
+                _logger.LogInformation("{@blockchainId} indexers cleaned up");
+            }
         }
 
         private async Task<IReadOnlyCollection<FirstPassIndexer>> ProvisionFirstPassIndexers(string blockchainId,

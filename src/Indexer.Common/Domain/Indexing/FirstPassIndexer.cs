@@ -98,7 +98,7 @@ namespace Indexer.Common.Domain.Indexing
             }
 
             await blockHeadersRepository.InsertOrIgnore(block.Header);
-            await transactionHeadersRepository.InsertOrIgnore(block.Transfers.Select(x => x.Header));
+            await transactionHeadersRepository.InsertOrIgnore(block.Transfers.Select(x => x.Header).ToArray());
 
             // TODO: Add rest of the data
             

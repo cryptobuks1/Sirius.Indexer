@@ -6,6 +6,7 @@ using Indexer.Common.Domain.Indexing;
 using Indexer.Common.Persistence.Entities;
 using Indexer.Common.Persistence.EntityFramework;
 using Microsoft.EntityFrameworkCore;
+using Z.EntityFramework.Plus;
 
 namespace Indexer.Common.Persistence
 {
@@ -71,6 +72,13 @@ namespace Indexer.Common.Persistence
             var entities = await context.FirstPassHistoryIndexers.Where(x => x.BlockchainId == blockchainId).ToArrayAsync();
 
             return entities.Select(MapFromEntity);
+        }
+
+        public async Task Remove(string blockchainId)
+        {
+            await using var context = _contextFactory.Invoke();
+
+            await context.FirstPassHistoryIndexers.Where(x => x.BlockchainId == blockchainId).DeleteAsync();
         }
 
         private static FirstPassIndexer MapFromEntity(FirstPassIndexerEntity entity)

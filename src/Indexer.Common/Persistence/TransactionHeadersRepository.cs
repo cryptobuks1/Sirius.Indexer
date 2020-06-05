@@ -1,77 +1,62 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Data;
 using System.Linq;
 using System.Threading.Tasks;
+using Dapper;
 using Indexer.Common.Domain.Transactions;
 using Indexer.Common.Persistence.Entities;
 using Indexer.Common.Persistence.EntityFramework;
-using Microsoft.EntityFrameworkCore;
+using Indexer.Common.Telemetry;
 using Npgsql;
 using NpgsqlTypes;
 using PostgreSQLCopyHelper;
-using Z.EntityFramework.Plus;
 
 namespace Indexer.Common.Persistence
 {
     internal class TransactionHeadersRepository : ITransactionHeadersRepository
     {
-        private static readonly PostgreSQLCopyHelper<TransactionHeaderEntity> CopyHelper;
+        private readonly Func<Task<NpgsqlConnection>> _connectionFactory;
+        private readonly IAppInsight _appInsight;
 
-        private readonly Func<DatabaseContext> _contextFactory;
-
-        static TransactionHeadersRepository()
+        public TransactionHeadersRepository(Func<Task<NpgsqlConnection>> connectionFactory,
+            IAppInsight appInsight)
         {
-            CopyHelper = new PostgreSQLCopyHelper<TransactionHeaderEntity>(DatabaseContext.SchemaName, TableNames.TransactionHeaders)
-                .UsePostgresQuoting()
-                .MapVarchar(nameof(TransactionHeaderEntity.GlobalId), p => p.GlobalId)
-                .MapVarchar(nameof(TransactionHeaderEntity.BlockchainId), p => p.BlockchainId)
-                .MapVarchar(nameof(TransactionHeaderEntity.BlockId), p => p.BlockId)
-                .MapVarchar(nameof(TransactionHeaderEntity.Id), p => p.Id)
-                .MapInteger(nameof(TransactionHeaderEntity.Number), p => p.Number)
-                .MapVarchar(nameof(TransactionHeaderEntity.ErrorMessage), p => p.ErrorMessage)
-                .MapNullable(nameof(TransactionHeaderEntity.ErrorCode), p => p.ErrorCode, NpgsqlDbType.Integer);
+            _connectionFactory = connectionFactory;
+            _appInsight = appInsight;
         }
 
-        public TransactionHeadersRepository(Func<DatabaseContext> contextFactory)
+        public async Task InsertOrIgnore(IReadOnlyCollection<TransactionHeader> transactionHeaders)
         {
-            _contextFactory = contextFactory;
-        }
-
-        public async Task InsertOrIgnore(IEnumerable<TransactionHeader> transactionHeaders)
-        {
-            var entities = transactionHeaders
-                .Select(MapToEntity)
-                .ToArray();
-
-            if (!entities.Any())
+            if (!transactionHeaders.Any())
             {
                 return;
             }
             
-            await using var context = _contextFactory.Invoke();
-            await using var connection = (NpgsqlConnection)context.Database.GetDbConnection();
+            await using var connection = await _connectionFactory.Invoke();
             
-            var telemetry = context.AppInsight.StartSqlCopyCommand<TransactionHeaderEntity>();
+            var telemetry = _appInsight.StartSqlCopyCommand<TransactionHeader>();
+            var schema = BlockchainSchema.Get(transactionHeaders.First().BlockchainId);
+            var copyHelper = new PostgreSQLCopyHelper<TransactionHeader>(schema, TableNames.TransactionHeaders)
+                .UsePostgresQuoting()
+                .MapVarchar(nameof(TransactionHeaderEntity.block_id), p => p.BlockId)
+                .MapVarchar(nameof(TransactionHeaderEntity.id), p => p.Id)
+                .MapInteger(nameof(TransactionHeaderEntity.number), p => p.Number)
+                .MapVarchar(nameof(TransactionHeaderEntity.error_message), p => p.Error?.Message)
+                .MapNullable(nameof(TransactionHeaderEntity.error_code), p => p.Error?.Code, NpgsqlDbType.Integer);
 
             try
             {
-                if (connection.State != ConnectionState.Open)
-                {
-                    await connection.OpenAsync();
-                }
-
                 try
                 {
-                    await CopyHelper.SaveAllAsync(connection, entities);
+                    await copyHelper.SaveAllAsync(connection, transactionHeaders);
                 }
                 catch (PostgresException e) when (e.IsPrimaryKeyViolationException())
                 {
-                    var notExisted = await ExcludeExistingInDb(context, entities);
+                    var notExisted = await ExcludeExistingInDb(connection, transactionHeaders);
 
                     if (notExisted.Any())
                     {
-                        await CopyHelper.SaveAllAsync(connection, notExisted);
+                        await copyHelper.SaveAllAsync(connection, notExisted);
                     }
                 }
 
@@ -87,38 +72,34 @@ namespace Indexer.Common.Persistence
 
         public async Task RemoveByBlock(string blockchainId, string blockId)
         {
-            await using var context = _contextFactory.Invoke();
+            await using var connection = await _connectionFactory.Invoke();
 
-            await context.TransactionHeaders
-                .Where(x => x.BlockchainId == blockchainId && x.BlockId == blockId)
-                .DeleteAsync();
+            var schema = BlockchainSchema.Get(blockchainId);
+            var query = $"delete from {schema}.{TableNames.TransactionHeaders} where bBlock_id = @blockId";
+
+            await connection.ExecuteAsync(query, new {blockId});
         }
 
-        private static TransactionHeaderEntity MapToEntity(TransactionHeader transactionHeader)
+        private static async Task<IReadOnlyCollection<TransactionHeader>> ExcludeExistingInDb(
+            NpgsqlConnection connection,
+            IReadOnlyCollection<TransactionHeader> transactionHeaders)
         {
-            return new TransactionHeaderEntity
+            if (!transactionHeaders.Any())
             {
-                GlobalId = transactionHeader.GlobalId,
-                BlockchainId = transactionHeader.BlockchainId,
-                BlockId = transactionHeader.BlockId,
-                Id = transactionHeader.Id,
-                Number = transactionHeader.Number,
-                ErrorMessage = transactionHeader.Error?.Message,
-                ErrorCode = transactionHeader.Error?.Code
-            };
-        }
+                return Array.Empty<TransactionHeader>();
+            }
 
-        private static async Task<IReadOnlyCollection<TransactionHeaderEntity>> ExcludeExistingInDb(
-            DatabaseContext context,
-            IReadOnlyCollection<TransactionHeaderEntity> entities)
-        {
-            var allGlobalIds = entities.Select(t => t.GlobalId);
-            var existingIds = await context.TransactionHeaders
-                .Where(t => allGlobalIds.Contains(t.GlobalId))
-                .Select(t => t.GlobalId)
-                .ToDictionaryAsync(x => x);
+            var schema = BlockchainSchema.Get(transactionHeaders.First().BlockchainId);
+            var ids = transactionHeaders.Select(x => x.Id);
+            var inList = string.Join("', '", ids);
+            var query = $"select id from {schema}.{TableNames.TransactionHeaders} where id in ('{inList}')";
+            var existingEntities = await connection.QueryAsync<TransactionHeaderEntity>(query);
 
-            return entities.Where(entity => !existingIds.ContainsKey(entity.GlobalId)).ToArray();
+            var existingIds = existingEntities
+                .Select(x => x.id)
+                .ToHashSet();
+            
+            return transactionHeaders.Where(x => !existingIds.Contains(x.Id)).ToArray();
         }
     }
 }

@@ -1,8 +1,10 @@
 ﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Indexer.Common.Domain.Indexing;
 using Indexer.Common.Persistence.Entities;
 using Indexer.Common.Persistence.EntityFramework;
+using Z.EntityFramework.Plus;
 
 namespace Indexer.Common.Persistence
 {
@@ -59,6 +61,13 @@ namespace Indexer.Common.Persistence
 
             // Updates Version
             return MapFromEntity(entity);
+        }
+
+        public async Task Remove(string blockchainId)
+        {
+            await using var context = _contextFactory.Invoke();
+
+            await context.SecondPassIndexers.Where(x => x.BlockchainId == blockchainId).DeleteAsync();
         }
 
         private static SecondPassIndexer MapFromEntity(SecondPassIndexerEntity entity)

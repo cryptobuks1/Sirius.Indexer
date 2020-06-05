@@ -28,9 +28,9 @@ namespace Indexer.Common.Persistence.RetryDecorators
             return _retryPolicy.ExecuteAsync(() => _impl.GetOrDefault(blockchainId, blockNumber));
         }
 
-        public Task Remove(string globalId)
+        public Task Remove(string blockchainId, string id)
         {
-            return _retryPolicy.ExecuteAsync(() => _impl.Remove(globalId));
+            return _retryPolicy.ExecuteAsync(() => _impl.Remove(blockchainId, id));
         }
 
         public Task<IEnumerable<BlockHeader>> GetBatch(string blockchainId, long startBlockNumber, int limit)

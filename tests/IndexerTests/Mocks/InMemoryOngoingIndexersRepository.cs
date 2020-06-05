@@ -45,5 +45,15 @@ namespace IndexerTests.Mocks
 
             return Task.CompletedTask;
         }
+
+        public Task Remove(string blockchainId)
+        {
+            lock (_store)
+            {
+                _store.Remove(blockchainId);
+            }
+
+            return Task.CompletedTask;
+        }
     }
 }

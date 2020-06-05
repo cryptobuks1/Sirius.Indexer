@@ -28,7 +28,7 @@ namespace Indexer.Common.Domain.Indexing
             {
                 // TODO: Remove rest of the block stuff
 
-                await _blockHeadersRepository.Remove(previousBlock.GlobalId);
+                await _blockHeadersRepository.Remove(previousBlock.BlockchainId, previousBlock.Id);
 
                 return ChainWalkerMovement.CreateBackward(previousBlock);
             }

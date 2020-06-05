@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Indexer.Common.Configuration;
 using Indexer.Common.Domain.Indexing;
 using Indexer.Common.Domain.Transactions;
+using Indexer.Common.Persistence;
 using Indexer.Common.Telemetry;
 using MassTransit;
 using Microsoft.Extensions.Logging;
@@ -15,6 +16,7 @@ namespace Indexer.Worker.Jobs
     {
         private readonly ILoggerFactory _loggerFactory;
         private readonly AppConfig _appConfig;
+        private readonly IBlockchainSchemaBuilder _blockchainSchemaBuilder;
         private readonly IOngoingIndexersRepository _indexersRepository;
         private readonly ITransactionHeadersRepository _transactionHeadersRepository;
         private readonly IBlockReadersProvider _blockReadersProvider;
@@ -26,6 +28,7 @@ namespace Indexer.Worker.Jobs
 
         public OngoingIndexingJobsManager(ILoggerFactory loggerFactory, 
             AppConfig appConfig,
+            IBlockchainSchemaBuilder blockchainSchemaBuilder,
             IOngoingIndexersRepository indexersRepository,
             ITransactionHeadersRepository transactionHeadersRepository,
             IBlockReadersProvider blockReadersProvider,
@@ -35,6 +38,7 @@ namespace Indexer.Worker.Jobs
         {
             _loggerFactory = loggerFactory;
             _appConfig = appConfig;
+            _blockchainSchemaBuilder = blockchainSchemaBuilder;
             _indexersRepository = indexersRepository;
             _transactionHeadersRepository = transactionHeadersRepository;
             _blockReadersProvider = blockReadersProvider;
@@ -62,6 +66,7 @@ namespace Indexer.Worker.Jobs
                         _loggerFactory,
                         blockchainId,
                         blockchainConfig.DelayOnBlockNotFound,
+                        _blockchainSchemaBuilder,
                         _indexersRepository,
                         _transactionHeadersRepository,
                         blocksReader,

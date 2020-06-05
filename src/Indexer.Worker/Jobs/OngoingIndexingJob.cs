@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Indexer.Common.Domain.Indexing;
 using Indexer.Common.Domain.Transactions;
+using Indexer.Common.Persistence;
 using Indexer.Common.Telemetry;
 using MassTransit;
 using Microsoft.Extensions.Logging;
@@ -16,6 +17,7 @@ namespace Indexer.Worker.Jobs
         private readonly ILoggerFactory _loggerFactory;
         private readonly string _blockchainId;
         private readonly TimeSpan _delayOnBlockNotFound;
+        private readonly IBlockchainSchemaBuilder _blockchainSchemaBuilder;
         private readonly IOngoingIndexersRepository _indexersRepository;
         private readonly ITransactionHeadersRepository _transactionHeadersRepository;
         private readonly IBlocksReader _blocksReader;
@@ -31,6 +33,7 @@ namespace Indexer.Worker.Jobs
             ILoggerFactory loggerFactory,
             string blockchainId,
             TimeSpan delayOnBlockNotFound,
+            IBlockchainSchemaBuilder blockchainSchemaBuilder,
             IOngoingIndexersRepository indexersRepository,
             ITransactionHeadersRepository transactionHeadersRepository,
             IBlocksReader blocksReader,
@@ -42,6 +45,7 @@ namespace Indexer.Worker.Jobs
             _loggerFactory = loggerFactory;
             _blockchainId = blockchainId;
             _delayOnBlockNotFound = delayOnBlockNotFound;
+            _blockchainSchemaBuilder = blockchainSchemaBuilder;
             _indexersRepository = indexersRepository;
             _transactionHeadersRepository = transactionHeadersRepository;
             _blocksReader = blocksReader;
@@ -68,6 +72,15 @@ namespace Indexer.Worker.Jobs
             {
                 BlockchainId = _blockchainId
             });
+
+            if (_indexer.NextBlock == _indexer.StartBlock)
+            {
+                await _blockchainSchemaBuilder.ProceedToOngoingIndexing(_blockchainId);
+            }
+            else
+            {
+                _logger.LogInformation("Blockchain {@blockchainId} DB schema already proceeded to ongoing indexing", _blockchainId);
+            }
 
             _timer.Change(TimeSpan.Zero, Timeout.InfiniteTimeSpan);
         }

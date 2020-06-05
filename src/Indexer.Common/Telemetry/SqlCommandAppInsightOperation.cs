@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Data.Common;
 using System.Diagnostics;
 
 namespace Indexer.Common.Telemetry
@@ -8,14 +7,14 @@ namespace Indexer.Common.Telemetry
     public sealed class SqlCommandAppInsightOperation
     {
         private readonly IAppInsight _appInsight;
-        private readonly DbCommand _command;
+        private readonly string _query;
         private readonly Stopwatch _stopwatch;
         private readonly DateTimeOffset _startTime;
 
-        internal SqlCommandAppInsightOperation(IAppInsight appInsight, DbCommand command)
+        internal SqlCommandAppInsightOperation(IAppInsight appInsight, string query)
         {
             _appInsight = appInsight;
-            _command = command;
+            _query = query;
             _startTime = DateTimeOffset.UtcNow;
             _stopwatch = Stopwatch.StartNew();
         }
@@ -26,8 +25,8 @@ namespace Indexer.Common.Telemetry
 
             _appInsight.TrackDependency(
                 "SQL",
-                _command.CommandText,
-                _command.ToString(),
+                _query,
+                _query,
                 _startTime,
                 _stopwatch.Elapsed);
         }
@@ -38,8 +37,8 @@ namespace Indexer.Common.Telemetry
 
             _appInsight.TrackDependencyFailure(
                 "SQL",
-                _command.CommandText,
-                _command.ToString(),
+                _query,
+                _query,
                 _startTime,
                 _stopwatch.Elapsed,
                 ex.Message,

@@ -23,8 +23,6 @@ namespace Indexer.Common.Persistence.EntityFramework
         public IAppInsight AppInsight { get; }
 
         public DbSet<ObservedOperationEntity> ObservedOperations { get; set; }
-        public DbSet<BlockHeaderEntity> BlockHeaders { get; set; }
-        public DbSet<TransactionHeaderEntity> TransactionHeaders { get; set; }
         public DbSet<FirstPassIndexerEntity> FirstPassHistoryIndexers { get; set; }
         public DbSet<SecondPassIndexerEntity> SecondPassIndexers { get; set; }
         public DbSet<OngoingIndexerEntity> OngoingIndexers { get; set; }
@@ -44,34 +42,11 @@ namespace Indexer.Common.Persistence.EntityFramework
 
             BuildBlockchain(modelBuilder);
             BuildObservedOperation(modelBuilder);
-            BuildBlockHeaders(modelBuilder);
-            BuildTransactionHeaders(modelBuilder);
             BuildFirstPassIndexers(modelBuilder);
             BuildSecondPassIndexers(modelBuilder);
             BuildOngoingIndexers(modelBuilder);
 
             base.OnModelCreating(modelBuilder);
-        }
-
-        private static void BuildTransactionHeaders(ModelBuilder modelBuilder)
-        {
-            modelBuilder.Entity<TransactionHeaderEntity>(entityBuilder =>
-            {
-                entityBuilder.ToTable(TableNames.TransactionHeaders);
-                entityBuilder.HasKey(x => x.GlobalId);
-                
-                entityBuilder.Property(x => x.BlockchainId).IsRequired();
-                entityBuilder.Property(x => x.BlockId).IsRequired();
-                entityBuilder.Property(x => x.Id).IsRequired();
-
-                entityBuilder
-                    .HasIndex(x => new
-                    {
-                        x.BlockchainId,
-                        x.BlockId
-                    })
-                    .HasName("IX_TransactionHeaders_BlockchainId_BlockId");
-            });
         }
 
         private static void BuildOngoingIndexers(ModelBuilder modelBuilder)
@@ -111,7 +86,7 @@ namespace Indexer.Common.Persistence.EntityFramework
                 e.ToTable(TableNames.FirstPassIndexers);
                 e.HasKey(x => x.Id);
 
-                e.HasIndex(x => x.BlockchainId).HasName("IX_FirstPassIndexers_Blockchain");
+                e.HasIndex(x => x.BlockchainId).HasName("IX_FirstPassIndexers_BlockchainId");
 
                 e.Property(x => x.BlockchainId).IsRequired();
                 
@@ -120,26 +95,6 @@ namespace Indexer.Common.Persistence.EntityFramework
                     .HasColumnType("xid")
                     .ValueGeneratedOnAddOrUpdate()
                     .IsConcurrencyToken();
-            });
-        }
-
-        private static void BuildBlockHeaders(ModelBuilder modelBuilder)
-        {
-            modelBuilder.Entity<BlockHeaderEntity>(e =>
-            {
-                e.ToTable(TableNames.BlockHeaders);
-                e.HasKey(x => x.GlobalId);
-
-                e.HasIndex(x => new
-                    {
-                        x.BlockchainId,
-                        x.Number
-                    })
-                    .IsUnique()
-                    .HasName("IX_Blocks_BlockchainId_Number");
-
-                e.Property(x => x.BlockchainId).IsRequired();
-                e.Property(x => x.Id).IsRequired();
             });
         }
 

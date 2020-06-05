@@ -40,9 +40,9 @@ namespace Indexer.Common.Telemetry
         {
         }
 
-        public SqlCommandAppInsightOperation StartSqlCommand(DbCommand command)
+        public SqlCommandAppInsightOperation StartSqlCommand(string query)
         {
-            return new SqlCommandAppInsightOperation(this, command);
+            return new SqlCommandAppInsightOperation(this, query);
         }
 
         public SqlCopyCommandAppInsightOperation StartSqlCopyCommand<TEntity>()

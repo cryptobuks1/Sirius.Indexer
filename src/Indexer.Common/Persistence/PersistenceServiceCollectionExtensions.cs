@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Data;
+using System.Threading.Tasks;
 using Indexer.Common.Domain.Blocks;
 using Indexer.Common.Domain.Indexing;
 using Indexer.Common.Domain.Transactions;
@@ -9,6 +11,7 @@ using Indexer.Common.Telemetry;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Npgsql;
 
 namespace Indexer.Common.Persistence
 {
@@ -21,10 +24,10 @@ namespace Indexer.Common.Persistence
             services.AddTransient<IObservedOperationsRepository, ObservedOperationsRepository>();
             services.AddTransient<IBlockHeadersRepository>(c =>
                 new BlockHeadersRepositoryRetryDecorator(
-                    new BlockHeadersRepository(c.GetRequiredService<Func<DatabaseContext>>())));
+                    new BlockHeadersRepository(c.GetRequiredService<Func<Task<NpgsqlConnection>>>(), c.GetRequiredService<IAppInsight>())));
             services.AddTransient<ITransactionHeadersRepository>(c =>
                 new TransactionHeadersRepositoryRetryDecorator(
-                    new TransactionHeadersRepository(c.GetRequiredService<Func<DatabaseContext>>())));
+                    new TransactionHeadersRepository(c.GetRequiredService<Func<Task<NpgsqlConnection>>>(), c.GetRequiredService<IAppInsight>())));
             services.AddTransient<IFirstPassIndexersRepository>(c => 
                 new FirstPassIndexersRepositoryRetryDecorator(
                     new FirstPassIndexersRepository(c.GetRequiredService<Func<DatabaseContext>>())));
@@ -34,7 +37,9 @@ namespace Indexer.Common.Persistence
             services.AddTransient<IOngoingIndexersRepository>(c =>
                 new OngoingIndexersRepositoryRetryDecorator(
                     new OngoingIndexersRepository(c.GetRequiredService<Func<DatabaseContext>>())));
-            
+
+            services.AddTransient<IBlockchainSchemaBuilder, BlockchainSchemaBuilder>();
+
             services.AddSingleton<Func<DatabaseContext>>(x =>
             {
                 var optionsBuilder = new DbContextOptionsBuilder<DatabaseContext>();
@@ -54,6 +59,23 @@ namespace Indexer.Common.Persistence
                 }
 
                 return CreateDatabaseContext;
+            });
+
+            services.AddSingleton<Func<Task<NpgsqlConnection>>>(x =>
+            {
+                async Task<NpgsqlConnection> CreateConnection()
+                {
+                    var connection = new NpgsqlConnection(connectionString);
+
+                    if (connection.State != ConnectionState.Open)
+                    {
+                        await connection.OpenAsync();
+                    }
+
+                    return connection;
+                }
+
+                return CreateConnection;
             });
 
             // TODO: Consider using services.AddDbContextPooling

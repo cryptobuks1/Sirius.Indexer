@@ -10,5 +10,6 @@ namespace Indexer.Common.Domain.Indexing
         Task Add(FirstPassIndexer indexer);
         Task<FirstPassIndexer> Update(FirstPassIndexer indexer);
         Task<IEnumerable<FirstPassIndexer>> GetByBlockchain(string blockchainId);
+        Task Remove(string blockchainId);
     }
 }

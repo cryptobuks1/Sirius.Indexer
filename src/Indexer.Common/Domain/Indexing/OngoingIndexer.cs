@@ -99,7 +99,7 @@ namespace Indexer.Common.Domain.Indexing
                             ChainSequence = Sequence
                         }));
 
-                    await transactionHeadersRepository.InsertOrIgnore(newBlock.Transfers.Select(x => x.Header));
+                    await transactionHeadersRepository.InsertOrIgnore(newBlock.Transfers.Select(x => x.Header).ToArray());
                     // TODO: Save rest of the data
 
                     NextBlock++;

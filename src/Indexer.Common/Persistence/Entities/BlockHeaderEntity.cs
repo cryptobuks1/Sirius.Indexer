@@ -1,14 +1,14 @@
 ﻿using System;
 
+
 namespace Indexer.Common.Persistence.Entities
 {
     public class BlockHeaderEntity
     {
-        public string GlobalId { get; set; }
-        public string BlockchainId { get; set; }
-        public string Id { get; set; }
-        public long Number { get; set; }
-        public string PreviousId { get; set; }
-        public DateTime MinedAt { get; set; }
+        // ReSharper disable InconsistentNaming
+        public string id { get; set; }
+        public long number { get; set; }
+        public string previous_id { get; set; }
+        public DateTime mined_at { get; set; }
     }
 }

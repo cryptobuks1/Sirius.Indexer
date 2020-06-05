@@ -1,74 +1,62 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Data;
 using System.Linq;
 using System.Threading.Tasks;
+using Dapper;
 using Indexer.Common.Domain.Blocks;
 using Indexer.Common.Persistence.Entities;
 using Indexer.Common.Persistence.EntityFramework;
-using Microsoft.EntityFrameworkCore;
+using Indexer.Common.Telemetry;
 using Npgsql;
-using Z.EntityFramework.Plus;
 
 namespace Indexer.Common.Persistence
 {
     internal class BlockHeadersRepository : IBlockHeadersRepository
     {
-        private readonly Func<DatabaseContext> _contextFactory;
+        private readonly Func<Task<NpgsqlConnection>> _connectionFactory;
+        private readonly IAppInsight _appInsight;
 
-        public BlockHeadersRepository(Func<DatabaseContext> contextFactory)
+        public BlockHeadersRepository(Func<Task<NpgsqlConnection>> connectionFactory, IAppInsight appInsight)
         {
-            _contextFactory = contextFactory;
+            _connectionFactory = connectionFactory;
+            _appInsight = appInsight;
         }
 
         public async Task InsertOrIgnore(BlockHeader blockHeader)
         {
-            await using var context = _contextFactory.Invoke();
-            await using var connection = context.Database.GetDbConnection();
-            
-            await using var command = connection.CreateCommand();
+            await using var connection = await _connectionFactory.Invoke();
 
-            var telemetry = context.AppInsight.StartSqlCommand(command);
-
-            try
-            {
-                if (command.Connection.State != ConnectionState.Open)
-                {
-                    await connection.OpenAsync();
-                }
-
-                command.CommandText = @$"
-                    insert into {DatabaseContext.SchemaName}.{TableNames.BlockHeaders} 
+            var schema = BlockchainSchema.Get(blockHeader.BlockchainId);
+            var query = @$"
+                    insert into {schema}.{TableNames.BlockHeaders} 
                     (
-                        ""GlobalId"",
-                        ""BlockchainId"",
-                        ""Id"",
-                        ""Number"",
-                        ""PreviousId"",
-                        ""MinedAt""
+                        id,
+                        number,
+                        previous_id,
+                        mined_at
                     ) 
                     values 
                     (
-                        @globalId,
-                        @blockchainId,
                         @id,
                         @number,
                         @previousId,
                         @minedAt
                     ) 
-                    on conflict (""GlobalId"") do nothing";
+                    on conflict (id) do nothing";
 
-                command.Parameters.Add(new NpgsqlParameter("@globalId", DbType.String) {Value = blockHeader.GlobalId});
-                command.Parameters.Add(new NpgsqlParameter("@blockchainId", DbType.String) {Value = blockHeader.BlockchainId});
-                command.Parameters.Add(new NpgsqlParameter("@id", DbType.String) {Value = blockHeader.Id});
-                command.Parameters.Add(new NpgsqlParameter("@number", DbType.Int64) {Value = blockHeader.Number});
-                command.Parameters.Add(new NpgsqlParameter("@previousId", DbType.String)
-                {
-                    Value = (object) blockHeader.PreviousId ?? DBNull.Value
-                });
-                command.Parameters.Add(new NpgsqlParameter("@minedAt", DbType.DateTime) {Value = blockHeader.MinedAt});
+            var telemetry = _appInsight.StartSqlCommand(query);
 
-                await command.ExecuteNonQueryAsync();
+            try
+            {
+                await connection.ExecuteAsync(
+                    query,
+                    new
+                    {
+                        id = blockHeader.Id,
+                        number = blockHeader.Number,
+                        previousId = blockHeader.PreviousId,
+                        minedAt = blockHeader.MinedAt
+                    });
 
                 telemetry.Complete();
             }
@@ -82,41 +70,46 @@ namespace Indexer.Common.Persistence
 
         public async Task<BlockHeader> GetOrDefault(string blockchainId, long blockNumber)
         {
-            await using var context = _contextFactory.Invoke();
+            await using var connection = await _connectionFactory.Invoke();
 
-            var entity = context.BlockHeaders.SingleOrDefault(x => x.BlockchainId == blockchainId && x.Number == blockNumber);
+            var schema = BlockchainSchema.Get(blockchainId);
+            var query = $"select * from {schema}.{TableNames.BlockHeaders} where number = @blockNumber";
 
-            return entity != null ? MapFromEntity(entity) : null;
+            var entity = await connection.QuerySingleOrDefaultAsync<BlockHeaderEntity>(query, new {blockNumber});
+
+            return entity != null ? MapFromEntity(blockchainId, entity) : null;
         }
         
-        public async Task Remove(string globalId)
+        public async Task Remove(string blockchainId, string id)
         {
-            await using var context = _contextFactory.Invoke();
+            await using var connection = await _connectionFactory.Invoke();
 
-            await context.BlockHeaders.Where(x => x.GlobalId == globalId).DeleteAsync();
+            var schema = BlockchainSchema.Get(blockchainId);
+            var query = $"delete from {schema}.{TableNames.BlockHeaders} where id = @id";
+
+            await connection.ExecuteAsync(query, new {id});
         }
 
         public async Task<IEnumerable<BlockHeader>> GetBatch(string blockchainId, long startBlockNumber, int limit)
         {
-            await using var context = _contextFactory.Invoke();
+            await using var connection = await _connectionFactory.Invoke();
 
-            var entities = await context.BlockHeaders
-                .Where(x => x.BlockchainId == blockchainId && x.Number >= startBlockNumber)
-                .OrderBy(x => x.Number)
-                .Take(limit)
-                .ToArrayAsync();
+            var schema = BlockchainSchema.Get(blockchainId);
+            var query = $"select * from {schema}.{TableNames.BlockHeaders} where number >= @startBlockNumber order by number limit @limit";
 
-            return entities.Select(MapFromEntity);
+            var entities = await connection.QueryAsync<BlockHeaderEntity>(query, new {startBlockNumber, limit});
+
+            return entities.Select(x => MapFromEntity(blockchainId, x));
         }
 
-        private static BlockHeader MapFromEntity(BlockHeaderEntity entity)
+        private static BlockHeader MapFromEntity(string blockchainId, BlockHeaderEntity entity)
         {
             return new BlockHeader(
-                entity.BlockchainId,
-                entity.Id,
-                entity.Number,
-                entity.PreviousId,
-                new DateTime(entity.MinedAt.Ticks, DateTimeKind.Utc));
+                blockchainId,
+                entity.id,
+                entity.number,
+                entity.previous_id,
+                new DateTime(entity.mined_at.Ticks, DateTimeKind.Utc));
         }
     }
 }

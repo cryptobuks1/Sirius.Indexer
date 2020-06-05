@@ -56,5 +56,20 @@ namespace IndexerTests.Mocks
                 return Task.FromResult<IEnumerable<FirstPassIndexer>>(indexers);
             }
         }
+
+        public Task Remove(string blockchainId)
+        {
+            lock (_store)
+            {
+                var keys = _store.Where(x => x.Key.BlockchainId == blockchainId).Select(x => x.Key).ToArray();
+
+                foreach (var key in keys)
+                {
+                    _store.Remove(key);
+                }
+            }
+
+            return Task.CompletedTask;
+        }
     }
 }

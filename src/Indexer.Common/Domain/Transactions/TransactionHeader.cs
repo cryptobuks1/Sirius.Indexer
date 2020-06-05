@@ -11,7 +11,6 @@ namespace Indexer.Common.Domain.Transactions
             int number,
             TransactionBroadcastingError error)
         {
-            GlobalId = $"{blockchainId}-{id}";
             BlockchainId = blockchainId;
             BlockId = blockId;
             Id = id;
@@ -19,7 +18,6 @@ namespace Indexer.Common.Domain.Transactions
             Error = error;
         }
 
-        public string GlobalId { get; }
         public string BlockchainId { get; }
         public string BlockId { get; }
         public string Id { get; }
@@ -28,7 +26,7 @@ namespace Indexer.Common.Domain.Transactions
 
         public override string ToString()
         {
-            return GlobalId;
+            return $"{BlockchainId}:{Id}";
         }
     }
 }

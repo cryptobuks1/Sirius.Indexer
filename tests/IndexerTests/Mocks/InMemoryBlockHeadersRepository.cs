@@ -7,15 +7,15 @@ namespace IndexerTests.Mocks
 {
     public class InMemoryBlockHeadersRepository : IBlockHeadersRepository
     {
-        private readonly Dictionary<string, BlockHeader> _store = new Dictionary<string, BlockHeader>();
+        private readonly Dictionary<(string blockchainId, string id), BlockHeader> _store = new Dictionary<(string blockchainId, string id), BlockHeader>();
 
         public Task InsertOrIgnore(BlockHeader blockHeader)
         {
             lock (_store)
             {
-                if (!_store.ContainsKey(blockHeader.GlobalId))
+                if (!_store.ContainsKey((blockHeader.BlockchainId, blockHeader.Id)))
                 {
-                    _store[blockHeader.GlobalId] = blockHeader;
+                    _store[(blockHeader.BlockchainId, blockHeader.Id)] = blockHeader;
                 }
             }
 
@@ -32,11 +32,11 @@ namespace IndexerTests.Mocks
             }
         }
 
-        public Task Remove(string globalId)
+        public Task Remove(string blockchainId, string id)
         {
             lock (_store)
             {
-                _store.Remove(globalId);
+                _store.Remove((blockchainId, id));
             }
 
             return Task.CompletedTask;

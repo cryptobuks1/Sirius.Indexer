@@ -26,7 +26,7 @@ namespace Indexer.Common.Telemetry
         void TrackMetric(string name, double value, IReadOnlyDictionary<string, string> properties = null);
         AppInsightOperation StartRequest(string name, IReadOnlyDictionary<string, string> properties = null);
         void StopOperation(AppInsightOperation operation);
-        SqlCommandAppInsightOperation StartSqlCommand(DbCommand command);
+        SqlCommandAppInsightOperation StartSqlCommand(string query);
         SqlCopyCommandAppInsightOperation StartSqlCopyCommand<TEntity>();
         void TrackException(Exception exception);
         

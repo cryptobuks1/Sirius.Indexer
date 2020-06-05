@@ -4,12 +4,11 @@ namespace Indexer.Common.Persistence.Entities
 {
     public class TransactionHeaderEntity
     {
-        public string GlobalId { get; set; }
-        public string BlockchainId { get; set; }
-        public string BlockId { get; set; }
-        public string Id { get; set; }
-        public int Number { get; set; }
-        public string ErrorMessage { get; set; }
-        public TransactionBroadcastingErrorCode? ErrorCode { get; set; }
+        // ReSharper disable InconsistentNaming
+        public string block_id { get; set; }
+        public string id { get; set; }
+        public int number { get; set; }
+        public string error_message { get; set; }
+        public TransactionBroadcastingErrorCode? error_code { get; set; }
     }
 }
