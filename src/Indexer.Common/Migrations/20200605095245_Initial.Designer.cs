@@ -10,8 +10,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Indexer.Common.Migrations
 {
     [DbContext(typeof(DatabaseContext))]
-    [Migration("20200530222149_BlocksRenamedToBlockHeaders")]
-    partial class BlocksRenamedToBlockHeaders
+    [Migration("20200605095245_Initial")]
+    partial class Initial
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -21,41 +21,6 @@ namespace Indexer.Common.Migrations
                 .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn)
                 .HasAnnotation("ProductVersion", "3.1.3")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
-
-            modelBuilder.Entity("Indexer.Common.Persistence.Entities.BlockHeaderEntity", b =>
-                {
-                    b.Property<string>("GlobalId")
-                        .HasColumnType("text");
-
-                    b.Property<string>("BlockchainId")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Id")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("MinedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<long>("Number")
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("PreviousId")
-                        .HasColumnType("text");
-
-                    b.HasKey("GlobalId");
-
-                    b.HasIndex("BlockchainId", "Id")
-                        .IsUnique()
-                        .HasName("IX_BlockHeaders_BlockchainId_Id");
-
-                    b.HasIndex("BlockchainId", "Number")
-                        .IsUnique()
-                        .HasName("IX_Blocks_BlockchainId_Number");
-
-                    b.ToTable("block_headers");
-                });
 
             modelBuilder.Entity("Indexer.Common.Persistence.Entities.FirstPassIndexerEntity", b =>
                 {
@@ -93,7 +58,7 @@ namespace Indexer.Common.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("BlockchainId")
-                        .HasName("IX_FirstPassIndexers_Blockchain");
+                        .HasName("IX_FirstPassIndexers_BlockchainId");
 
                     b.ToTable("first_pass_indexers");
                 });

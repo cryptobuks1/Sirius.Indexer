@@ -20,37 +20,6 @@ namespace Indexer.Common.Migrations
                 .HasAnnotation("ProductVersion", "3.1.3")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
-            modelBuilder.Entity("Indexer.Common.Persistence.Entities.BlockHeaderEntity", b =>
-                {
-                    b.Property<string>("GlobalId")
-                        .HasColumnType("text");
-
-                    b.Property<string>("BlockchainId")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Id")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("MinedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<long>("Number")
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("PreviousId")
-                        .HasColumnType("text");
-
-                    b.HasKey("GlobalId");
-
-                    b.HasIndex("BlockchainId", "Number")
-                        .IsUnique()
-                        .HasName("IX_Blocks_BlockchainId_Number");
-
-                    b.ToTable("block_headers");
-                });
-
             modelBuilder.Entity("Indexer.Common.Persistence.Entities.FirstPassIndexerEntity", b =>
                 {
                     b.Property<string>("Id")
@@ -87,7 +56,7 @@ namespace Indexer.Common.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("BlockchainId")
-                        .HasName("IX_FirstPassIndexers_Blockchain");
+                        .HasName("IX_FirstPassIndexers_BlockchainId");
 
                     b.ToTable("first_pass_indexers");
                 });
@@ -188,40 +157,6 @@ namespace Indexer.Common.Migrations
                     b.HasKey("BlockchainId");
 
                     b.ToTable("second_pass_indexers");
-                });
-
-            modelBuilder.Entity("Indexer.Common.Persistence.Entities.TransactionHeaderEntity", b =>
-                {
-                    b.Property<string>("GlobalId")
-                        .HasColumnType("text");
-
-                    b.Property<string>("BlockId")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("BlockchainId")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int?>("ErrorCode")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("ErrorMessage")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Id")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int>("Number")
-                        .HasColumnType("integer");
-
-                    b.HasKey("GlobalId");
-
-                    b.HasIndex("BlockchainId", "BlockId")
-                        .HasName("IX_TransactionHeaders_BlockchainId_BlockId");
-
-                    b.ToTable("transaction_headers");
                 });
 
             modelBuilder.Entity("Indexer.Common.ReadModel.Blockchains.BlockchainMetamodel", b =>
