@@ -140,13 +140,13 @@ namespace Indexer.Worker.HostedServices
         {
             if (await _blockchainSchemaBuilder.ProvisionForIndexing(blockchainId))
             {
-                _logger.LogInformation("Cleaning {@blockchainId} indexers up since schema was just created...");
+                _logger.LogInformation("Cleaning {@blockchainId} indexers up since schema was just created...", blockchainId);
 
                 await _firstPassIndexersRepository.Remove(blockchainId);
                 await _secondPassIndexersRepository.Remove(blockchainId);
                 await _ongoingIndexersRepository.Remove(blockchainId);
 
-                _logger.LogInformation("{@blockchainId} indexers cleaned up");
+                _logger.LogInformation("{@blockchainId} indexers cleaned up", blockchainId);
             }
         }
 
