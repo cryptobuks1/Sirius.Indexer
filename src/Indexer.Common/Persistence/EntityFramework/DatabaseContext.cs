@@ -1,5 +1,8 @@
 ﻿using System.Collections.Generic;
-using Indexer.Common.Persistence.Entities;
+using Indexer.Common.Persistence.Entities.FirstPassIndexers;
+using Indexer.Common.Persistence.Entities.ObservedOperations;
+using Indexer.Common.Persistence.Entities.OngoingIndexers;
+using Indexer.Common.Persistence.Entities.SecondPassIndexers;
 using Indexer.Common.ReadModel.Blockchains;
 using Indexer.Common.Telemetry;
 using Microsoft.EntityFrameworkCore;

@@ -1,5 +1,5 @@
 ﻿using System.Threading.Tasks;
-using Indexer.Common.Persistence;
+using Indexer.Common.Persistence.Entities.Assets;
 using Indexer.Common.ServiceFunctions;
 using MassTransit;
 using Microsoft.Extensions.Logging;

@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Threading.Tasks;
-using Indexer.Common.Domain.Blocks;
-using Indexer.Common.Domain.Indexing;
+using Indexer.Common.Domain.Indexing.SecondPass;
+using Indexer.Common.Persistence.Entities.BlockHeaders;
+using Indexer.Common.Persistence.Entities.SecondPassIndexers;
 using Indexer.Common.Telemetry;
 using MassTransit;
 using Microsoft.Extensions.Logging;

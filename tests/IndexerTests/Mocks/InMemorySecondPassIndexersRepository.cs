@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
-using Indexer.Common.Domain.Indexing;
+using Indexer.Common.Domain.Indexing.SecondPass;
+using Indexer.Common.Persistence.Entities.SecondPassIndexers;
 
 namespace IndexerTests.Mocks
 {

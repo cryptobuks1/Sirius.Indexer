@@ -3,11 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Indexer.Common.Domain.Blocks;
-using Indexer.Common.Domain.Indexing;
-using Indexer.Common.Domain.Transactions;
+using Indexer.Common.Domain.Indexing.FirstPass;
 using Indexer.Common.Messaging.InMemoryBus;
+using Indexer.Common.Persistence.Entities.BlockHeaders;
+using Indexer.Common.Persistence.Entities.FirstPassIndexers;
+using Indexer.Common.Persistence.Entities.TransactionHeaders;
 using Indexer.Common.Telemetry;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace Indexer.Worker.Jobs

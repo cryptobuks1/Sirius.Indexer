@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Indexer.Common.Domain.Blocks;
-using Indexer.Common.Domain.Indexing;
+using Indexer.Common.Domain.Indexing.Ongoing;
 using IndexerTests.Mocks;
 using Shouldly;
 using Xunit;

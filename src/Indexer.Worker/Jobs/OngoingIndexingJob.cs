@@ -2,9 +2,11 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using Indexer.Common.Domain.Indexing;
-using Indexer.Common.Domain.Transactions;
-using Indexer.Common.Persistence;
+using Indexer.Common.Domain.Blocks;
+using Indexer.Common.Domain.Indexing.Ongoing;
+using Indexer.Common.Persistence.Entities.Blockchains;
+using Indexer.Common.Persistence.Entities.OngoingIndexers;
+using Indexer.Common.Persistence.Entities.TransactionHeaders;
 using Indexer.Common.Telemetry;
 using MassTransit;
 using Microsoft.Extensions.Logging;

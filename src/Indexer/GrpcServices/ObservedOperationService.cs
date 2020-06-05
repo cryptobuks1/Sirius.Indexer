@@ -2,7 +2,7 @@
 using System.Threading.Tasks;
 using Grpc.Core;
 using Indexer.Common.Domain.ObservedOperations;
-using Indexer.Common.Persistence.ObservedOperations;
+using Indexer.Common.Persistence.Entities.ObservedOperations;
 using Swisschain.Extensions.Idempotency;
 using Swisschain.Sirius.Indexer.ApiContract;
 

@@ -1,4 +1,5 @@
-﻿using Indexer.Common.Domain.Indexing;
+﻿using Indexer.Common.Domain.Blocks;
+using Indexer.Common.Domain.Indexing.Ongoing;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Indexer.Common.Domain

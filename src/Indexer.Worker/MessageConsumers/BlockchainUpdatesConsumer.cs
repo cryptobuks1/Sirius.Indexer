@@ -1,5 +1,5 @@
 ﻿using System.Threading.Tasks;
-using Indexer.Common.Persistence;
+using Indexer.Common.Persistence.Entities.Blockchains;
 using Indexer.Common.ReadModel.Blockchains;
 using MassTransit;
 using Microsoft.Extensions.Logging;
