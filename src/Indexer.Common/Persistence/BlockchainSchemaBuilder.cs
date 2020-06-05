@@ -83,7 +83,7 @@ namespace Indexer.Common.Persistence
             {
                 var binPath = Path.GetDirectoryName(entryPointPath);
 
-                return await File.ReadAllTextAsync($@"{binPath}\Persistence\SqlScripts\{fileName}");
+                return await File.ReadAllTextAsync($@"{binPath}/Persistence/SqlScripts/{fileName}");
             }
 
             return await File.ReadAllTextAsync(fileName);
