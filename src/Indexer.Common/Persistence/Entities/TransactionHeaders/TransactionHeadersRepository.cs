@@ -92,8 +92,10 @@ namespace Indexer.Common.Persistence.Entities.TransactionHeaders
             var schema = BlockchainSchema.Get(transactionHeaders.First().BlockchainId);
             var ids = transactionHeaders.Select(x => x.Id);
             var inList = string.Join("', '", ids);
-            var query = $"select id from {schema}.{TableNames.TransactionHeaders} where id in ('{inList}')";
-            var existingEntities = await connection.QueryAsync<TransactionHeaderEntity>(query);
+            
+            // limit is specified to avoid scanning indexes of the partitions once all headers are found
+            var query = $"select id from {schema}.{TableNames.TransactionHeaders} where id in ('{inList}') limit @limit";
+            var existingEntities = await connection.QueryAsync<TransactionHeaderEntity>(query, new {transactionHeaders.Count});
 
             var existingIds = existingEntities
                 .Select(x => x.id)
