@@ -6,6 +6,7 @@ using Indexer.Common.Configuration;
 using Indexer.Common.Domain.Blocks;
 using Indexer.Common.Domain.Indexing.Ongoing;
 using Indexer.Common.Persistence.Entities.Blockchains;
+using Indexer.Common.Persistence.Entities.BlockHeaders;
 using Indexer.Common.Persistence.Entities.OngoingIndexers;
 using Indexer.Common.Persistence.Entities.TransactionHeaders;
 using Indexer.Common.Telemetry;
@@ -20,6 +21,7 @@ namespace Indexer.Worker.Jobs
         private readonly AppConfig _appConfig;
         private readonly IBlockchainSchemaBuilder _blockchainSchemaBuilder;
         private readonly IOngoingIndexersRepository _indexersRepository;
+        private readonly IBlockHeadersRepository _blockHeadersRepository;
         private readonly ITransactionHeadersRepository _transactionHeadersRepository;
         private readonly IBlockReadersProvider _blockReadersProvider;
         private readonly ChainWalker _chainWalker;
@@ -27,11 +29,13 @@ namespace Indexer.Worker.Jobs
         private readonly IAppInsight _appInsight;
         private readonly SemaphoreSlim _lock;
         private readonly ConcurrentDictionary<string, OngoingIndexingJob> _jobs;
+        
 
         public OngoingIndexingJobsManager(ILoggerFactory loggerFactory, 
             AppConfig appConfig,
             IBlockchainSchemaBuilder blockchainSchemaBuilder,
             IOngoingIndexersRepository indexersRepository,
+            IBlockHeadersRepository blockHeadersRepository,
             ITransactionHeadersRepository transactionHeadersRepository,
             IBlockReadersProvider blockReadersProvider,
             ChainWalker chainWalker,
@@ -42,6 +46,7 @@ namespace Indexer.Worker.Jobs
             _appConfig = appConfig;
             _blockchainSchemaBuilder = blockchainSchemaBuilder;
             _indexersRepository = indexersRepository;
+            _blockHeadersRepository = blockHeadersRepository;
             _transactionHeadersRepository = transactionHeadersRepository;
             _blockReadersProvider = blockReadersProvider;
             _chainWalker = chainWalker;
@@ -70,6 +75,7 @@ namespace Indexer.Worker.Jobs
                         blockchainConfig.DelayOnBlockNotFound,
                         _blockchainSchemaBuilder,
                         _indexersRepository,
+                        _blockHeadersRepository,
                         _transactionHeadersRepository,
                         blocksReader,
                         _chainWalker,

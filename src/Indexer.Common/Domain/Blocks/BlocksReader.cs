@@ -60,7 +60,7 @@ namespace Indexer.Common.Domain.Blocks
 
             var transfers = response.Block.Transfers.Select(tx =>
             {
-                var txHeader = new TransactionHeader(
+                var txHeader = TransactionHeader.Create(
                     blockHeader.BlockchainId,
                     blockHeader.Id,
                     tx.Header.Id,

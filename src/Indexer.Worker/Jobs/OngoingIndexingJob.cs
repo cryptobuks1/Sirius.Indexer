@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Indexer.Common.Domain.Blocks;
 using Indexer.Common.Domain.Indexing.Ongoing;
 using Indexer.Common.Persistence.Entities.Blockchains;
+using Indexer.Common.Persistence.Entities.BlockHeaders;
 using Indexer.Common.Persistence.Entities.OngoingIndexers;
 using Indexer.Common.Persistence.Entities.TransactionHeaders;
 using Indexer.Common.Telemetry;
@@ -21,6 +22,7 @@ namespace Indexer.Worker.Jobs
         private readonly TimeSpan _delayOnBlockNotFound;
         private readonly IBlockchainSchemaBuilder _blockchainSchemaBuilder;
         private readonly IOngoingIndexersRepository _indexersRepository;
+        private readonly IBlockHeadersRepository _blockHeadersRepository;
         private readonly ITransactionHeadersRepository _transactionHeadersRepository;
         private readonly IBlocksReader _blocksReader;
         private readonly ChainWalker _chainWalker;
@@ -30,13 +32,14 @@ namespace Indexer.Worker.Jobs
         private readonly ManualResetEventSlim _done;
         private readonly CancellationTokenSource _cts;
         private OngoingIndexer _indexer;
-
+        
         public OngoingIndexingJob(ILogger<OngoingIndexingJob> logger,
             ILoggerFactory loggerFactory,
             string blockchainId,
             TimeSpan delayOnBlockNotFound,
             IBlockchainSchemaBuilder blockchainSchemaBuilder,
             IOngoingIndexersRepository indexersRepository,
+            IBlockHeadersRepository blockHeadersRepository,
             ITransactionHeadersRepository transactionHeadersRepository,
             IBlocksReader blocksReader,
             ChainWalker chainWalker,
@@ -49,6 +52,7 @@ namespace Indexer.Worker.Jobs
             _delayOnBlockNotFound = delayOnBlockNotFound;
             _blockchainSchemaBuilder = blockchainSchemaBuilder;
             _indexersRepository = indexersRepository;
+            _blockHeadersRepository = blockHeadersRepository;
             _transactionHeadersRepository = transactionHeadersRepository;
             _blocksReader = blocksReader;
             _chainWalker = chainWalker;
@@ -171,6 +175,7 @@ namespace Indexer.Worker.Jobs
                             _loggerFactory.CreateLogger<OngoingIndexer>(),
                             _blocksReader,
                             _chainWalker,
+                            _blockHeadersRepository,
                             _transactionHeadersRepository,
                             _publisher);
 

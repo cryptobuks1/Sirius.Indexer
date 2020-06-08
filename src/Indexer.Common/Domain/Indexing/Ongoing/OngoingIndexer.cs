@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Threading.Tasks;
 using Indexer.Common.Domain.Blocks;
+using Indexer.Common.Persistence.Entities.BlockHeaders;
 using Indexer.Common.Persistence.Entities.TransactionHeaders;
 using MassTransit;
 using Microsoft.Extensions.Logging;
@@ -71,6 +72,7 @@ namespace Indexer.Common.Domain.Indexing.Ongoing
         public async Task<IOngoingIndexingResult> IndexNextBlock(ILogger<OngoingIndexer> logger,
             IBlocksReader reader,
             ChainWalker chainWalker,
+            IBlockHeadersRepository blockHeadersRepository,
             ITransactionHeadersRepository transactionHeadersRepository,
             IPublishEndpoint publisher)
         {
@@ -100,6 +102,7 @@ namespace Indexer.Common.Domain.Indexing.Ongoing
                             ChainSequence = Sequence
                         }));
 
+                    await blockHeadersRepository.InsertOrIgnore(newBlock.Header);
                     await transactionHeadersRepository.InsertOrIgnore(newBlock.Transfers.Select(x => x.Header).ToArray());
                     // TODO: Save rest of the data
 
@@ -126,14 +129,14 @@ namespace Indexer.Common.Domain.Indexing.Ongoing
                             ChainSequence = Sequence
                         }));
 
+                    await blockHeadersRepository.Remove(chainWalkerMovement.EvictedBlockHeader.BlockchainId, chainWalkerMovement.EvictedBlockHeader.Id);
                     await transactionHeadersRepository.RemoveByBlock(BlockchainId, chainWalkerMovement.EvictedBlockHeader.Id);
-
                     // TODO: Remove rest of the data
 
                     NextBlock--;
                     Sequence++;
 
-                    logger.LogInformation("Ongoing indexer has reverted the block {@context}", new
+                    logger.LogWarning("Ongoing indexer has reverted the block {@context}", new
                     {
                         BlockchainId = BlockchainId,
                         BlockNumber = chainWalkerMovement.EvictedBlockHeader.Number,

@@ -2,15 +2,18 @@
 using System.Threading.Tasks;
 using Indexer.Common.Domain.Blocks;
 using Indexer.Common.Persistence.Entities.BlockHeaders;
+using Microsoft.Extensions.Logging;
 
 namespace Indexer.Common.Domain.Indexing.Ongoing
 {
     public sealed class ChainWalker
     {
+        private readonly ILogger<ChainWalker> _logger;
         private readonly IBlockHeadersRepository _blockHeadersRepository;
 
-        public ChainWalker(IBlockHeadersRepository blockHeadersRepository)
+        public ChainWalker(ILogger<ChainWalker> logger, IBlockHeadersRepository blockHeadersRepository)
         {
+            _logger = logger;
             _blockHeadersRepository = blockHeadersRepository;
         }
 
@@ -22,19 +25,19 @@ namespace Indexer.Common.Domain.Indexing.Ongoing
 
             if (previousBlock == null)
             {
+                _logger.LogError("An out-of-order block has been detected {@context}", new
+                {
+                    BlockchainId = blockHeader.BlockchainId,
+                    BlockNumber = blockHeader.Number
+                });
+
                 throw new NotSupportedException("An out-of-order block has been detected");
             }
 
             if (previousBlock.Id != blockHeader.PreviousId)
             {
-                // TODO: Remove rest of the block stuff
-
-                await _blockHeadersRepository.Remove(previousBlock.BlockchainId, previousBlock.Id);
-
                 return ChainWalkerMovement.CreateBackward(previousBlock);
             }
-
-            await _blockHeadersRepository.InsertOrIgnore(blockHeader);
 
             return ChainWalkerMovement.CreateForward();
         }
