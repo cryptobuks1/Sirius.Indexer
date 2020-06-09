@@ -95,7 +95,7 @@ namespace Indexer.Common.Persistence.Entities.TransactionHeaders
             
             // limit is specified to avoid scanning indexes of the partitions once all headers are found
             var query = $"select id from {schema}.{TableNames.TransactionHeaders} where id in ('{inList}') limit @limit";
-            var existingEntities = await connection.QueryAsync<TransactionHeaderEntity>(query, new {transactionHeaders.Count});
+            var existingEntities = await connection.QueryAsync<TransactionHeaderEntity>(query, new {limit = transactionHeaders.Count});
 
             var existingIds = existingEntities
                 .Select(x => x.id)
