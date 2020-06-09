@@ -14,10 +14,12 @@ namespace Indexer.Common.Persistence
         public static bool IsPrimaryKeyViolationException(this PostgresException e)
         {
             const string constraintViolationErrorCode = "23505";
-            const string primaryKeyNamePrefix = "PK_";
+            const string primaryKeyNamePrefix = "pk_";
+            const string primaryKeyNameSuffix = "_pkey";
 
-            return string.Equals(e.SqlState, constraintViolationErrorCode, StringComparison.InvariantCultureIgnoreCase)
-                   && e.ConstraintName.StartsWith(primaryKeyNamePrefix, StringComparison.InvariantCultureIgnoreCase);
+            return string.Equals(e.SqlState, constraintViolationErrorCode, StringComparison.InvariantCultureIgnoreCase) &&
+                   (e.ConstraintName.StartsWith(primaryKeyNamePrefix, StringComparison.InvariantCultureIgnoreCase) ||
+                    e.ConstraintName.EndsWith(primaryKeyNameSuffix, StringComparison.InvariantCultureIgnoreCase));
         }
     }
 }
