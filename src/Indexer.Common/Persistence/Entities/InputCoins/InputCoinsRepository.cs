@@ -62,7 +62,7 @@ namespace Indexer.Common.Persistence.Entities.InputCoins
             var inList = string.Join(", ", coins.Select(x => $"('{x.TransactionId}', {x.Number})"));
             
             // limit is specified to avoid scanning indexes of the partitions once all headers are found
-            var query = $"select id from {schema}.{TableNames.InputCoins} where (transaction_id, number) in ('{inList}') limit @limit";
+            var query = $"select transaction_id, number from {schema}.{TableNames.InputCoins} where (transaction_id, number) in ({inList}) limit @limit";
             var existingEntities = await connection.QueryAsync<InputCoinEntity>(query, new {limit = coins.Count});
 
             var existing = existingEntities
