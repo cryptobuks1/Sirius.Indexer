@@ -3,9 +3,12 @@ using System.Linq;
 using System.Threading.Tasks;
 using Indexer.Common.Configuration;
 using Indexer.Common.Domain.Blocks;
+using Indexer.Common.Domain.Transactions.Transfers;
 using Indexer.Common.Messaging.InMemoryBus;
 using Indexer.Common.Persistence.Entities.BlockHeaders;
+using Indexer.Common.Persistence.Entities.InputCoins;
 using Indexer.Common.Persistence.Entities.TransactionHeaders;
+using Indexer.Common.Persistence.Entities.UnspentCoins;
 using Microsoft.Extensions.Logging;
 
 namespace Indexer.Common.Domain.Indexing.FirstPass
@@ -75,8 +78,11 @@ namespace Indexer.Common.Domain.Indexing.FirstPass
 
         public async Task<FirstPassIndexingResult> IndexNextBlock(ILogger<FirstPassIndexer> logger,
             IBlocksReader blocksReader,
+            UnspentCoinsFactory unspentCoinsFactory,
             IBlockHeadersRepository blockHeadersRepository,
             ITransactionHeadersRepository transactionHeadersRepository,
+            IInputCoinsRepository inputCoinsRepository,
+            IUnspentCoinsRepository unspentCoinsRepository,
             IInMemoryBus inMemoryBus)
         {
             if (IsCompleted)
@@ -100,9 +106,12 @@ namespace Indexer.Common.Domain.Indexing.FirstPass
 
             await blockHeadersRepository.InsertOrIgnore(block.Header);
             await transactionHeadersRepository.InsertOrIgnore(block.Transfers.Select(x => x.Header).ToArray());
+            await inputCoinsRepository.InsertOrIgnore(BlockchainId, block.Header.Id, block.Transfers.SelectMany(x => x.InputCoins).ToArray());
 
-            // TODO: Add rest of the data
-            
+            var unspentCoins = await unspentCoinsFactory.Create(block.Transfers);
+
+            await unspentCoinsRepository.InsertOrIgnore(BlockchainId, block.Header.Id, unspentCoins);
+
             NextBlock += StepSize;
             UpdatedAt = DateTime.UtcNow;
 

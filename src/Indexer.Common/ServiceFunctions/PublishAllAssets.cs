@@ -2,5 +2,6 @@
 {
     public class PublishAllAssets
     {
+        public string BlockchainId { get; set; }
     }
 }

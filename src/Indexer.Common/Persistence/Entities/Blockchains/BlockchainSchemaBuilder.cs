@@ -46,7 +46,7 @@ namespace Indexer.Common.Persistence.Entities.Blockchains
 
             var query = await LoadScript("before-ongoing-indexing.sql");
 
-            query = query.Replace("@schemaName", BlockchainSchema.Get(blockchainId));
+            query = query.Replace("@schemaName", DbSchema.GetName(blockchainId));
 
             await connection.ExecuteAsync(query);
 
@@ -59,7 +59,7 @@ namespace Indexer.Common.Persistence.Entities.Blockchains
             
             var query = await LoadScript("before-indexing.sql");
 
-            query = query.Replace("@schemaName", BlockchainSchema.Get(blockchainId));
+            query = query.Replace("@schemaName", DbSchema.GetName(blockchainId));
 
             await connection.ExecuteAsync(query);
 
@@ -70,7 +70,7 @@ namespace Indexer.Common.Persistence.Entities.Blockchains
         {
             var query = "select exists (select * from pg_catalog.pg_namespace where nspname = @schemaName)";
 
-            var isExists = await connection.ExecuteScalarAsync<bool>(query, new {schemaName = BlockchainSchema.Get(blockchainId)});
+            var isExists = await connection.ExecuteScalarAsync<bool>(query, new {schemaName = DbSchema.GetName(blockchainId)});
 
             return isExists;
         }

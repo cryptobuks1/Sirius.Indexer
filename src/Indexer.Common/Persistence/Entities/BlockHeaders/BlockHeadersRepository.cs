@@ -26,7 +26,7 @@ namespace Indexer.Common.Persistence.Entities.BlockHeaders
         {
             await using var connection = await _connectionFactory.Invoke();
 
-            var schema = BlockchainSchema.Get(blockHeader.BlockchainId);
+            var schema = DbSchema.GetName(blockHeader.BlockchainId);
             var query = @$"
                     insert into {schema}.{TableNames.BlockHeaders} 
                     (
@@ -72,7 +72,7 @@ namespace Indexer.Common.Persistence.Entities.BlockHeaders
         {
             await using var connection = await _connectionFactory.Invoke();
 
-            var schema = BlockchainSchema.Get(blockchainId);
+            var schema = DbSchema.GetName(blockchainId);
             var query = $"select * from {schema}.{TableNames.BlockHeaders} where number = @blockNumber";
 
             var entity = await connection.QuerySingleOrDefaultAsync<BlockHeaderEntity>(query, new {blockNumber});
@@ -84,7 +84,7 @@ namespace Indexer.Common.Persistence.Entities.BlockHeaders
         {
             await using var connection = await _connectionFactory.Invoke();
 
-            var schema = BlockchainSchema.Get(blockchainId);
+            var schema = DbSchema.GetName(blockchainId);
             var query = $"delete from {schema}.{TableNames.BlockHeaders} where id = @id";
 
             await connection.ExecuteAsync(query, new {id});
@@ -94,7 +94,7 @@ namespace Indexer.Common.Persistence.Entities.BlockHeaders
         {
             await using var connection = await _connectionFactory.Invoke();
 
-            var schema = BlockchainSchema.Get(blockchainId);
+            var schema = DbSchema.GetName(blockchainId);
             var query = $"select * from {schema}.{TableNames.BlockHeaders} where number >= @startBlockNumber order by number limit @limit";
 
             var entities = await connection.QueryAsync<BlockHeaderEntity>(query, new {startBlockNumber, limit});

@@ -5,10 +5,12 @@ using Indexer.Common.Persistence.Entities.Assets;
 using Indexer.Common.Persistence.Entities.Blockchains;
 using Indexer.Common.Persistence.Entities.BlockHeaders;
 using Indexer.Common.Persistence.Entities.FirstPassIndexers;
+using Indexer.Common.Persistence.Entities.InputCoins;
 using Indexer.Common.Persistence.Entities.ObservedOperations;
 using Indexer.Common.Persistence.Entities.OngoingIndexers;
 using Indexer.Common.Persistence.Entities.SecondPassIndexers;
 using Indexer.Common.Persistence.Entities.TransactionHeaders;
+using Indexer.Common.Persistence.Entities.UnspentCoins;
 using Indexer.Common.Persistence.EntityFramework;
 using Indexer.Common.Telemetry;
 using Microsoft.EntityFrameworkCore;
@@ -22,15 +24,24 @@ namespace Indexer.Common.Persistence
     {
         public static IServiceCollection AddPersistence(this IServiceCollection services, string connectionString)
         {
-            services.AddTransient<IAssetsRepository, AssetsRepository>();
             services.AddTransient<IBlockchainsRepository, BlockchainsRepository>();
             services.AddTransient<IObservedOperationsRepository, ObservedOperationsRepository>();
+            services.AddTransient<IAssetsRepository>(c => 
+                new AssetsRepositoryCacheDecorator(
+                    new AssetsRepositoryRetryDecorator(
+                        new AssetsRepository(c.GetRequiredService<Func<Task<NpgsqlConnection>>>()))));
             services.AddTransient<IBlockHeadersRepository>(c =>
                 new BlockHeadersRepositoryRetryDecorator(
                     new BlockHeadersRepository(c.GetRequiredService<Func<Task<NpgsqlConnection>>>(), c.GetRequiredService<IAppInsight>())));
             services.AddTransient<ITransactionHeadersRepository>(c =>
                 new TransactionHeadersRepositoryRetryDecorator(
                     new TransactionHeadersRepository(c.GetRequiredService<Func<Task<NpgsqlConnection>>>(), c.GetRequiredService<IAppInsight>())));
+            services.AddTransient<IInputCoinsRepository>(c =>
+                new InputCoinsRepositoryRetryDecorator(
+                    new InputCoinsRepository(c.GetRequiredService<Func<Task<NpgsqlConnection>>>())));
+            services.AddTransient<IUnspentCoinsRepository>(c =>
+                new UnspentCoinsRepositoryRetryDecorator(
+                    new UnspentCoinsRepository(c.GetRequiredService<Func<Task<NpgsqlConnection>>>())));
             services.AddTransient<IFirstPassIndexersRepository>(c => 
                 new FirstPassIndexersRepositoryRetryDecorator(
                     new FirstPassIndexersRepository(c.GetRequiredService<Func<DatabaseContext>>())));
@@ -42,6 +53,7 @@ namespace Indexer.Common.Persistence
                     new OngoingIndexersRepository(c.GetRequiredService<Func<DatabaseContext>>())));
 
             services.AddTransient<IBlockchainSchemaBuilder, BlockchainSchemaBuilder>();
+            services.AddTransient<IDbVersionValidator, DbVersionValidator>();
 
             services.AddSingleton<Func<DatabaseContext>>(x =>
             {
@@ -60,7 +72,7 @@ namespace Indexer.Common.Persistence
                 {
                     return new DatabaseContext(optionsBuilder.Options, x.GetRequiredService<IAppInsight>());
                 }
-
+                
                 return CreateDatabaseContext;
             });
 

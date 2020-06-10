@@ -1,10 +1,8 @@
-﻿
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using Swisschain.Sirius.Indexer.MessagingContract;
 using Swisschain.Sirius.Sdk.Primitives;
-using TransactionError = Swisschain.Sirius.Indexer.MessagingContract.TransactionError;
 
 namespace Indexer.Common.Domain.ObservedOperations
 {
@@ -140,7 +138,7 @@ namespace Indexer.Common.Domain.ObservedOperations
 
             IsCompleted = true;
 
-            var detectedTransaction = new TransactionDetected()
+            var detectedTransaction = new TransactionDetected
             {
                 BlockchainId = this.BlockchainId,
                 BlockId = "some block",

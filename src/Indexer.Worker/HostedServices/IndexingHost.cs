@@ -8,13 +8,16 @@ using Indexer.Common.Domain.Blocks;
 using Indexer.Common.Domain.Indexing.FirstPass;
 using Indexer.Common.Domain.Indexing.Ongoing;
 using Indexer.Common.Domain.Indexing.SecondPass;
+using Indexer.Common.Domain.Transactions.Transfers;
 using Indexer.Common.Messaging.InMemoryBus;
 using Indexer.Common.Persistence.Entities.Blockchains;
 using Indexer.Common.Persistence.Entities.BlockHeaders;
 using Indexer.Common.Persistence.Entities.FirstPassIndexers;
+using Indexer.Common.Persistence.Entities.InputCoins;
 using Indexer.Common.Persistence.Entities.OngoingIndexers;
 using Indexer.Common.Persistence.Entities.SecondPassIndexers;
 using Indexer.Common.Persistence.Entities.TransactionHeaders;
+using Indexer.Common.Persistence.Entities.UnspentCoins;
 using Indexer.Common.ReadModel.Blockchains;
 using Indexer.Common.Telemetry;
 using Indexer.Worker.Jobs;
@@ -35,10 +38,13 @@ namespace Indexer.Worker.HostedServices
         private readonly IOngoingIndexersRepository _ongoingIndexersRepository;
         private readonly IBlockHeadersRepository _blockHeadersRepository;
         private readonly ITransactionHeadersRepository _transactionHeadersRepository;
+        private readonly IInputCoinsRepository _inputCoinsRepository;
+        private readonly IUnspentCoinsRepository _unspentCoinsRepository;
         private readonly IInMemoryBus _inMemoryBus;
         private readonly SecondPassIndexingJobsManager _secondPassIndexingJobsManager;
         private readonly OngoingIndexingJobsManager _ongoingIndexingJobsManager;
         private readonly IBlockReadersProvider _blockReadersProvider;
+        private readonly UnspentCoinsFactory _unspentCoinsFactory;
         private readonly IAppInsight _appInsight;
         private readonly List<FirstPassIndexingJob> _firstPassIndexingJobs;
 
@@ -52,10 +58,13 @@ namespace Indexer.Worker.HostedServices
             IOngoingIndexersRepository ongoingIndexersRepository,
             IBlockHeadersRepository blockHeadersRepository,
             ITransactionHeadersRepository transactionHeadersRepository,
+            IInputCoinsRepository inputCoinsRepository,
+            IUnspentCoinsRepository unspentCoinsRepository,
             IInMemoryBus inMemoryBus,
             SecondPassIndexingJobsManager secondPassIndexingJobsManager,
             OngoingIndexingJobsManager ongoingIndexingJobsManager,
             IBlockReadersProvider blockReadersProvider,
+            UnspentCoinsFactory unspentCoinsFactory,
             IAppInsight appInsight)
         {
             _logger = logger;
@@ -68,10 +77,13 @@ namespace Indexer.Worker.HostedServices
             _ongoingIndexersRepository = ongoingIndexersRepository;
             _blockHeadersRepository = blockHeadersRepository;
             _transactionHeadersRepository = transactionHeadersRepository;
+            _inputCoinsRepository = inputCoinsRepository;
+            _unspentCoinsRepository = unspentCoinsRepository ?? throw new ArgumentNullException(nameof(unspentCoinsRepository));
             _inMemoryBus = inMemoryBus;
             _secondPassIndexingJobsManager = secondPassIndexingJobsManager;
             _ongoingIndexingJobsManager = ongoingIndexingJobsManager;
             _blockReadersProvider = blockReadersProvider;
+            _unspentCoinsFactory = unspentCoinsFactory;
             _appInsight = appInsight;
 
             _firstPassIndexingJobs = new List<FirstPassIndexingJob>();
@@ -106,7 +118,7 @@ namespace Indexer.Worker.HostedServices
             _logger.LogInformation("Indexing has been started.");
         }
 
-        public Task StopAsync(CancellationToken cancellationToken)
+        public async Task StopAsync(CancellationToken cancellationToken)
         {
             _logger.LogInformation("Indexing is being stopped...");
 
@@ -120,15 +132,13 @@ namespace Indexer.Worker.HostedServices
 
             foreach (var job in _firstPassIndexingJobs)
             {
-                job.Wait();
+                await job.Wait();
             }
 
-            _secondPassIndexingJobsManager.Wait();
+            await _secondPassIndexingJobsManager.Wait();
             _ongoingIndexingJobsManager.Wait();
 
             _logger.LogInformation("Indexing has been stopped.");
-
-            return Task.CompletedTask;
         }
 
         public void Dispose()
@@ -309,8 +319,11 @@ namespace Indexer.Worker.HostedServices
                         indexer.StopBlock,
                         _firstPassIndexersRepository,
                         blocksReader,
+                        _unspentCoinsFactory,
                         _blockHeadersRepository,
                         _transactionHeadersRepository,
+                        _inputCoinsRepository, 
+                        _unspentCoinsRepository, 
                         _inMemoryBus,
                         _secondPassIndexingJobsManager,
                         _appInsight);

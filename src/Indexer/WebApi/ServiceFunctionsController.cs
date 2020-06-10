@@ -18,10 +18,18 @@ namespace Indexer.WebApi
         }
 
         [HttpPost("publish-all-assets")]
-        public async Task<ActionResult> PublishAllAssets()
+        public async Task<ActionResult> PublishAllAssets(PublishAllAssetsRequest request)
         {
-            await _commandsSender.Send(new PublishAllAssets());
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
 
+            await _commandsSender.Send(new PublishAllAssets
+            {
+                BlockchainId = request.BlockchainId
+            });
+            
             return Ok();
         }
 

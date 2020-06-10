@@ -7,6 +7,7 @@ using Indexer.Common.Persistence.Entities.TransactionHeaders;
 using MassTransit;
 using Microsoft.Extensions.Logging;
 using Swisschain.Sirius.Indexer.MessagingContract;
+using Swisschain.Sirius.Sdk.Primitives;
 
 namespace Indexer.Common.Domain.Indexing.Ongoing
 {
@@ -101,6 +102,21 @@ namespace Indexer.Common.Domain.Indexing.Ongoing
                             PreviousBlockId = newBlock.Header.PreviousId,
                             ChainSequence = Sequence
                         }));
+
+                    foreach (var transfer in newBlock.Transfers)
+                    {
+                        indexingResult.AddBackgroundTask(
+                            publisher.Publish(new TransactionDetected
+                            {
+                                BlockchainId = BlockchainId,
+                                BlockId = newBlock.Header.Id,
+                                BlockNumber = newBlock.Header.Number,
+                                TransactionId = transfer.Header.Id,
+                                TransactionNumber = transfer.Header.Number,
+                                Error = transfer.Header.Error
+                                // TODO: Rest of data
+                            }));
+                    }
 
                     await blockHeadersRepository.InsertOrIgnore(newBlock.Header);
                     await transactionHeadersRepository.InsertOrIgnore(newBlock.Transfers.Select(x => x.Header).ToArray());

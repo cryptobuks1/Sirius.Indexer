@@ -4,8 +4,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Dapper;
 using Indexer.Common.Domain.Transactions;
-using Indexer.Common.Persistence.Entities.Blockchains;
-using Indexer.Common.Persistence.EntityFramework;
 using Indexer.Common.Telemetry;
 using Npgsql;
 using NpgsqlTypes;
@@ -35,7 +33,7 @@ namespace Indexer.Common.Persistence.Entities.TransactionHeaders
             await using var connection = await _connectionFactory.Invoke();
             
             var telemetry = _appInsight.StartSqlCopyCommand<TransactionHeader>();
-            var schema = BlockchainSchema.Get(transactionHeaders.First().BlockchainId);
+            var schema = DbSchema.GetName(transactionHeaders.First().BlockchainId);
             var copyHelper = new PostgreSQLCopyHelper<TransactionHeader>(schema, TableNames.TransactionHeaders)
                 .UsePostgresQuoting()
                 .MapVarchar(nameof(TransactionHeaderEntity.block_id), p => p.BlockId)
@@ -74,7 +72,7 @@ namespace Indexer.Common.Persistence.Entities.TransactionHeaders
         {
             await using var connection = await _connectionFactory.Invoke();
 
-            var schema = BlockchainSchema.Get(blockchainId);
+            var schema = DbSchema.GetName(blockchainId);
             var query = $"delete from {schema}.{TableNames.TransactionHeaders} where bBlock_id = @blockId";
 
             await connection.ExecuteAsync(query, new {blockId});
@@ -89,7 +87,7 @@ namespace Indexer.Common.Persistence.Entities.TransactionHeaders
                 return Array.Empty<TransactionHeader>();
             }
 
-            var schema = BlockchainSchema.Get(transactionHeaders.First().BlockchainId);
+            var schema = DbSchema.GetName(transactionHeaders.First().BlockchainId);
             var ids = transactionHeaders.Select(x => x.Id);
             var inList = string.Join("', '", ids);
             

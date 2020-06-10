@@ -4,10 +4,13 @@ using System.Linq;
 using System.Threading.Tasks;
 using Indexer.Common.Domain.Blocks;
 using Indexer.Common.Domain.Indexing.FirstPass;
+using Indexer.Common.Domain.Transactions.Transfers;
 using Indexer.Common.Messaging.InMemoryBus;
 using Indexer.Common.Persistence.Entities.BlockHeaders;
 using Indexer.Common.Persistence.Entities.FirstPassIndexers;
+using Indexer.Common.Persistence.Entities.InputCoins;
 using Indexer.Common.Persistence.Entities.TransactionHeaders;
+using Indexer.Common.Persistence.Entities.UnspentCoins;
 using Indexer.Common.Telemetry;
 using Microsoft.Extensions.Logging;
 
@@ -21,8 +24,11 @@ namespace Indexer.Worker.Jobs
         private readonly long _stopBlock;
         private readonly IFirstPassIndexersRepository _indexersRepository;
         private readonly IBlocksReader _blocksReader;
+        private readonly UnspentCoinsFactory _unspentCoinsFactory;
         private readonly IBlockHeadersRepository _blockHeadersRepository;
         private readonly ITransactionHeadersRepository _transactionHeadersRepository;
+        private readonly IInputCoinsRepository _inputCoinsRepository;
+        private readonly IUnspentCoinsRepository _unspentCoinsRepository;
         private readonly IInMemoryBus _inMemoryBus;
         private readonly SecondPassIndexingJobsManager _secondPassIndexingJobsManager;
         private readonly IAppInsight _appInsight;
@@ -35,8 +41,11 @@ namespace Indexer.Worker.Jobs
             long stopBlock,
             IFirstPassIndexersRepository indexersRepository,
             IBlocksReader blocksReader,
+            UnspentCoinsFactory unspentCoinsFactory,
             IBlockHeadersRepository blockHeadersRepository,
             ITransactionHeadersRepository transactionHeadersRepository,
+            IInputCoinsRepository inputCoinsRepository,
+            IUnspentCoinsRepository unspentCoinsRepository,
             IInMemoryBus inMemoryBus,
             SecondPassIndexingJobsManager secondPassIndexingJobsManager,
             IAppInsight appInsight)
@@ -47,8 +56,11 @@ namespace Indexer.Worker.Jobs
             _stopBlock = stopBlock;
             _indexersRepository = indexersRepository;
             _blocksReader = blocksReader;
+            _unspentCoinsFactory = unspentCoinsFactory;
             _blockHeadersRepository = blockHeadersRepository;
             _transactionHeadersRepository = transactionHeadersRepository;
+            _inputCoinsRepository = inputCoinsRepository;
+            _unspentCoinsRepository = unspentCoinsRepository;
             _inMemoryBus = inMemoryBus;
             _secondPassIndexingJobsManager = secondPassIndexingJobsManager;
             _appInsight = appInsight;
@@ -149,8 +161,11 @@ namespace Indexer.Worker.Jobs
                 var result = await _indexer.IndexNextBlock(
                     _loggerFactory.CreateLogger<FirstPassIndexer>(),
                     _blocksReader,
+                    _unspentCoinsFactory,
                     _blockHeadersRepository,
                     _transactionHeadersRepository,
+                    _inputCoinsRepository, 
+                    _unspentCoinsRepository,
                     _inMemoryBus);
 
                 telemetry.ResponseCode = result.ToString();

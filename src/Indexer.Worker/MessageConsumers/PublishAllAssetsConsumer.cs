@@ -25,13 +25,13 @@ namespace Indexer.Worker.MessageConsumers
 
             _logger.LogInformation("All assets being published {@context}", command);
 
-            var assets = await _assetsRepository.GetAllAsync();
+            var assets = await _assetsRepository.GetAllAsync(command.BlockchainId);
 
             foreach (var asset in assets)
             {
                 await context.Publish(new AssetAdded
                 {
-                    AssetId = asset.AssetId,
+                    AssetId = asset.Id,
                     BlockchainId = asset.BlockchainId,
                     Symbol = asset.Symbol,
                     Address = asset.Address,

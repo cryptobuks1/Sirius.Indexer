@@ -83,11 +83,11 @@ namespace Indexer.Worker.Jobs
             }
         }
 
-        public void Wait()
+        public async Task Wait()
         {
             foreach (var job in _jobs.Values)
             {
-                job.Wait();
+                await job.Wait();
             }
         }
         

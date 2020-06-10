@@ -68,7 +68,7 @@ namespace Indexer.Worker.Jobs
         public void Dispose()
         {
             _cts.Dispose();
-            _task.Dispose();
+            _task?.Dispose();
         }
 
         private async Task DoWork()
