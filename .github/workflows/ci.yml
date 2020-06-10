@@ -51,10 +51,10 @@ jobs:
       env:
         KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA }}
         NAMESPACE: sirius-indexers
-        POD: indexer
+        POD: indexer-1
     - name: Restart worker
       uses: swisschain/kube-restart-pods@master
       env:
         KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA }}
         NAMESPACE: sirius-indexers
-        POD: indexer-worker
+        POD: indexer-worker-1
