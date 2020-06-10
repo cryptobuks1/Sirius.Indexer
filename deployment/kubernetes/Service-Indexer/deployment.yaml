@@ -8,7 +8,7 @@ metadata:
     environment: Development
     tier: Service
   name: indexer
-  namespace: sirius
+  namespace: sirius-indexers
 spec:
   revisionHistoryLimit: 1
   minReadySeconds: 10
@@ -29,7 +29,7 @@ spec:
     spec:
       containers:
       - name: indexer
-        image: docker.io/swisschains/sirius-indexer:latest
+        image: docker.io/swisschains/sirius-indexer:dev
         imagePullPolicy: Always
         lifecycle:
           postStart:

@@ -1,6 +1,9 @@
-name: Validate Commit
+name: Validate master
 
-on: [push, pull_request]
+on:
+  push:
+    branches:    
+    - master
 
 jobs:
   build:
