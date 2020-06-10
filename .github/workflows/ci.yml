@@ -1,9 +1,9 @@
-name: Continous integration build and publish
+name: CI dev build
 
 on:
   push:
       branches:
-        - master
+        - dev-*
 
 jobs:
   build:
@@ -31,7 +31,7 @@ jobs:
     - name: Publish API to registry
       uses: swisschain/Publish-Docker-Github-Action@master
       with:
-        name: swisschains/sirius-indexer:latest
+        name: swisschains/sirius-indexer:dev
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
         workdir: ./publish-api
@@ -40,7 +40,7 @@ jobs:
     - name: Publish worker to registry
       uses: swisschain/Publish-Docker-Github-Action@master
       with:
-        name: swisschains/sirius-indexer-worker:latest
+        name: swisschains/sirius-indexer-worker:dev
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
         workdir: ./publish-worker
