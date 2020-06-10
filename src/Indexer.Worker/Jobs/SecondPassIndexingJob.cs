@@ -4,7 +4,6 @@ using Indexer.Common.Domain.Indexing.SecondPass;
 using Indexer.Common.Persistence.Entities.BlockHeaders;
 using Indexer.Common.Persistence.Entities.SecondPassIndexers;
 using Indexer.Common.Telemetry;
-using MassTransit;
 using Microsoft.Extensions.Logging;
 
 namespace Indexer.Worker.Jobs
@@ -17,7 +16,6 @@ namespace Indexer.Worker.Jobs
         private readonly long _stopBlock;
         private readonly ISecondPassIndexersRepository _indexersRepository;
         private readonly IBlockHeadersRepository _blockHeadersRepository;
-        private readonly IPublishEndpoint _publisher;
         private readonly OngoingIndexingJobsManager _ongoingIndexingJobsManager;
         private readonly IAppInsight _appInsight;
         private readonly BackgroundJob _job;
@@ -29,7 +27,6 @@ namespace Indexer.Worker.Jobs
             long stopBlock,
             ISecondPassIndexersRepository indexersRepository,
             IBlockHeadersRepository blockHeadersRepository,
-            IPublishEndpoint publisher,
             OngoingIndexingJobsManager ongoingIndexingJobsManager,
             IAppInsight appInsight)
         {
@@ -39,7 +36,6 @@ namespace Indexer.Worker.Jobs
             _stopBlock = stopBlock;
             _indexersRepository = indexersRepository;
             _blockHeadersRepository = blockHeadersRepository;
-            _publisher = publisher;
             _ongoingIndexingJobsManager = ongoingIndexingJobsManager;
             _appInsight = appInsight;
 
@@ -85,10 +81,8 @@ namespace Indexer.Worker.Jobs
                 // TODO: Move max blocks count to config
                 var indexingResult = await _indexer.IndexAvailableBlocks(
                     _loggerFactory.CreateLogger<SecondPassIndexer>(),
-                    maxBlocksCount:
-                    100, // For the bitcoin-test on azure 100 is not enough. About 200 should be ok I guess
+                    maxBlocksCount: 100, // For the bitcoin-test on azure 100 is not enough. About 200 should be ok I guess
                     _blockHeadersRepository,
-                    _publisher,
                     _appInsight);
 
                 if (indexingResult == SecondPassIndexingResult.IndexingCompleted)

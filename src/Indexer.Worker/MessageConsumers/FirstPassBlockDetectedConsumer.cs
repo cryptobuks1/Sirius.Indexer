@@ -20,21 +20,18 @@ namespace Indexer.Worker.MessageConsumers
         private readonly ILoggerFactory _loggerFactory;
         private readonly IBlockHeadersRepository _blockHeadersRepository;
         private readonly ISecondPassIndexersRepository _secondPassIndexersRepository;
-        private readonly IPublishEndpoint _persistentPublisher;
         private readonly OngoingIndexingJobsManager _ongoingIndexingJobsManager;
         private readonly IAppInsight _appInsight;
 
         public FirstPassBlockDetectedConsumer(ILoggerFactory loggerFactory,
             IBlockHeadersRepository blockHeadersRepository,
             ISecondPassIndexersRepository secondPassIndexersRepository,
-            IPublishEndpoint persistentPublisher,
             OngoingIndexingJobsManager ongoingIndexingJobsManager,
             IAppInsight appInsight)
         {
             _loggerFactory = loggerFactory;
             _blockHeadersRepository = blockHeadersRepository;
             _secondPassIndexersRepository = secondPassIndexersRepository;
-            _persistentPublisher = persistentPublisher;
             _ongoingIndexingJobsManager = ongoingIndexingJobsManager;
             _appInsight = appInsight;
         }
@@ -58,7 +55,6 @@ namespace Indexer.Worker.MessageConsumers
                 // TODO: To config
                 100,
                 _blockHeadersRepository,
-                _persistentPublisher,
                 _appInsight);
 
             await _secondPassIndexersRepository.Update(secondPassIndexer);

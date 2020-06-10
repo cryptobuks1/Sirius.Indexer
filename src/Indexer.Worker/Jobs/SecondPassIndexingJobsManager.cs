@@ -6,7 +6,6 @@ using Indexer.Common.Configuration;
 using Indexer.Common.Persistence.Entities.BlockHeaders;
 using Indexer.Common.Persistence.Entities.SecondPassIndexers;
 using Indexer.Common.Telemetry;
-using MassTransit;
 using Microsoft.Extensions.Logging;
 
 namespace Indexer.Worker.Jobs
@@ -17,7 +16,6 @@ namespace Indexer.Worker.Jobs
         private readonly AppConfig _appConfig;
         private readonly ISecondPassIndexersRepository _indexersRepository;
         private readonly IBlockHeadersRepository _blockHeadersRepository;
-        private readonly IPublishEndpoint _publisher;
         private readonly OngoingIndexingJobsManager _ongoingIndexingJobsManager;
         private readonly IAppInsight _appInsight;
         private readonly SemaphoreSlim _lock;
@@ -27,7 +25,6 @@ namespace Indexer.Worker.Jobs
             AppConfig appConfig,
             ISecondPassIndexersRepository indexersRepository,
             IBlockHeadersRepository blockHeadersRepository,
-            IPublishEndpoint publisher,
             OngoingIndexingJobsManager ongoingIndexingJobsManager,
             IAppInsight appInsight)
         {
@@ -35,7 +32,6 @@ namespace Indexer.Worker.Jobs
             _appConfig = appConfig;
             _indexersRepository = indexersRepository;
             _blockHeadersRepository = blockHeadersRepository;
-            _publisher = publisher;
             _ongoingIndexingJobsManager = ongoingIndexingJobsManager;
             _appInsight = appInsight;
 
@@ -60,7 +56,6 @@ namespace Indexer.Worker.Jobs
                         blockchainConfig.LastHistoricalBlockNumber,
                         _indexersRepository,
                         _blockHeadersRepository,
-                        _publisher,
                         _ongoingIndexingJobsManager,
                         _appInsight);
 

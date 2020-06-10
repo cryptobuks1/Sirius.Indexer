@@ -9,7 +9,7 @@ namespace Indexer.Common.Domain.Transactions
             string blockId,
             string id, 
             int number,
-            TransactionBroadcastingError error)
+            TransactionError error)
         {
             BlockchainId = blockchainId;
             BlockId = blockId;
@@ -22,13 +22,13 @@ namespace Indexer.Common.Domain.Transactions
         public string BlockId { get; }
         public string Id { get; }
         public int Number { get; }
-        public TransactionBroadcastingError Error { get; }
+        public TransactionError Error { get; }
 
         public static TransactionHeader Create(string blockchainId,
             string blockId,
             string id,
             int number,
-            TransactionBroadcastingError error)
+            TransactionError error)
         {
             return new TransactionHeader(
                 blockchainId,
@@ -42,7 +42,7 @@ namespace Indexer.Common.Domain.Transactions
             string blockId,
             string id,
             int number,
-            TransactionBroadcastingError error)
+            TransactionError error)
         {
             return new TransactionHeader(
                 blockchainId,

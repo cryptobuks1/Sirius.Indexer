@@ -4,7 +4,6 @@ using System.Threading.Tasks;
 using Indexer.Common.Domain.Blocks;
 using Indexer.Common.Persistence.Entities.BlockHeaders;
 using Indexer.Common.Telemetry;
-using MassTransit;
 using Microsoft.Extensions.Logging;
 
 namespace Indexer.Common.Domain.Indexing.SecondPass
@@ -67,7 +66,6 @@ namespace Indexer.Common.Domain.Indexing.SecondPass
             ILogger<SecondPassIndexer> logger,
             int maxBlocksCount,
             IBlockHeadersRepository blockHeadersRepository,
-            IPublishEndpoint publisher,
             IAppInsight appInsight)
         {
             if (IsCompleted)
@@ -86,7 +84,7 @@ namespace Indexer.Common.Domain.Indexing.SecondPass
                         return SecondPassIndexingResult.IndexingInProgress;
                     }
 
-                    await StepForward(block, publisher, appInsight);
+                    await StepForward(block, appInsight);
 
                     if (IsCompleted)
                     {
@@ -102,7 +100,8 @@ namespace Indexer.Common.Domain.Indexing.SecondPass
             return SecondPassIndexingResult.IndexingInProgress;
         }
         
-        private async Task StepForward(BlockHeader blockHeader, IPublishEndpoint publisher, IAppInsight appInsight)
+        private async Task StepForward(BlockHeader blockHeader,
+            IAppInsight appInsight)
         {
             var telemetry = appInsight.StartRequest("Second-pass block indexing",
                 new Dictionary<string, string>
@@ -113,7 +112,7 @@ namespace Indexer.Common.Domain.Indexing.SecondPass
 
             try
             {
-                // TODO: Index block data
+                
 
                 NextBlock = blockHeader.Number + 1;
                 UpdatedAt = DateTime.UtcNow;
