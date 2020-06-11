@@ -105,17 +105,18 @@ namespace Indexer.Common.Domain.Indexing.Ongoing
 
                     foreach (var transfer in newBlock.Transfers)
                     {
-                        indexingResult.AddBackgroundTask(
-                            publisher.Publish(new TransactionDetected
-                            {
-                                BlockchainId = BlockchainId,
-                                BlockId = newBlock.Header.Id,
-                                BlockNumber = newBlock.Header.Number,
-                                TransactionId = transfer.Header.Id,
-                                TransactionNumber = transfer.Header.Number,
-                                Error = transfer.Header.Error
-                                // TODO: Rest of data
-                            }));
+                        // TODO:
+                        //indexingResult.AddBackgroundTask(
+                        //    publisher.Publish(new TransactionDetected
+                        //    {
+                        //        BlockchainId = BlockchainId,
+                        //        BlockId = newBlock.Header.Id,
+                        //        BlockNumber = newBlock.Header.Number,
+                        //        TransactionId = transfer.Header.Id,
+                        //        TransactionNumber = transfer.Header.Number,
+                        //        Error = transfer.Header.Error
+                        //        // TODO: Rest of data
+                        //    }));
                     }
 
                     await blockHeadersRepository.InsertOrIgnore(newBlock.Header);
