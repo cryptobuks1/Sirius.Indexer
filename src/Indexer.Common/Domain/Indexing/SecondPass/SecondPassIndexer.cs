@@ -13,6 +13,7 @@ using Indexer.Common.Persistence.Entities.SpentCoins;
 using Indexer.Common.Persistence.Entities.UnspentCoins;
 using Indexer.Common.Telemetry;
 using Microsoft.Extensions.Logging;
+using Swisschain.Sirius.Sdk.Primitives;
 
 namespace Indexer.Common.Domain.Indexing.SecondPass
 {
@@ -137,10 +138,12 @@ namespace Indexer.Common.Domain.Indexing.SecondPass
             try
             {
                 var inputCoins = await inputCoinsRepository.GetByBlock(BlockchainId, blockHeader.Id);
-                var coinsToSpend = await unspentCoinsRepository.GetAllOf(BlockchainId, inputCoins);
+                var inputsToSpend = inputCoins
+                    .Where(x => x.Type == InputCoinType.Regular)
+                    .ToDictionary(x => x.PreviousOutput);
+                var coinsToSpend = await unspentCoinsRepository.GetAllOf(BlockchainId, inputsToSpend.Keys);
 
-                // TODO: Add tx ID and coin ID, which spent the coins
-                var spendCoins = coinsToSpend.Select(x => x.Spend()).ToArray();
+                var spendCoins = coinsToSpend.Select(x => x.Spend(inputsToSpend[x.Id])).ToArray();
 
                 await spentCoinsRepository.InsertOrIgnore(BlockchainId, blockHeader.Id, spendCoins);
                 
@@ -171,7 +174,7 @@ namespace Indexer.Common.Domain.Indexing.SecondPass
             IReadOnlyCollection<UnspentCoin> outputCoins,
             SpentCoin[] spendCoins)
         {
-            var credit = outputCoins
+            var minted = outputCoins
                 .Select(x => new
                 {
                     TransactionId = x.Id.TransactionId,
@@ -186,7 +189,7 @@ namespace Indexer.Common.Domain.Indexing.SecondPass
                     Amount = g.Sum(x => x.Amount)
                 });
 
-            var debit = spendCoins
+            var burn = spendCoins
                 .Select(x => new
                 {
                     TransactionId = x.Id.TransactionId,
@@ -203,14 +206,31 @@ namespace Indexer.Common.Domain.Indexing.SecondPass
 
             var fees = new Dictionary<(string TransactionId, long AssetId), decimal>();
 
-            foreach (var item in debit)
+            foreach (var item in burn)
             {
                 fees[(item.TransactionId, item.AssetId)] = item.Amount;
             }
 
-            foreach (var item in credit)
+            foreach (var item in minted)
             {
-                fees[(item.TransactionId, item.AssetId)] -= item.Amount;
+                var key = (item.TransactionId, item.AssetId);
+
+                if (fees.TryGetValue(key, out var currentFee))
+                {
+                    fees[key] = currentFee - item.Amount;
+                }
+                else
+                {
+                    fees.Add(key, -item.Amount);
+                }
+            }
+
+            foreach (var (feeKey, fee) in fees.ToArray())
+            {
+                if (fee <= 0)
+                {
+                    fees.Remove(feeKey);
+                }
             }
 
             await feesRepository.InsertOrIgnore(
@@ -229,7 +249,7 @@ namespace Indexer.Common.Domain.Indexing.SecondPass
             IReadOnlyCollection<UnspentCoin> outputCoins,
             SpentCoin[] spendCoins)
         {
-            var credit = outputCoins
+            var income = outputCoins
                 .Select(x => new
                 {
                     Address = x.Address,
@@ -244,7 +264,7 @@ namespace Indexer.Common.Domain.Indexing.SecondPass
                     Amount = g.Sum(x => x.Amount)
                 });
 
-            var debit = spendCoins
+            var outcome = spendCoins
                 .Select(x => new
                 {
                     Address = x.Address,
@@ -261,14 +281,31 @@ namespace Indexer.Common.Domain.Indexing.SecondPass
 
             var balanceUpdates = new Dictionary<(string Address, long AssetId), decimal>();
 
-            foreach (var item in credit)
+            foreach (var item in income)
             {
                 balanceUpdates[(item.Address, item.AssetId)] = item.Amount;
             }
 
-            foreach (var item in debit)
+            foreach (var item in outcome)
             {
-                balanceUpdates[(item.Address, item.AssetId)] -= item.Amount;
+                var key = (item.Address, item.AssetId);
+
+                if (balanceUpdates.TryGetValue(key, out var currentBalanceUpdate))
+                {
+                    balanceUpdates[key] = currentBalanceUpdate - item.Amount;
+                }
+                else
+                {
+                    balanceUpdates.Add(key, -item.Amount);
+                }
+            }
+
+            foreach (var (balanceUpdateKey, balanceUpdate) in balanceUpdates.ToArray())
+            {
+                if (balanceUpdate == 0)
+                {
+                    balanceUpdates.Remove(balanceUpdateKey);
+                }
             }
 
             await balanceUpdatesRepository.InsertOrIgnore(

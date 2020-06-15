@@ -10,6 +10,7 @@ using Swisschain.Sirius.Sdk.Integrations.Contract.Transactions.Transfers;
 using CoinId = Swisschain.Sirius.Sdk.Primitives.CoinId;
 using CoinsTransferTransaction = Indexer.Common.Domain.Transactions.Transfers.CoinsTransferTransaction;
 using OutputCoin = Indexer.Common.Domain.Transactions.Transfers.OutputCoin;
+using InputCoin = Indexer.Common.Domain.Transactions.Transfers.InputCoin;
 
 namespace Indexer.Common.Domain.Blocks
 {
@@ -67,7 +68,12 @@ namespace Indexer.Common.Domain.Blocks
                     tx.Header.Number,
                     tx.Header.Error);
 
-                var inputCoins = tx.InputCoins.Select(x => (CoinId) x).ToArray();
+                var inputCoins = tx.InputCoins
+                    .Select(x => new InputCoin(
+                        new CoinId(tx.Header.Id, x.Number),
+                        InputCoinTypeMapper.ToDomain(x.Type),
+                        x.PreviousOutput))
+                    .ToArray();
                 var outputCoins = tx.OutputCoins
                     .Select(x => new OutputCoin(
                         x.Number,

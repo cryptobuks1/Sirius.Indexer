@@ -1,4 +1,5 @@
-﻿using Swisschain.Sirius.Sdk.Primitives;
+﻿using System;
+using Swisschain.Sirius.Sdk.Primitives;
 
 namespace Indexer.Common.Domain.Transactions.Transfers
 {
@@ -23,16 +24,21 @@ namespace Indexer.Common.Domain.Transactions.Transfers
         public string Tag { get; }
         public DestinationTagType? TagType { get; }
 
-        public SpentCoin Spend()
+        public SpentCoin Spend(InputCoin byInputCoin)
         {
+            if (byInputCoin.Type != InputCoinType.Regular)
+            {
+                throw new InvalidOperationException($"Coin {Id.TransactionId}:{Id.Number} can't be spent by input coin {byInputCoin.Id.TransactionId}:{byInputCoin.Id.Number} because input coin type is {byInputCoin.Type}");
+            }
+
             return new SpentCoin(
                 Id,
                 Unit,
                 Address,
                 Tag,
                 TagType,
-                default,
-                default);
+                byInputCoin.Id.TransactionId,
+                byInputCoin.Id.Number);
         }
     }
 }

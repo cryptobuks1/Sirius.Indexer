@@ -71,9 +71,12 @@ create table transaction_headers_9 partition of transaction_headers for values w
 
 create unlogged table input_coins
 (
-    transaction_id      varchar(256) not null,
-    number              int not null,
-    block_id            varchar(256) not null,
+    block_id                        varchar(256) not null,
+    transaction_id                  varchar(256) not null,
+    number                          int not null,
+    type                            int not null,
+    prev_output_transaction_id      varchar(256),
+    prev_output_coin_number         int,    
 
     constraint pk_input_coins primary key (transaction_id, number)
 ) partition by hash (transaction_id, number);
@@ -155,7 +158,7 @@ create unlogged table spent_coins
     tag                         varchar(1024),
     tag_type                    int,
     spent_by_transaction_id     varchar(256) not null,
-    spent_by_coin_number        int not null,
+    spent_by_input_coin_number  int not null,
 
     constraint pk_spent_coins primary key (transaction_id, number)
 ) partition by hash (transaction_id, number);

@@ -1,8 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
+using Indexer.Common.Domain.Transactions.Transfers;
 using Indexer.Common.Durability;
 using Polly.Retry;
-using Swisschain.Sirius.Sdk.Primitives;
 
 namespace Indexer.Common.Persistence.Entities.InputCoins
 {
@@ -18,12 +18,12 @@ namespace Indexer.Common.Persistence.Entities.InputCoins
             _retryPolicy = Policies.DefaultRepositoryRetryPolicy();
         }
 
-        public Task InsertOrIgnore(string blockchainId, string blockId, IReadOnlyCollection<CoinId> coins)
+        public Task InsertOrIgnore(string blockchainId, string blockId, IReadOnlyCollection<InputCoin> coins)
         {
             return _retryPolicy.ExecuteAsync(() => _impl.InsertOrIgnore(blockchainId, blockId, coins));
         }
 
-        public Task<IReadOnlyCollection<CoinId>> GetByBlock(string blockchainId, string blockId)
+        public Task<IReadOnlyCollection<InputCoin>> GetByBlock(string blockchainId, string blockId)
         {
             return _impl.GetByBlock(blockchainId, blockId);
         }

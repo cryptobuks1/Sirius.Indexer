@@ -41,7 +41,7 @@ namespace Indexer.Common.Persistence.Entities.SpentCoins
                 .MapVarchar(nameof(SpentCoinEntity.tag), p => p.Tag)
                 .MapNullable(nameof(SpentCoinEntity.tag_type), p => p.TagType, NpgsqlDbType.Integer)
                 .MapVarchar(nameof(SpentCoinEntity.spent_by_transaction_id), p => p.SpentByTransactionId)
-                .MapInteger(nameof(SpentCoinEntity.spent_by_coin_number), p => p.SpentByCoinNumber);
+                .MapInteger(nameof(SpentCoinEntity.spent_by_input_coin_number), p => p.SpentByInputCoinNumber);
 
             try
             {

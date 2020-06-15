@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Dapper;
+using Indexer.Common.Domain.Transactions.Transfers;
 using Npgsql;
+using NpgsqlTypes;
 using Swisschain.Sirius.Sdk.Primitives;
 using PostgreSQLCopyHelper;
 
@@ -18,7 +20,7 @@ namespace Indexer.Common.Persistence.Entities.InputCoins
             _connectionFactory = connectionFactory;
         }
 
-        public async Task InsertOrIgnore(string blockchainId, string blockId, IReadOnlyCollection<CoinId> coins)
+        public async Task InsertOrIgnore(string blockchainId, string blockId, IReadOnlyCollection<InputCoin> coins)
         {
             if (!coins.Any())
             {
@@ -28,11 +30,14 @@ namespace Indexer.Common.Persistence.Entities.InputCoins
             await using var connection = await _connectionFactory.Invoke();
             
             var schema = DbSchema.GetName(blockchainId);
-            var copyHelper = new PostgreSQLCopyHelper<CoinId>(schema, TableNames.InputCoins)
+            var copyHelper = new PostgreSQLCopyHelper<InputCoin>(schema, TableNames.InputCoins)
                 .UsePostgresQuoting()
-                .MapVarchar(nameof(InputCoinEntity.transaction_id), p => p.TransactionId)
-                .MapInteger(nameof(InputCoinEntity.number), p => p.Number)
-                .MapVarchar(nameof(InputCoinEntity.block_id), p => blockId);
+                .MapVarchar(nameof(InputCoinEntity.transaction_id), x => x.Id.TransactionId)
+                .MapInteger(nameof(InputCoinEntity.number), x => x.Id.Number)
+                .MapVarchar(nameof(InputCoinEntity.block_id), x => blockId)
+                .MapInteger(nameof(InputCoinEntity.type), x => (int)x.Type)
+                .MapVarchar(nameof(InputCoinEntity.prev_output_transaction_id), x => x.PreviousOutput?.TransactionId)
+                .MapNullable(nameof(InputCoinEntity.prev_output_coin_number), x => x.PreviousOutput?.Number, NpgsqlDbType.Integer);
 
             try
             {
@@ -49,7 +54,7 @@ namespace Indexer.Common.Persistence.Entities.InputCoins
             }
         }
 
-        public async Task<IReadOnlyCollection<CoinId>> GetByBlock(string blockchainId, string blockId)
+        public async Task<IReadOnlyCollection<InputCoin>> GetByBlock(string blockchainId, string blockId)
         {
             await using var connection = await _connectionFactory.Invoke();
 
@@ -58,20 +63,27 @@ namespace Indexer.Common.Persistence.Entities.InputCoins
 
             var entities = await connection.QueryAsync<InputCoinEntity>(query, new {blockId});
 
-            return entities.Select(x => new CoinId(x.transaction_id, x.number)).ToArray();
+            return entities
+                .Select(x => new InputCoin(
+                    new CoinId(x.transaction_id, x.number),
+                    (InputCoinType) x.type,
+                    x.prev_output_transaction_id != null && x.prev_output_coin_number != null
+                        ? new CoinId(x.prev_output_transaction_id, x.prev_output_coin_number.Value)
+                        : null))
+                .ToArray();
         }
 
-        private static async Task<IReadOnlyCollection<CoinId>> ExcludeExistingInDb(
+        private static async Task<IReadOnlyCollection<InputCoin>> ExcludeExistingInDb(
             string schema,
             NpgsqlConnection connection,
-            IReadOnlyCollection<CoinId> coins)
+            IReadOnlyCollection<InputCoin> coins)
         {
             if (!coins.Any())
             {
-                return Array.Empty<CoinId>();
+                return Array.Empty<InputCoin>();
             }
 
-            var inList = string.Join(", ", coins.Select(x => $"('{x.TransactionId}', {x.Number})"));
+            var inList = string.Join(", ", coins.Select(x => $"('{x.Id.TransactionId}', {x.Id.Number})"));
             
             // limit is specified to avoid scanning indexes of the partitions once all headers are found
             var query = $"select transaction_id, number from {schema}.{TableNames.InputCoins} where (transaction_id, number) in ({inList}) limit @limit";
@@ -81,7 +93,7 @@ namespace Indexer.Common.Persistence.Entities.InputCoins
                 .Select(x => new CoinId(x.transaction_id, x.number))
                 .ToHashSet();
             
-            return coins.Where(x => !existing.Contains(x)).ToArray();
+            return coins.Where(x => !existing.Contains(x.Id)).ToArray();
         }
     }
 }

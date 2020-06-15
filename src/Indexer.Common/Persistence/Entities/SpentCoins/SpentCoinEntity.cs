@@ -12,6 +12,6 @@
         public string tag { get; set; }
         public int? tag_type { get; set; }
         public string spent_by_transaction_id { get; set; }
-        public int spent_by_coin_number { get; set; }
+        public int spent_by_input_coin_number { get; set; }
     }
 }

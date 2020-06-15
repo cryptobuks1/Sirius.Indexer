@@ -62,7 +62,7 @@ namespace Indexer.Worker.Jobs
             _job = new BackgroundJob(
                 _logger,
                 "Second-pass indexing",
-                new
+                () => new
                 {
                     BlockchainId = _blockchainId,
                     StopBlock = _stopBlock,

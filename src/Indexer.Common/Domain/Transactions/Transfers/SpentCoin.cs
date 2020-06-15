@@ -10,7 +10,7 @@ namespace Indexer.Common.Domain.Transactions.Transfers
             string tag,
             DestinationTagType? tagType,
             string spentByTransactionId,
-            int spentByCoinNumber)
+            int spentByInputCoinNumber)
         {
             Id = id;
             Unit = unit;
@@ -18,7 +18,7 @@ namespace Indexer.Common.Domain.Transactions.Transfers
             Tag = tag;
             TagType = tagType;
             SpentByTransactionId = spentByTransactionId;
-            SpentByCoinNumber = spentByCoinNumber;
+            SpentByInputCoinNumber = spentByInputCoinNumber;
         }
 
         public CoinId Id { get; }
@@ -27,6 +27,6 @@ namespace Indexer.Common.Domain.Transactions.Transfers
         public string Tag { get; }
         public DestinationTagType? TagType { get; }
         public string SpentByTransactionId { get; }
-        public int SpentByCoinNumber { get; }
+        public int SpentByInputCoinNumber { get; }
     }
 }

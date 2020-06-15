@@ -68,12 +68,12 @@ namespace Indexer.Worker.Jobs
             _job = new BackgroundJob(
                 _logger,
                 "First-pass indexing",
-                new
+                () => new
                 {
                     BlockchainId = _indexerId.BlockchainId,
                     StartBlock = _indexerId.StartBlock,
                     StopBlock = _stopBlock,
-                    NextBlock = _indexer?.NextBlock ?? _indexerId.StartBlock
+                    NextBlock = _indexer?.NextBlock
                 },
                 IndexBlocksBatch);
         }

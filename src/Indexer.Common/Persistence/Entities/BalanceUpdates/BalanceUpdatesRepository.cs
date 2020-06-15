@@ -105,10 +105,10 @@ namespace Indexer.Common.Persistence.Entities.BalanceUpdates
             
             // limit is specified to avoid scanning indexes of the partitions once all headers are found
             var query = $"select address, asset_id, block_number from {schema}.{TableNames.BalanceUpdates} where (address, asset_id, block_number) in ({inList}) limit @limit";
-            var existingEntities = await connection.QueryAsync<BalanceUpdate>(query, new {limit = balanceUpdates.Count});
+            var existingEntities = await connection.QueryAsync<BalanceUpdateEntity>(query, new {limit = balanceUpdates.Count});
 
             var existing = existingEntities
-                .Select(x => (x.Address, x.AssetId, x.BlockNumber))
+                .Select(x => (x.address, x.asset_id, x.block_number))
                 .ToHashSet();
 
             return balanceUpdates.Where(x => !existing.Contains((x.Address, x.AssetId, x.BlockNumber))).ToArray();

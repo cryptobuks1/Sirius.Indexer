@@ -1,12 +1,11 @@
 ﻿using System.Collections.Generic;
-using Swisschain.Sirius.Sdk.Primitives;
 
 namespace Indexer.Common.Domain.Transactions.Transfers
 {
     public sealed class CoinsTransferTransaction
     {
         public CoinsTransferTransaction(TransactionHeader header, 
-            IReadOnlyCollection<CoinId> inputCoins, 
+            IReadOnlyCollection<InputCoin> inputCoins, 
             IReadOnlyCollection<OutputCoin> outputCoins)
         {
             Header = header;
@@ -15,7 +14,7 @@ namespace Indexer.Common.Domain.Transactions.Transfers
         }
 
         public TransactionHeader Header { get; }
-        public IReadOnlyCollection<CoinId> InputCoins { get; }
+        public IReadOnlyCollection<InputCoin> InputCoins { get; }
         public IReadOnlyCollection<OutputCoin> OutputCoins { get; }
     }
 }
