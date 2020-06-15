@@ -2,19 +2,23 @@
 
 namespace Indexer.Common.Domain.Transactions.Transfers
 {
-    public sealed class UnspentCoin
+    public sealed class SpentCoin
     {
-        public UnspentCoin(CoinId id,
+        public SpentCoin(CoinId id,
             Unit unit,
             string address,
             string tag,
-            DestinationTagType? tagType)
+            DestinationTagType? tagType,
+            string spentByTransactionId,
+            int spentByCoinNumber)
         {
             Id = id;
             Unit = unit;
             Address = address;
             Tag = tag;
             TagType = tagType;
+            SpentByTransactionId = spentByTransactionId;
+            SpentByCoinNumber = spentByCoinNumber;
         }
 
         public CoinId Id { get; }
@@ -22,17 +26,7 @@ namespace Indexer.Common.Domain.Transactions.Transfers
         public string Address { get; }
         public string Tag { get; }
         public DestinationTagType? TagType { get; }
-
-        public SpentCoin Spend()
-        {
-            return new SpentCoin(
-                Id,
-                Unit,
-                Address,
-                Tag,
-                TagType,
-                default,
-                default);
-        }
+        public string SpentByTransactionId { get; }
+        public int SpentByCoinNumber { get; }
     }
 }

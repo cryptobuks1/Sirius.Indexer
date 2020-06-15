@@ -9,6 +9,7 @@ set search_path to @schemaName;
 -- Assets
 
 -- TODO: the sequence should be global for all blockchains for all indexer instances
+-- probably a separate service
 create unlogged table assets
 (
     id          bigserial not null,
@@ -77,6 +78,9 @@ create unlogged table input_coins
     constraint pk_input_coins primary key (transaction_id, number)
 ) partition by hash (transaction_id, number);
 
+create index ix_input_coins_block_id
+    on input_coins (block_id);
+
 create table input_coins_0 partition of input_coins for values with (modulus 20, remainder 0);
 create table input_coins_1 partition of input_coins for values with (modulus 20, remainder 1);
 create table input_coins_2 partition of input_coins for values with (modulus 20, remainder 2);
@@ -113,6 +117,9 @@ create unlogged table unspent_coins
 
     constraint pk_unspent_coins primary key (transaction_id, number)
 ) partition by hash (transaction_id, number);
+
+create index ix_unspent_coins_block_id
+    on unspent_coins (block_id);
 
 create table unspent_coins_0 partition of unspent_coins for values with (modulus 20, remainder 0);
 create table unspent_coins_1 partition of unspent_coins for values with (modulus 20, remainder 1);

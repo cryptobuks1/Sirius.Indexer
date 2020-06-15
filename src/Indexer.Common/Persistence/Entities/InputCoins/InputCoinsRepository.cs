@@ -49,6 +49,18 @@ namespace Indexer.Common.Persistence.Entities.InputCoins
             }
         }
 
+        public async Task<IReadOnlyCollection<CoinId>> GetByBlock(string blockchainId, string blockId)
+        {
+            await using var connection = await _connectionFactory.Invoke();
+
+            var schema = DbSchema.GetName(blockchainId);
+            var query = $"select * from {schema}.{TableNames.InputCoins} where block_id = @blockId";
+
+            var entities = await connection.QueryAsync<InputCoinEntity>(query, new {blockId});
+
+            return entities.Select(x => new CoinId(x.transaction_id, x.number)).ToArray();
+        }
+
         private static async Task<IReadOnlyCollection<CoinId>> ExcludeExistingInDb(
             string schema,
             NpgsqlConnection connection,

@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Indexer.Common.Domain.Transactions.Transfers;
 using Indexer.Common.Durability;
 using Polly.Retry;
+using Swisschain.Sirius.Sdk.Primitives;
 
 namespace Indexer.Common.Persistence.Entities.UnspentCoins
 {
@@ -20,6 +21,21 @@ namespace Indexer.Common.Persistence.Entities.UnspentCoins
         public Task InsertOrIgnore(string blockchainId, string blockId, IReadOnlyCollection<UnspentCoin> coins)
         {
             return _retryPolicy.ExecuteAsync(() => _impl.InsertOrIgnore(blockchainId, blockId, coins));
+        }
+
+        public Task<IReadOnlyCollection<UnspentCoin>> GetAllOf(string blockchainId, IReadOnlyCollection<CoinId> ids)
+        {
+            return _impl.GetAllOf(blockchainId, ids);
+        }
+
+        public Task Remove(string blockchainId, IReadOnlyCollection<CoinId> ids)
+        {
+            return _impl.Remove(blockchainId, ids);
+        }
+
+        public Task<IReadOnlyCollection<UnspentCoin>> GetByBlock(string blockchainId, string blockId)
+        {
+            return _impl.GetByBlock(blockchainId, blockId);
         }
     }
 }

@@ -2,13 +2,16 @@
 using System.Data;
 using System.Threading.Tasks;
 using Indexer.Common.Persistence.Entities.Assets;
+using Indexer.Common.Persistence.Entities.BalanceUpdates;
 using Indexer.Common.Persistence.Entities.Blockchains;
 using Indexer.Common.Persistence.Entities.BlockHeaders;
+using Indexer.Common.Persistence.Entities.Fees;
 using Indexer.Common.Persistence.Entities.FirstPassIndexers;
 using Indexer.Common.Persistence.Entities.InputCoins;
 using Indexer.Common.Persistence.Entities.ObservedOperations;
 using Indexer.Common.Persistence.Entities.OngoingIndexers;
 using Indexer.Common.Persistence.Entities.SecondPassIndexers;
+using Indexer.Common.Persistence.Entities.SpentCoins;
 using Indexer.Common.Persistence.Entities.TransactionHeaders;
 using Indexer.Common.Persistence.Entities.UnspentCoins;
 using Indexer.Common.Persistence.EntityFramework;
@@ -42,6 +45,15 @@ namespace Indexer.Common.Persistence
             services.AddTransient<IUnspentCoinsRepository>(c =>
                 new UnspentCoinsRepositoryRetryDecorator(
                     new UnspentCoinsRepository(c.GetRequiredService<Func<Task<NpgsqlConnection>>>())));
+            services.AddTransient<ISpentCoinsRepository>(c =>
+                new SpentCoinsRepositoryRetryDecorator(
+                    new SpentCoinsRepository(c.GetRequiredService<Func<Task<NpgsqlConnection>>>())));
+            services.AddTransient<IBalanceUpdatesRepository>(c =>
+                new BalanceUpdatesRepositoryRetryDecorator(
+                    new BalanceUpdatesRepository(c.GetRequiredService<Func<Task<NpgsqlConnection>>>())));
+            services.AddTransient<IFeesRepository>(c =>
+                new FeesRepositoryRetryDecorator(
+                    new FeesRepository(c.GetRequiredService<Func<Task<NpgsqlConnection>>>())));
             services.AddTransient<IFirstPassIndexersRepository>(c => 
                 new FirstPassIndexersRepositoryRetryDecorator(
                     new FirstPassIndexersRepository(c.GetRequiredService<Func<DatabaseContext>>())));

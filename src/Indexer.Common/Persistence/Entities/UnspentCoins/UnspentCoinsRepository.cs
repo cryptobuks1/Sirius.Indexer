@@ -56,6 +56,74 @@ namespace Indexer.Common.Persistence.Entities.UnspentCoins
             }
         }
 
+        public async Task<IReadOnlyCollection<UnspentCoin>> GetAllOf(string blockchainId, IReadOnlyCollection<CoinId> ids)
+        {
+            if (!ids.Any())
+            {
+                return Array.Empty<UnspentCoin>();
+            }
+            
+            await using var connection = await _connectionFactory.Invoke();
+
+            var schema = DbSchema.GetName(blockchainId);
+            var inList = string.Join(", ", ids.Select(x => $"('{x.TransactionId}', {x.Number})"));
+            var query = $"select * from {schema}.{TableNames.UnspentCoins} where (transaction_id, number) in ({inList}) limit @limit";
+
+            var entities = await connection.QueryAsync<UnspentCoinEntity>(query, new {limit = ids.Count});
+
+            var domainObjects = entities
+                .Select(MapToDomain)
+                .ToArray();
+
+            if (ids.Count != domainObjects.Length)
+            {
+                // TODO: Log
+                throw new InvalidOperationException($"Not all unspent coins found {domainObjects.Length} for the given ids {ids.Count}");
+            }
+
+            return domainObjects;
+        }
+
+        public async Task Remove(string blockchainId, IReadOnlyCollection<CoinId> ids)
+        {
+            if (!ids.Any())
+            {
+                return;
+            }
+            
+            await using var connection = await _connectionFactory.Invoke();
+
+            var schema = DbSchema.GetName(blockchainId);
+            var inList = string.Join(", ", ids.Select(x => $"('{x.TransactionId}', {x.Number})"));
+            var query = $"delete from {schema}.{TableNames.UnspentCoins} where (transaction_id, number) in ({inList})";
+
+            var entities = await connection.QueryAsync<UnspentCoinEntity>(query, new {limit = ids.Count});
+
+            var domainObjects = entities
+                .Select(MapToDomain)
+                .ToArray();
+
+            if (ids.Count != domainObjects.Length)
+            {
+                // TODO: Log
+                throw new InvalidOperationException($"Not all unspent coins found {domainObjects.Length} for the given ids {ids.Count}");
+            }
+        }
+
+        public async Task<IReadOnlyCollection<UnspentCoin>> GetByBlock(string blockchainId, string blockId)
+        {
+            await using var connection = await _connectionFactory.Invoke();
+
+            var schema = DbSchema.GetName(blockchainId);
+            var query = $"select * from {schema}.{TableNames.UnspentCoins} where block_id = @blockId";
+
+            var entities = await connection.QueryAsync<UnspentCoinEntity>(query, new {blockId});
+
+            return entities
+                .Select(MapToDomain)
+                .ToArray();
+        }
+
         private static async Task<IReadOnlyCollection<UnspentCoin>> ExcludeExistingInDb(
             string schema,
             NpgsqlConnection connection,
@@ -77,6 +145,16 @@ namespace Indexer.Common.Persistence.Entities.UnspentCoins
                 .ToHashSet();
 
             return coins.Where(x => !existing.Contains(x.Id)).ToArray();
+        }
+
+        private static UnspentCoin MapToDomain(UnspentCoinEntity entity)
+        {
+            return new UnspentCoin(
+                new CoinId(entity.transaction_id, entity.number),
+                new Unit(entity.asset_id, entity.amount),
+                entity.address,
+                entity.tag,
+                (DestinationTagType?) entity.tag_type);
         }
     }
 }

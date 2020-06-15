@@ -1,8 +1,13 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Indexer.Common.Domain.Indexing.SecondPass;
+using Indexer.Common.Persistence.Entities.BalanceUpdates;
 using Indexer.Common.Persistence.Entities.BlockHeaders;
+using Indexer.Common.Persistence.Entities.Fees;
+using Indexer.Common.Persistence.Entities.InputCoins;
 using Indexer.Common.Persistence.Entities.SecondPassIndexers;
+using Indexer.Common.Persistence.Entities.SpentCoins;
+using Indexer.Common.Persistence.Entities.UnspentCoins;
 using Indexer.Common.Telemetry;
 using Microsoft.Extensions.Logging;
 
@@ -20,6 +25,11 @@ namespace Indexer.Worker.Jobs
         private readonly IAppInsight _appInsight;
         private readonly BackgroundJob _job;
         private SecondPassIndexer _indexer;
+        private readonly IInputCoinsRepository _inputCoinsRepository;
+        private readonly IUnspentCoinsRepository _unspentCoinsRepository;
+        private readonly ISpentCoinsRepository _spentCoinsRepository;
+        private readonly IBalanceUpdatesRepository _balanceUpdatesRepository;
+        private readonly IFeesRepository _feesRepository;
 
         public SecondPassIndexingJob(ILogger<SecondPassIndexingJob> logger,
             ILoggerFactory loggerFactory,
@@ -28,7 +38,12 @@ namespace Indexer.Worker.Jobs
             ISecondPassIndexersRepository indexersRepository,
             IBlockHeadersRepository blockHeadersRepository,
             OngoingIndexingJobsManager ongoingIndexingJobsManager,
-            IAppInsight appInsight)
+            IAppInsight appInsight,
+            IInputCoinsRepository inputCoinsRepository,
+            IUnspentCoinsRepository unspentCoinsRepository,
+            ISpentCoinsRepository spentCoinsRepository,
+            IBalanceUpdatesRepository balanceUpdatesRepository,
+            IFeesRepository feesRepository)
         {
             _logger = logger;
             _loggerFactory = loggerFactory;
@@ -38,7 +53,12 @@ namespace Indexer.Worker.Jobs
             _blockHeadersRepository = blockHeadersRepository;
             _ongoingIndexingJobsManager = ongoingIndexingJobsManager;
             _appInsight = appInsight;
-
+            _inputCoinsRepository = inputCoinsRepository;
+            _unspentCoinsRepository = unspentCoinsRepository;
+            _spentCoinsRepository = spentCoinsRepository;
+            _balanceUpdatesRepository = balanceUpdatesRepository;
+            _feesRepository = feesRepository;
+            
             _job = new BackgroundJob(
                 _logger,
                 "Second-pass indexing",
@@ -81,9 +101,14 @@ namespace Indexer.Worker.Jobs
                 // TODO: Move max blocks count to config
                 var indexingResult = await _indexer.IndexAvailableBlocks(
                     _loggerFactory.CreateLogger<SecondPassIndexer>(),
-                    maxBlocksCount: 100, // For the bitcoin-test on azure 100 is not enough. About 200 should be ok I guess
+                    maxBlocksCount: 100,
                     _blockHeadersRepository,
-                    _appInsight);
+                    _appInsight,
+                    _inputCoinsRepository,
+                    _unspentCoinsRepository,
+                    _spentCoinsRepository,
+                    _balanceUpdatesRepository,
+                    _feesRepository);
 
                 if (indexingResult == SecondPassIndexingResult.IndexingCompleted)
                 {

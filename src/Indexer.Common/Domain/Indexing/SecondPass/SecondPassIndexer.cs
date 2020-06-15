@@ -1,8 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Indexer.Common.Domain.Blocks;
+using Indexer.Common.Domain.Transactions;
+using Indexer.Common.Domain.Transactions.Transfers;
+using Indexer.Common.Persistence.Entities.BalanceUpdates;
 using Indexer.Common.Persistence.Entities.BlockHeaders;
+using Indexer.Common.Persistence.Entities.Fees;
+using Indexer.Common.Persistence.Entities.InputCoins;
+using Indexer.Common.Persistence.Entities.SpentCoins;
+using Indexer.Common.Persistence.Entities.UnspentCoins;
 using Indexer.Common.Telemetry;
 using Microsoft.Extensions.Logging;
 
@@ -66,7 +74,12 @@ namespace Indexer.Common.Domain.Indexing.SecondPass
             ILogger<SecondPassIndexer> logger,
             int maxBlocksCount,
             IBlockHeadersRepository blockHeadersRepository,
-            IAppInsight appInsight)
+            IAppInsight appInsight,
+            IInputCoinsRepository inputCoinsRepository,
+            IUnspentCoinsRepository unspentCoinsRepository,
+            ISpentCoinsRepository spentCoinsRepository,
+            IBalanceUpdatesRepository balanceUpdatesRepository,
+            IFeesRepository feesRepository)
         {
             if (IsCompleted)
             {
@@ -84,7 +97,13 @@ namespace Indexer.Common.Domain.Indexing.SecondPass
                         return SecondPassIndexingResult.IndexingInProgress;
                     }
 
-                    await StepForward(block, appInsight);
+                    await StepForward(block,
+                        appInsight,
+                        inputCoinsRepository,
+                        unspentCoinsRepository,
+                        spentCoinsRepository,
+                        balanceUpdatesRepository,
+                        feesRepository);
 
                     if (IsCompleted)
                     {
@@ -101,7 +120,12 @@ namespace Indexer.Common.Domain.Indexing.SecondPass
         }
         
         private async Task StepForward(BlockHeader blockHeader,
-            IAppInsight appInsight)
+            IAppInsight appInsight,
+            IInputCoinsRepository inputCoinsRepository,
+            IUnspentCoinsRepository unspentCoinsRepository,
+            ISpentCoinsRepository spentCoinsRepository,
+            IBalanceUpdatesRepository balanceUpdatesRepository,
+            IFeesRepository feesRepository)
         {
             var telemetry = appInsight.StartRequest("Second-pass block indexing",
                 new Dictionary<string, string>
@@ -112,7 +136,20 @@ namespace Indexer.Common.Domain.Indexing.SecondPass
 
             try
             {
+                var inputCoins = await inputCoinsRepository.GetByBlock(BlockchainId, blockHeader.Id);
+                var coinsToSpend = await unspentCoinsRepository.GetAllOf(BlockchainId, inputCoins);
+
+                // TODO: Add tx ID and coin ID, which spent the coins
+                var spendCoins = coinsToSpend.Select(x => x.Spend()).ToArray();
+
+                await spentCoinsRepository.InsertOrIgnore(BlockchainId, blockHeader.Id, spendCoins);
                 
+                var outputCoins = await unspentCoinsRepository.GetByBlock(BlockchainId, blockHeader.Id);
+
+                await UpdateBalances(blockHeader, balanceUpdatesRepository, outputCoins, spendCoins);
+                await UpdateFees(blockHeader, feesRepository, outputCoins, spendCoins);
+
+                await unspentCoinsRepository.Remove(BlockchainId, coinsToSpend.Select(x => x.Id).ToArray());
 
                 NextBlock = blockHeader.Number + 1;
                 UpdatedAt = DateTime.UtcNow;
@@ -127,6 +164,124 @@ namespace Indexer.Common.Domain.Indexing.SecondPass
             {
                 telemetry.Stop();
             }
+        }
+
+        private async Task UpdateFees(BlockHeader blockHeader,
+            IFeesRepository feesRepository,
+            IReadOnlyCollection<UnspentCoin> outputCoins,
+            SpentCoin[] spendCoins)
+        {
+            var credit = outputCoins
+                .Select(x => new
+                {
+                    TransactionId = x.Id.TransactionId,
+                    AssetId = x.Unit.AssetId,
+                    Amount = x.Unit.Amount
+                })
+                .GroupBy(x => (TransactionId: x.TransactionId, AssetId: x.AssetId))
+                .Select(g => new
+                {
+                    TransactionId = g.Key.TransactionId,
+                    AssetId = g.Key.AssetId,
+                    Amount = g.Sum(x => x.Amount)
+                });
+
+            var debit = spendCoins
+                .Select(x => new
+                {
+                    TransactionId = x.Id.TransactionId,
+                    AssetId = x.Unit.AssetId,
+                    Amount = x.Unit.Amount
+                })
+                .GroupBy(x => (TransactionId: x.TransactionId, AssetId: x.AssetId))
+                .Select(g => new
+                {
+                    TransactionId = g.Key.TransactionId,
+                    AssetId = g.Key.AssetId,
+                    Amount = g.Sum(x => x.Amount)
+                });
+
+            var fees = new Dictionary<(string TransactionId, long AssetId), decimal>();
+
+            foreach (var item in debit)
+            {
+                fees[(item.TransactionId, item.AssetId)] = item.Amount;
+            }
+
+            foreach (var item in credit)
+            {
+                fees[(item.TransactionId, item.AssetId)] -= item.Amount;
+            }
+
+            await feesRepository.InsertOrIgnore(
+                BlockchainId,
+                fees
+                    .Select(x => new Fee(
+                        x.Key.TransactionId,
+                        x.Key.AssetId,
+                        blockHeader.Id,
+                        x.Value))
+                    .ToArray());
+        }
+
+        private async Task UpdateBalances(BlockHeader blockHeader,
+            IBalanceUpdatesRepository balanceUpdatesRepository,
+            IReadOnlyCollection<UnspentCoin> outputCoins,
+            SpentCoin[] spendCoins)
+        {
+            var credit = outputCoins
+                .Select(x => new
+                {
+                    Address = x.Address,
+                    AssetId = x.Unit.AssetId,
+                    Amount = x.Unit.Amount
+                })
+                .GroupBy(x => (Address: x.Address, AssetId: x.AssetId))
+                .Select(g => new
+                {
+                    Address = g.Key.Address,
+                    AssetId = g.Key.AssetId,
+                    Amount = g.Sum(x => x.Amount)
+                });
+
+            var debit = spendCoins
+                .Select(x => new
+                {
+                    Address = x.Address,
+                    AssetId = x.Unit.AssetId,
+                    Amount = x.Unit.Amount
+                })
+                .GroupBy(x => (Address: x.Address, AssetId: x.AssetId))
+                .Select(g => new
+                {
+                    Address = g.Key.Address,
+                    AssetId = g.Key.AssetId,
+                    Amount = g.Sum(x => x.Amount)
+                });
+
+            var balanceUpdates = new Dictionary<(string Address, long AssetId), decimal>();
+
+            foreach (var item in credit)
+            {
+                balanceUpdates[(item.Address, item.AssetId)] = item.Amount;
+            }
+
+            foreach (var item in debit)
+            {
+                balanceUpdates[(item.Address, item.AssetId)] -= item.Amount;
+            }
+
+            await balanceUpdatesRepository.InsertOrIgnore(
+                BlockchainId,
+                balanceUpdates
+                    .Select(x => BalanceUpdate.Create(
+                        x.Key.Address,
+                        x.Key.AssetId,
+                        blockHeader.Number,
+                        blockHeader.Id,
+                        blockHeader.MinedAt,
+                        x.Value))
+                    .ToArray());
         }
     }
 }

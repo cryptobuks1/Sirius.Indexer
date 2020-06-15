@@ -22,5 +22,10 @@ namespace Indexer.Common.Persistence.Entities.InputCoins
         {
             return _retryPolicy.ExecuteAsync(() => _impl.InsertOrIgnore(blockchainId, blockId, coins));
         }
+
+        public Task<IReadOnlyCollection<CoinId>> GetByBlock(string blockchainId, string blockId)
+        {
+            return _impl.GetByBlock(blockchainId, blockId);
+        }
     }
 }
