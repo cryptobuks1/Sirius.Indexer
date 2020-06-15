@@ -76,7 +76,8 @@ namespace Indexer.Worker.Jobs
 
             _logger.LogInformation("Ongoing indexing job is being started {@context}", new
             {
-                BlockchainId = _blockchainId
+                BlockchainId = _blockchainId,
+                NextBlock = _indexer?.NextBlock
             });
 
             if (_indexer.NextBlock == _indexer.StartBlock)
@@ -100,7 +101,8 @@ namespace Indexer.Worker.Jobs
 
             _logger.LogInformation("Ongoing indexing job is being stopped {@context}", new
             {
-                BlockchainId = _blockchainId
+                BlockchainId = _blockchainId,
+                NextBlock = _indexer?.NextBlock
             });
 
             _cts.Cancel();
@@ -112,7 +114,8 @@ namespace Indexer.Worker.Jobs
 
             _logger.LogInformation("Ongoing indexing job has been stopped {@context}", new
             {
-                BlockchainId = _blockchainId
+                BlockchainId = _blockchainId,
+                NextBlock = _indexer?.NextBlock
             });
         }
 
@@ -133,7 +136,8 @@ namespace Indexer.Worker.Jobs
             {
                 _logger.LogError(ex, "Error while executing ongoing indexing job {@context}", new
                 {
-                    BlockchainId = _blockchainId
+                    BlockchainId = _blockchainId,
+                    NextBlock = _indexer?.NextBlock
                 });
             }
             finally
@@ -231,7 +235,11 @@ namespace Indexer.Worker.Jobs
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to execute ongoing indexing job");
+                _logger.LogError(ex, "Failed to execute ongoing indexing job {@context}", new
+                {
+                    BlockchainId = _indexer.BlockchainId,
+                    NextBlock = _indexer.NextBlock
+                });
 
                 _indexer = await _indexersRepository.Get(_blockchainId);
             }

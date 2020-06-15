@@ -140,7 +140,13 @@ namespace Indexer.Worker.Jobs
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to execute first-pass indexing job");
+                _logger.LogError(ex, "Failed to execute first-pass indexing job {@context}",  new
+                {
+                    BlockchainId = _indexerId.BlockchainId,
+                    StartBlock = _indexerId.StartBlock,
+                    StopBlock = _stopBlock,
+                    NextBlock = _indexer.NextBlock
+                });
 
                 _indexer = await _indexersRepository.Get(_indexerId);
             }

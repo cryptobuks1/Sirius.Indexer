@@ -128,7 +128,12 @@ namespace Indexer.Worker.Jobs
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to execute second-pass indexing job");
+                _logger.LogError(ex, "Failed to execute second-pass indexing job {@context}", new
+                {
+                    BlockchainId = _blockchainId,
+                    StopBlock = _stopBlock,
+                    NextBlock = _indexer.NextBlock
+                });
 
                 _indexer = await _indexersRepository.Get(_blockchainId);
             }
