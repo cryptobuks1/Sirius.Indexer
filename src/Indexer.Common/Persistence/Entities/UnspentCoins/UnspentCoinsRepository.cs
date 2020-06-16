@@ -56,7 +56,7 @@ namespace Indexer.Common.Persistence.Entities.UnspentCoins
             }
         }
 
-        public async Task<IReadOnlyCollection<UnspentCoin>> GetAllOf(string blockchainId, IReadOnlyCollection<CoinId> ids)
+        public async Task<IReadOnlyCollection<UnspentCoin>> GetAnyOf(string blockchainId, IReadOnlyCollection<CoinId> ids)
         {
             if (!ids.Any())
             {
@@ -75,12 +75,6 @@ namespace Indexer.Common.Persistence.Entities.UnspentCoins
                 .Select(MapToDomain)
                 .ToArray();
 
-            if (ids.Count != domainObjects.Length)
-            {
-                // TODO: Log
-                throw new InvalidOperationException($"Not all unspent coins found {domainObjects.Length} for the given ids {ids.Count}");
-            }
-
             return domainObjects;
         }
 
@@ -97,17 +91,7 @@ namespace Indexer.Common.Persistence.Entities.UnspentCoins
             var inList = string.Join(", ", ids.Select(x => $"('{x.TransactionId}', {x.Number})"));
             var query = $"delete from {schema}.{TableNames.UnspentCoins} where (transaction_id, number) in ({inList})";
 
-            var entities = await connection.QueryAsync<UnspentCoinEntity>(query, new {limit = ids.Count});
-
-            var domainObjects = entities
-                .Select(MapToDomain)
-                .ToArray();
-
-            if (ids.Count != domainObjects.Length)
-            {
-                // TODO: Log
-                throw new InvalidOperationException($"Not all unspent coins found {domainObjects.Length} for the given ids {ids.Count}");
-            }
+            await connection.ExecuteAsync(query);
         }
 
         public async Task<IReadOnlyCollection<UnspentCoin>> GetByBlock(string blockchainId, string blockId)

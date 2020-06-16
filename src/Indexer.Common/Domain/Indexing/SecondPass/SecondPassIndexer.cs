@@ -141,18 +141,33 @@ namespace Indexer.Common.Domain.Indexing.SecondPass
                 var inputsToSpend = inputCoins
                     .Where(x => x.Type == InputCoinType.Regular)
                     .ToDictionary(x => x.PreviousOutput);
-                var coinsToSpend = await unspentCoinsRepository.GetAllOf(BlockchainId, inputsToSpend.Keys);
 
-                var spendCoins = coinsToSpend.Select(x => x.Spend(inputsToSpend[x.Id])).ToArray();
+                var coinsToSpend = await unspentCoinsRepository.GetAnyOf(BlockchainId, inputsToSpend.Keys);
 
-                await spentCoinsRepository.InsertOrIgnore(BlockchainId, blockHeader.Id, spendCoins);
-                
-                var outputCoins = await unspentCoinsRepository.GetByBlock(BlockchainId, blockHeader.Id);
+                if (inputsToSpend.Count != coinsToSpend.Count && coinsToSpend.Count != 0)
+                {
+                    throw new InvalidOperationException($"Not all unspent coins found {coinsToSpend.Count} for the given inputs to spend {inputsToSpend.Count}");
+                }
 
-                await UpdateBalances(blockHeader, balanceUpdatesRepository, outputCoins, spendCoins);
-                await UpdateFees(blockHeader, feesRepository, outputCoins, spendCoins);
+                if (coinsToSpend.Any())
+                {
+                    var spentCoins = coinsToSpend.Select(x => x.Spend(inputsToSpend[x.Id])).ToArray();
 
-                await unspentCoinsRepository.Remove(BlockchainId, coinsToSpend.Select(x => x.Id).ToArray());
+                    await spentCoinsRepository.InsertOrIgnore(BlockchainId, blockHeader.Id, spentCoins);
+
+                    var outputCoins = await unspentCoinsRepository.GetByBlock(BlockchainId, blockHeader.Id);
+
+                    await UpdateBalances(blockHeader,
+                        balanceUpdatesRepository,
+                        outputCoins,
+                        spentCoins);
+                    await UpdateFees(blockHeader,
+                        feesRepository,
+                        outputCoins,
+                        spentCoins);
+
+                    await unspentCoinsRepository.Remove(BlockchainId, coinsToSpend.Select(x => x.Id).ToArray());
+                }
 
                 NextBlock = blockHeader.Number + 1;
                 UpdatedAt = DateTime.UtcNow;

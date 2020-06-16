@@ -23,9 +23,9 @@ namespace Indexer.Common.Persistence.Entities.UnspentCoins
             return _retryPolicy.ExecuteAsync(() => _impl.InsertOrIgnore(blockchainId, blockId, coins));
         }
 
-        public Task<IReadOnlyCollection<UnspentCoin>> GetAllOf(string blockchainId, IReadOnlyCollection<CoinId> ids)
+        public Task<IReadOnlyCollection<UnspentCoin>> GetAnyOf(string blockchainId, IReadOnlyCollection<CoinId> ids)
         {
-            return _impl.GetAllOf(blockchainId, ids);
+            return _impl.GetAnyOf(blockchainId, ids);
         }
 
         public Task Remove(string blockchainId, IReadOnlyCollection<CoinId> ids)
