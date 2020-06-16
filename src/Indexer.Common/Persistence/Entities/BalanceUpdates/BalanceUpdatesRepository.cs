@@ -30,6 +30,7 @@ namespace Indexer.Common.Persistence.Entities.BalanceUpdates
             }
             
             await using var connection = await _connectionFactory.Invoke();
+            await using var transaction = await connection.BeginTransactionAsync();
             
             var schema = DbSchema.GetName(blockchainId);
             var copyHelper = new PostgreSQLCopyHelper<BalanceUpdate>(schema, TableNames.BalanceUpdates)
@@ -44,19 +45,30 @@ namespace Indexer.Common.Persistence.Entities.BalanceUpdates
 
             try
             {
-                await copyHelper.SaveAllAsync(connection, balanceUpdates);
-            }
-            catch (PostgresException e) when (e.IsPrimaryKeyViolationException())
-            {
-                var notExisted = await ExcludeExistingInDb(schema, connection, balanceUpdates);
-
-                if (notExisted.Any())
+                try
                 {
-                    await copyHelper.SaveAllAsync(connection, notExisted);
+                    await copyHelper.SaveAllAsync(connection, balanceUpdates);
                 }
-            }
+                catch (PostgresException e) when (e.IsPrimaryKeyViolationException())
+                {
+                    var notExisted = await ExcludeExistingInDb(schema, connection, balanceUpdates);
 
-            await UpdateTotalBalance(connection, schema, balanceUpdates);
+                    if (notExisted.Any())
+                    {
+                        await copyHelper.SaveAllAsync(connection, notExisted);
+                    }
+                }
+
+                await UpdateTotalBalance(connection, schema, balanceUpdates);
+
+                await transaction.CommitAsync();
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+
+                throw;
+            }
         }
 
         private static Task UpdateTotalBalance(NpgsqlConnection connection, 
