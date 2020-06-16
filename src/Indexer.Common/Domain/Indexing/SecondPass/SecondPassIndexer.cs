@@ -151,20 +151,20 @@ namespace Indexer.Common.Domain.Indexing.SecondPass
 
                 if (coinsToSpend.Any())
                 {
-                    var spentCoins = coinsToSpend.Select(x => x.Spend(inputsToSpend[x.Id])).ToArray();
+                    var spentByBlockCoins = coinsToSpend.Select(x => x.Spend(inputsToSpend[x.Id])).ToArray();
 
-                    await spentCoinsRepository.InsertOrIgnore(BlockchainId, blockHeader.Id, spentCoins);
+                    await spentCoinsRepository.InsertOrIgnore(BlockchainId, blockHeader.Id, spentByBlockCoins);
 
-                    var outputCoins = await unspentCoinsRepository.GetByBlock(BlockchainId, blockHeader.Id);
+                    var blockOutputCoins = await unspentCoinsRepository.GetByBlock(BlockchainId, blockHeader.Id);
 
                     await UpdateBalances(blockHeader,
                         balanceUpdatesRepository,
-                        outputCoins,
-                        spentCoins);
+                        blockOutputCoins,
+                        spentByBlockCoins);
                     await UpdateFees(blockHeader,
                         feesRepository,
-                        outputCoins,
-                        spentCoins);
+                        blockOutputCoins,
+                        spentByBlockCoins);
 
                     await unspentCoinsRepository.Remove(BlockchainId, coinsToSpend.Select(x => x.Id).ToArray());
                 }
@@ -186,10 +186,15 @@ namespace Indexer.Common.Domain.Indexing.SecondPass
 
         private async Task UpdateFees(BlockHeader blockHeader,
             IFeesRepository feesRepository,
-            IReadOnlyCollection<UnspentCoin> outputCoins,
-            SpentCoin[] spendCoins)
+            IReadOnlyCollection<UnspentCoin> blockOutputCoins,
+            SpentCoin[] spentByBlockCoins)
         {
-            var minted = outputCoins
+            if (blockHeader.Number == 7256)
+            {
+
+            }
+
+            var minted = blockOutputCoins
                 .Select(x => new
                 {
                     TransactionId = x.Id.TransactionId,
@@ -204,10 +209,10 @@ namespace Indexer.Common.Domain.Indexing.SecondPass
                     Amount = g.Sum(x => x.Amount)
                 });
 
-            var burn = spendCoins
+            var burned = spentByBlockCoins
                 .Select(x => new
                 {
-                    TransactionId = x.Id.TransactionId,
+                    TransactionId = x.SpentByTransactionId,
                     AssetId = x.Unit.AssetId,
                     Amount = x.Unit.Amount
                 })
@@ -221,7 +226,7 @@ namespace Indexer.Common.Domain.Indexing.SecondPass
 
             var fees = new Dictionary<(string TransactionId, long AssetId), decimal>();
 
-            foreach (var item in burn)
+            foreach (var item in burned)
             {
                 fees[(item.TransactionId, item.AssetId)] = item.Amount;
             }
@@ -261,10 +266,10 @@ namespace Indexer.Common.Domain.Indexing.SecondPass
 
         private async Task UpdateBalances(BlockHeader blockHeader,
             IBalanceUpdatesRepository balanceUpdatesRepository,
-            IReadOnlyCollection<UnspentCoin> outputCoins,
-            SpentCoin[] spendCoins)
+            IReadOnlyCollection<UnspentCoin> blockOutputCoins,
+            SpentCoin[] spentByBlockCoins)
         {
-            var income = outputCoins
+            var income = blockOutputCoins
                 .Select(x => new
                 {
                     Address = x.Address,
@@ -279,7 +284,7 @@ namespace Indexer.Common.Domain.Indexing.SecondPass
                     Amount = g.Sum(x => x.Amount)
                 });
 
-            var outcome = spendCoins
+            var outcome = spentByBlockCoins
                 .Select(x => new
                 {
                     Address = x.Address,
