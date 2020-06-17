@@ -1,5 +1,7 @@
 ﻿using Indexer.Common.Domain.Assets;
 using Indexer.Common.Domain.Blocks;
+using Indexer.Common.Domain.Indexing.Common;
+using Indexer.Common.Domain.Indexing.Common.CoinBlocks;
 using Indexer.Common.Domain.Indexing.Ongoing;
 using Indexer.Common.Domain.Transactions.Transfers;
 using Microsoft.Extensions.DependencyInjection;
@@ -14,6 +16,9 @@ namespace Indexer.Common.Domain
             services.AddSingleton<IBlockReadersProvider, BlockReadersProvider>();
             services.AddTransient<AssetsManager>();
             services.AddTransient<UnspentCoinsFactory>();
+            services.AddTransient<PrimaryBlockProcessor>();
+            services.AddTransient<CoinsPrimaryBlockProcessor>();
+            services.AddTransient<CoinsSecondaryBlockProcessor>();
 
             return services;
         }

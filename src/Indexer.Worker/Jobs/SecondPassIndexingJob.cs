@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
+using Indexer.Common.Domain.Indexing.Common.CoinBlocks;
 using Indexer.Common.Domain.Indexing.SecondPass;
 using Indexer.Common.Persistence.Entities.BalanceUpdates;
 using Indexer.Common.Persistence.Entities.BlockHeaders;
@@ -25,11 +26,7 @@ namespace Indexer.Worker.Jobs
         private readonly IAppInsight _appInsight;
         private readonly BackgroundJob _job;
         private SecondPassIndexer _indexer;
-        private readonly IInputCoinsRepository _inputCoinsRepository;
-        private readonly IUnspentCoinsRepository _unspentCoinsRepository;
-        private readonly ISpentCoinsRepository _spentCoinsRepository;
-        private readonly IBalanceUpdatesRepository _balanceUpdatesRepository;
-        private readonly IFeesRepository _feesRepository;
+        private readonly CoinsSecondaryBlockProcessor _coinsSecondaryBlockProcessor;
 
         public SecondPassIndexingJob(ILogger<SecondPassIndexingJob> logger,
             ILoggerFactory loggerFactory,
@@ -39,11 +36,7 @@ namespace Indexer.Worker.Jobs
             IBlockHeadersRepository blockHeadersRepository,
             OngoingIndexingJobsManager ongoingIndexingJobsManager,
             IAppInsight appInsight,
-            IInputCoinsRepository inputCoinsRepository,
-            IUnspentCoinsRepository unspentCoinsRepository,
-            ISpentCoinsRepository spentCoinsRepository,
-            IBalanceUpdatesRepository balanceUpdatesRepository,
-            IFeesRepository feesRepository)
+            CoinsSecondaryBlockProcessor coinsSecondaryBlockProcessor)
         {
             _logger = logger;
             _loggerFactory = loggerFactory;
@@ -53,12 +46,8 @@ namespace Indexer.Worker.Jobs
             _blockHeadersRepository = blockHeadersRepository;
             _ongoingIndexingJobsManager = ongoingIndexingJobsManager;
             _appInsight = appInsight;
-            _inputCoinsRepository = inputCoinsRepository;
-            _unspentCoinsRepository = unspentCoinsRepository;
-            _spentCoinsRepository = spentCoinsRepository;
-            _balanceUpdatesRepository = balanceUpdatesRepository;
-            _feesRepository = feesRepository;
-            
+            _coinsSecondaryBlockProcessor = coinsSecondaryBlockProcessor;
+
             _job = new BackgroundJob(
                 _logger,
                 "Second-pass indexing",
@@ -97,18 +86,13 @@ namespace Indexer.Worker.Jobs
         {
             try
             {
-                // TODO: Add some delay in case of an error to reduce workload on the DB
                 // TODO: Move max blocks count to config
                 var indexingResult = await _indexer.IndexAvailableBlocks(
                     _loggerFactory.CreateLogger<SecondPassIndexer>(),
                     maxBlocksCount: 100,
                     _blockHeadersRepository,
                     _appInsight,
-                    _inputCoinsRepository,
-                    _unspentCoinsRepository,
-                    _spentCoinsRepository,
-                    _balanceUpdatesRepository,
-                    _feesRepository);
+                    _coinsSecondaryBlockProcessor);
 
                 if (indexingResult == SecondPassIndexingResult.IndexingCompleted)
                 {
@@ -136,6 +120,8 @@ namespace Indexer.Worker.Jobs
                 });
 
                 _indexer = await _indexersRepository.Get(_blockchainId);
+
+                await Task.Delay(TimeSpan.FromSeconds(30));
             }
         }
     }

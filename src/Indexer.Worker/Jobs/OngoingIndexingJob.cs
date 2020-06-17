@@ -199,7 +199,7 @@ namespace Indexer.Worker.Jobs
                             break;
                         }
 
-                        // Saves the indexer state only every 100 blocks
+                        // Saves the indexer state only every N blocks
 
                         // TODO: Move batch size to the config
 

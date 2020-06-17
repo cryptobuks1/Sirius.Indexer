@@ -7,7 +7,6 @@ using Indexer.Common.Persistence.Entities.TransactionHeaders;
 using MassTransit;
 using Microsoft.Extensions.Logging;
 using Swisschain.Sirius.Indexer.MessagingContract;
-using Swisschain.Sirius.Sdk.Primitives;
 
 namespace Indexer.Common.Domain.Indexing.Ongoing
 {

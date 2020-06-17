@@ -1,14 +1,10 @@
 ﻿using System;
 using System.Threading.Tasks;
+using Indexer.Common.Domain.Indexing.Common.CoinBlocks;
 using Indexer.Common.Domain.Indexing.FirstPass;
 using Indexer.Common.Domain.Indexing.SecondPass;
-using Indexer.Common.Persistence.Entities.BalanceUpdates;
 using Indexer.Common.Persistence.Entities.BlockHeaders;
-using Indexer.Common.Persistence.Entities.Fees;
-using Indexer.Common.Persistence.Entities.InputCoins;
 using Indexer.Common.Persistence.Entities.SecondPassIndexers;
-using Indexer.Common.Persistence.Entities.SpentCoins;
-using Indexer.Common.Persistence.Entities.UnspentCoins;
 using Indexer.Common.Telemetry;
 using Indexer.Worker.Jobs;
 using Indexer.Worker.Limiters;
@@ -27,33 +23,21 @@ namespace Indexer.Worker.MessageConsumers
         private readonly ISecondPassIndexersRepository _secondPassIndexersRepository;
         private readonly OngoingIndexingJobsManager _ongoingIndexingJobsManager;
         private readonly IAppInsight _appInsight;
-        private readonly IInputCoinsRepository _inputCoinsRepository;
-        private readonly IUnspentCoinsRepository _unspentCoinsRepository;
-        private readonly ISpentCoinsRepository _spentCoinsRepository;
-        private readonly IBalanceUpdatesRepository _balanceUpdatesRepository;
-        private readonly IFeesRepository _feesRepository;
+        private readonly CoinsSecondaryBlockProcessor _coinsSecondaryBlockProcessor;
 
         public FirstPassBlockDetectedConsumer(ILoggerFactory loggerFactory,
             IBlockHeadersRepository blockHeadersRepository,
             ISecondPassIndexersRepository secondPassIndexersRepository,
             OngoingIndexingJobsManager ongoingIndexingJobsManager,
             IAppInsight appInsight,
-            IInputCoinsRepository inputCoinsRepository,
-            IUnspentCoinsRepository unspentCoinsRepository,
-            ISpentCoinsRepository spentCoinsRepository,
-            IBalanceUpdatesRepository balanceUpdatesRepository,
-            IFeesRepository feesRepository)
+            CoinsSecondaryBlockProcessor coinsSecondaryBlockProcessor)
         {
             _loggerFactory = loggerFactory;
             _blockHeadersRepository = blockHeadersRepository;
             _secondPassIndexersRepository = secondPassIndexersRepository;
             _ongoingIndexingJobsManager = ongoingIndexingJobsManager;
             _appInsight = appInsight;
-            _inputCoinsRepository = inputCoinsRepository;
-            _unspentCoinsRepository = unspentCoinsRepository;
-            _spentCoinsRepository = spentCoinsRepository;
-            _balanceUpdatesRepository = balanceUpdatesRepository;
-            _feesRepository = feesRepository;
+            _coinsSecondaryBlockProcessor = coinsSecondaryBlockProcessor;
         }
 
         public async Task Consume(ConsumeContext<FirstPassBlockDetected> context)
@@ -76,11 +60,7 @@ namespace Indexer.Worker.MessageConsumers
                 100,
                 _blockHeadersRepository,
                 _appInsight,
-                _inputCoinsRepository,
-                _unspentCoinsRepository,
-                _spentCoinsRepository,
-                _balanceUpdatesRepository,
-                _feesRepository);
+                _coinsSecondaryBlockProcessor);
 
             await _secondPassIndexersRepository.Update(secondPassIndexer);
 
