@@ -189,11 +189,6 @@ namespace Indexer.Common.Domain.Indexing.SecondPass
             IReadOnlyCollection<UnspentCoin> blockOutputCoins,
             SpentCoin[] spentByBlockCoins)
         {
-            if (blockHeader.Number == 7256)
-            {
-
-            }
-
             var minted = blockOutputCoins
                 .Select(x => new
                 {
@@ -270,6 +265,7 @@ namespace Indexer.Common.Domain.Indexing.SecondPass
             SpentCoin[] spentByBlockCoins)
         {
             var income = blockOutputCoins
+                .Where(x => x.Address != null)
                 .Select(x => new
                 {
                     Address = x.Address,
@@ -285,6 +281,7 @@ namespace Indexer.Common.Domain.Indexing.SecondPass
                 });
 
             var outcome = spentByBlockCoins
+                .Where(x => x.Address != null)
                 .Select(x => new
                 {
                     Address = x.Address,
