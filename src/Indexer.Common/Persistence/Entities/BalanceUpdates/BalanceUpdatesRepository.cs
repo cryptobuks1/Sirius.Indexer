@@ -20,6 +20,7 @@ namespace Indexer.Common.Persistence.Entities.BalanceUpdates
 
         /// <summary>
         /// Only one item for the (address, assetId, blockNumber) tuple should be in the list.
+        /// Only balance updates from the same block should be in the list.
         /// It's not checked due to performance reason
         /// </summary>
         public async Task InsertOrIgnore(string blockchainId, IReadOnlyCollection<BalanceUpdate> balanceUpdates)
@@ -75,8 +76,7 @@ namespace Indexer.Common.Persistence.Entities.BalanceUpdates
             string schema,
             IReadOnlyCollection<BalanceUpdate> balanceUpdates)
         {
-            var inList = string.Join(", ", balanceUpdates.Select(x => $"('{x.Address}', {x.AssetId}, {x.BlockNumber})"));
-
+            var blockNumber = balanceUpdates.First().BlockNumber;
             var query = $@"
                 update {schema}.{TableNames.BalanceUpdates} as cur
 	            set total = amount + 
@@ -95,12 +95,9 @@ namespace Indexer.Common.Persistence.Entities.BalanceUpdates
 			            0
 		            ) as prev_total
 	            )
-	            where (address, asset_id, block_number) in 
-	            (
-		            {inList}
-	            )";
+	            where block_number = @blockNumber";
 
-            return connection.ExecuteAsync(query);
+            return connection.ExecuteAsync(query, new {blockNumber});
         }
 
         private static async Task<IReadOnlyCollection<BalanceUpdate>> ExcludeExistingInDb(
