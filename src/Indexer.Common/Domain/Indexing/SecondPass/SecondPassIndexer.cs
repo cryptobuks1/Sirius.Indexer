@@ -88,6 +88,7 @@ namespace Indexer.Common.Domain.Indexing.SecondPass
             }
 
             var blocks = await blockHeadersRepository.GetBatch(BlockchainId, NextBlock, maxBlocksCount);
+            var processedBlocksCount = 0;
 
             try
             {
@@ -106,6 +107,8 @@ namespace Indexer.Common.Domain.Indexing.SecondPass
                         balanceUpdatesRepository,
                         feesRepository);
 
+                    ++processedBlocksCount;
+
                     if (IsCompleted)
                     {
                         return SecondPassIndexingResult.IndexingCompleted;
@@ -114,7 +117,7 @@ namespace Indexer.Common.Domain.Indexing.SecondPass
             }
             finally
             {
-                logger.LogInformation("Second-pass indexer has processed the blocks batch {@context}", this);
+                logger.LogInformation("Second-pass indexer has processed the blocks batch {@context}. {@processedBlocksCount}", this, processedBlocksCount);
             }
 
             return SecondPassIndexingResult.IndexingInProgress;

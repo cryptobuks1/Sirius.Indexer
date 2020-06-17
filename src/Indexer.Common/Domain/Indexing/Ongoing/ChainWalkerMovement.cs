@@ -19,9 +19,9 @@ namespace Indexer.Common.Domain.Indexing.Ongoing
             return new ChainWalkerMovement(MovementDirection.Forward, null);
         }
 
-        public static ChainWalkerMovement CreateBackward(BlockHeader previousBlockHeader)
+        public static ChainWalkerMovement CreateBackward(BlockHeader evictedBlockHeader)
         {
-            return new ChainWalkerMovement(MovementDirection.Backward, previousBlockHeader);
+            return new ChainWalkerMovement(MovementDirection.Backward, evictedBlockHeader);
         }
 
         public override string ToString()
