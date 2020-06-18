@@ -85,9 +85,8 @@ namespace Indexer.Common.Persistence.Entities.Assets
 
             var existingEntities = await GetInList(connection, schema, blockchainAssets.Select(x => x.Id).ToArray());
 
-            var existingIds = existingEntities
-                .Select(x => new BlockchainAssetId(x.symbol, x.address))
-                .ToHashSet();
+            var existingIds = Enumerable.ToHashSet(existingEntities
+                    .Select(x => new BlockchainAssetId(x.symbol, x.address)));
             
             return blockchainAssets.Where(x => !existingIds.Contains(x.Id)).ToArray();
         }
@@ -96,33 +95,48 @@ namespace Indexer.Common.Persistence.Entities.Assets
             string schema, 
             IReadOnlyCollection<BlockchainAssetId> blockchainAssetIds)
         {
-            var idsWithAddress = blockchainAssetIds.Where(x => x.Address != null).ToArray();
-            var inListWithAddress = string.Join(", ", idsWithAddress.Select(x => $"('{x.Symbol}', '{x.Address}'"));
-            var idsWithoutAddress = blockchainAssetIds.Where(x => x.Address == null).ToArray();
-            var inListWithoutAddress = string.Join("', '", idsWithoutAddress.Select(x => x.Symbol));
+            const int batchSize = 1000;
 
-            var queryBuilder = new StringBuilder();
-
-            queryBuilder.AppendLine($"select * from {schema}.{TableNames.Assets} where");
-
-            if (idsWithAddress.Any())
+            async Task<IEnumerable<AssetEntity>> ReadBatch(IReadOnlyCollection<BlockchainAssetId> batch)
             {
-                queryBuilder.AppendLine($"address is not null and (symbol, address) in ({inListWithAddress})");
+                var idsWithAddress = batch.Where(x => x.Address != null).ToArray();
+                var inListWithAddress = string.Join(", ", idsWithAddress.Select(x => $"('{x.Symbol}', '{x.Address}'"));
+                var idsWithoutAddress = batch.Where(x => x.Address == null).ToArray();
+                var inListWithoutAddress = string.Join("', '", idsWithoutAddress.Select(x => x.Symbol));
+
+                var queryBuilder = new StringBuilder();
+
+                queryBuilder.AppendLine($"select * from {schema}.{TableNames.Assets} where");
+
+                if (idsWithAddress.Any())
+                {
+                    queryBuilder.AppendLine($"address is not null and (symbol, address) in ({inListWithAddress})");
+
+                    if (idsWithoutAddress.Any())
+                    {
+                        queryBuilder.AppendLine("or");
+                    }
+                }
 
                 if (idsWithoutAddress.Any())
                 {
-                    queryBuilder.AppendLine("or");
+                    queryBuilder.AppendLine($"address is null and symbol in ('{inListWithoutAddress}')");
                 }
+
+                queryBuilder.AppendLine("limit @limit");
+
+                var query = queryBuilder.ToString();
+
+                return await connection.QueryAsync<AssetEntity>(query, new {limit = batchSize});
             }
 
-            if (idsWithoutAddress.Any())
+            var entities = new List<AssetEntity>(blockchainAssetIds.Count);
+
+            foreach (var batch in MoreLinq.MoreEnumerable.Batch(blockchainAssetIds, batchSize))
             {
-                queryBuilder.Append($"address is null and symbol in ('{inListWithoutAddress}')");
+                entities.AddRange(await ReadBatch(batch.ToArray()));
             }
 
-            var query = queryBuilder.ToString();
-
-            var entities = await connection.QueryAsync<AssetEntity>(query);
             return entities;
         }
 

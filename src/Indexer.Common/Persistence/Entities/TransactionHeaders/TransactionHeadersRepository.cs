@@ -50,7 +50,7 @@ namespace Indexer.Common.Persistence.Entities.TransactionHeaders
                 }
                 catch (PostgresException e) when (e.IsPrimaryKeyViolationException())
                 {
-                    var notExisted = await ExcludeExistingInDb(connection, transactionHeaders);
+                    var notExisted = await ExcludeExistingInDb(connection, schema, transactionHeaders);
 
                     if (notExisted.Any())
                     {
@@ -80,6 +80,7 @@ namespace Indexer.Common.Persistence.Entities.TransactionHeaders
 
         private static async Task<IReadOnlyCollection<TransactionHeader>> ExcludeExistingInDb(
             NpgsqlConnection connection,
+            string schema,
             IReadOnlyCollection<TransactionHeader> transactionHeaders)
         {
             if (!transactionHeaders.Any())
@@ -87,14 +88,15 @@ namespace Indexer.Common.Persistence.Entities.TransactionHeaders
                 return Array.Empty<TransactionHeader>();
             }
 
-            var schema = DbSchema.GetName(transactionHeaders.First().BlockchainId);
-            var ids = transactionHeaders.Select(x => x.Id);
-            var inList = string.Join("', '", ids);
+            var existingEntities = await connection.QueryInList<TransactionHeaderEntity, TransactionHeader>(
+                schema,
+                TableNames.TransactionHeaders,
+                transactionHeaders,
+                columnsToSelect: "id",
+                listColumns: "id",
+                x => $"'{x.Id}'",
+                knownSourceLength: transactionHeaders.Count);
             
-            // limit is specified to avoid scanning indexes of the partitions once all headers are found
-            var query = $"select id from {schema}.{TableNames.TransactionHeaders} where id in ('{inList}') limit @limit";
-            var existingEntities = await connection.QueryAsync<TransactionHeaderEntity>(query, new {limit = transactionHeaders.Count});
-
             var existingIds = existingEntities
                 .Select(x => x.id)
                 .ToHashSet();

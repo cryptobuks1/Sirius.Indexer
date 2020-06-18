@@ -66,10 +66,14 @@ namespace Indexer.Common.Persistence.Entities.UnspentCoins
             await using var connection = await _connectionFactory.Invoke();
 
             var schema = DbSchema.GetName(blockchainId);
-            var inList = string.Join(", ", ids.Select(x => $"('{x.TransactionId}', {x.Number})"));
-            var query = $"select * from {schema}.{TableNames.UnspentCoins} where (transaction_id, number) in ({inList}) limit @limit";
-
-            var entities = await connection.QueryAsync<UnspentCoinEntity>(query, new {limit = ids.Count});
+            var entities = await connection.QueryInList<UnspentCoinEntity, CoinId>(
+                schema,
+                TableNames.UnspentCoins,
+                ids,
+                columnsToSelect: "*",
+                listColumns: "transaction_id, number",
+                x => $"('{x.TransactionId}', {x.Number})",
+                knownSourceLength: ids.Count);
 
             var domainObjects = entities
                 .Select(MapToDomain)
@@ -88,10 +92,19 @@ namespace Indexer.Common.Persistence.Entities.UnspentCoins
             await using var connection = await _connectionFactory.Invoke();
 
             var schema = DbSchema.GetName(blockchainId);
-            var inList = string.Join(", ", ids.Select(x => $"('{x.TransactionId}', {x.Number})"));
-            var query = $"delete from {schema}.{TableNames.UnspentCoins} where (transaction_id, number) in ({inList})";
 
-            await connection.ExecuteAsync(query);
+            async Task RemoveBatch(NpgsqlConnection conn, IEnumerable<CoinId> batch)
+            {
+                var inList = string.Join(", ", batch.Select(x => $"('{x.TransactionId}', {x.Number})"));
+                var query = $"delete from {schema}.{TableNames.UnspentCoins} where (transaction_id, number) in ({inList})";
+
+                await conn.ExecuteAsync(query);
+            }
+
+            foreach (var batch in MoreLinq.MoreEnumerable.Batch(ids, 1000))
+            {
+                await RemoveBatch(connection, batch);
+            }
         }
 
         public async Task<IReadOnlyCollection<UnspentCoin>> GetByBlock(string blockchainId, string blockId)
@@ -118,12 +131,15 @@ namespace Indexer.Common.Persistence.Entities.UnspentCoins
                 return Array.Empty<UnspentCoin>();
             }
 
-            var inList = string.Join(", ", coins.Select(x => $"('{x.Id.TransactionId}', {x.Id.Number})"));
+            var existingEntities = await connection.QueryInList<UnspentCoinEntity, UnspentCoin>(
+                schema,
+                TableNames.UnspentCoins,
+                coins,
+                columnsToSelect: "transaction_id, number ",
+                listColumns: "transaction_id, number",
+                x => $"('{x.Id.TransactionId}', {x.Id.Number})",
+                knownSourceLength: coins.Count);
             
-            // limit is specified to avoid scanning indexes of the partitions once all headers are found
-            var query = $"select transaction_id, number from {schema}.{TableNames.UnspentCoins} where (transaction_id, number) in ({inList}) limit @limit";
-            var existingEntities = await connection.QueryAsync<UnspentCoinEntity>(query, new {limit = coins.Count});
-
             var existing = existingEntities
                 .Select(x => new CoinId(x.transaction_id, x.number))
                 .ToHashSet();

@@ -31,7 +31,7 @@ namespace Indexer.Common.Persistence.Entities.BalanceUpdates
             }
             
             await using var connection = await _connectionFactory.Invoke();
-            await using var transaction = await connection.BeginTransactionAsync();
+            var transaction = await connection.BeginTransactionAsync();
             
             var schema = DbSchema.GetName(blockchainId);
             var copyHelper = new PostgreSQLCopyHelper<BalanceUpdate>(schema, TableNames.BalanceUpdates)
@@ -52,6 +52,11 @@ namespace Indexer.Common.Persistence.Entities.BalanceUpdates
                 }
                 catch (PostgresException e) when (e.IsPrimaryKeyViolationException())
                 {
+                    await transaction.RollbackAsync();
+                    await transaction.DisposeAsync();
+
+                    transaction = await connection.BeginTransactionAsync();
+
                     var notExisted = await ExcludeExistingInDb(schema, connection, balanceUpdates);
 
                     if (notExisted.Any())
@@ -69,6 +74,10 @@ namespace Indexer.Common.Persistence.Entities.BalanceUpdates
                 await transaction.RollbackAsync();
 
                 throw;
+            }
+            finally
+            {
+                await transaction.DisposeAsync();
             }
         }
 
@@ -110,11 +119,14 @@ namespace Indexer.Common.Persistence.Entities.BalanceUpdates
                 return Array.Empty<BalanceUpdate>();
             }
 
-            var inList = string.Join(", ", balanceUpdates.Select(x => $"('{x.Address}', {x.AssetId}, {x.BlockNumber})"));
-            
-            // limit is specified to avoid scanning indexes of the partitions once all headers are found
-            var query = $"select address, asset_id, block_number from {schema}.{TableNames.BalanceUpdates} where (address, asset_id, block_number) in ({inList}) limit @limit";
-            var existingEntities = await connection.QueryAsync<BalanceUpdateEntity>(query, new {limit = balanceUpdates.Count});
+            var existingEntities = await connection.QueryInList<BalanceUpdateEntity, BalanceUpdate>(
+                schema,
+                TableNames.BalanceUpdates,
+                balanceUpdates,
+                columnsToSelect: "address, asset_id, block_number",
+                listColumns: "address, asset_id, block_number",
+                x => $"('{x.Address}', {x.AssetId}, {x.BlockNumber})",
+                knownSourceLength: balanceUpdates.Count);
 
             var existing = existingEntities
                 .Select(x => (x.address, x.asset_id, x.block_number))

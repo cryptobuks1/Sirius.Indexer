@@ -58,11 +58,14 @@ namespace Indexer.Common.Persistence.Entities.Fees
                 return Array.Empty<Fee>();
             }
 
-            var inList = string.Join(", ", fees.Select(x => $"('{x.TransactionId}', {x.AssetId})"));
-            
-            // limit is specified to avoid scanning indexes of the partitions once all headers are found
-            var query = $"select transaction_id, asset_id from {schema}.{TableNames.Fees} where (transaction_id, asset_id) in ({inList}) limit @limit";
-            var existingEntities = await connection.QueryAsync<FeeEntity>(query, new {limit = fees.Count});
+            var existingEntities = await connection.QueryInList<FeeEntity, Fee>(
+                schema,
+                TableNames.Fees,
+                fees,
+                columnsToSelect: "transaction_id, asset_id",
+                listColumns: "transaction_id, asset_id",
+                x => $"('{x.TransactionId}', {x.AssetId})",
+                knownSourceLength: fees.Count);
 
             var existing = existingEntities
                 .Select(x => (x.transaction_id, x.asset_id))

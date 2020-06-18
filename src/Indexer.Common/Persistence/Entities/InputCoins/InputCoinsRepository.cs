@@ -82,12 +82,15 @@ namespace Indexer.Common.Persistence.Entities.InputCoins
             {
                 return Array.Empty<InputCoin>();
             }
-
-            var inList = string.Join(", ", coins.Select(x => $"('{x.Id.TransactionId}', {x.Id.Number})"));
             
-            // limit is specified to avoid scanning indexes of the partitions once all headers are found
-            var query = $"select transaction_id, number from {schema}.{TableNames.InputCoins} where (transaction_id, number) in ({inList}) limit @limit";
-            var existingEntities = await connection.QueryAsync<InputCoinEntity>(query, new {limit = coins.Count});
+            var existingEntities = await connection.QueryInList<InputCoinEntity, InputCoin>(
+                schema,
+                TableNames.InputCoins,
+                coins,
+                columnsToSelect: "transaction_id, number ",
+                listColumns: "transaction_id, number",
+                x => $"('{x.Id.TransactionId}', {x.Id.Number})",
+                knownSourceLength: coins.Count);
 
             var existing = existingEntities
                 .Select(x => new CoinId(x.transaction_id, x.number))
