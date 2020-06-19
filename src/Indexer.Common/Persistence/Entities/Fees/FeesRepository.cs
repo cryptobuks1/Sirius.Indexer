@@ -32,7 +32,6 @@ namespace Indexer.Common.Persistence.Entities.Fees
                 .UsePostgresQuoting()
                 .MapVarchar(nameof(FeeEntity.transaction_id), x => x.TransactionId)
                 .MapBigInt(nameof(FeeEntity.asset_id), x => x.AssetId)
-                .MapVarchar(nameof(FeeEntity.block_id), x => x.BlockId)
                 .MapNumeric(nameof(FeeEntity.amount), x => x.Amount);
 
             try
