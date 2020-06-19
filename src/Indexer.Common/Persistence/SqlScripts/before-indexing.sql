@@ -56,6 +56,9 @@ create unlogged table transaction_headers
     constraint pk_transaction_headers primary key (id)
 )  partition by hash (id);
 
+create index ix_transaction_headers_block_id
+    on transaction_headers (block_id);
+
 create table transaction_headers_0 partition of transaction_headers for values with (modulus 10, remainder 0);
 create table transaction_headers_1 partition of transaction_headers for values with (modulus 10, remainder 1);
 create table transaction_headers_2 partition of transaction_headers for values with (modulus 10, remainder 2);
@@ -71,7 +74,6 @@ create table transaction_headers_9 partition of transaction_headers for values w
 
 create unlogged table input_coins
 (
-    block_id                        varchar(256) not null,
     transaction_id                  varchar(256) not null,
     number                          int not null,
     type                            int not null,
@@ -80,9 +82,6 @@ create unlogged table input_coins
 
     constraint pk_input_coins primary key (transaction_id, number)
 ) partition by hash (transaction_id, number);
-
-create index ix_input_coins_block_id
-    on input_coins (block_id);
 
 create table input_coins_0 partition of input_coins for values with (modulus 20, remainder 0);
 create table input_coins_1 partition of input_coins for values with (modulus 20, remainder 1);
@@ -111,7 +110,6 @@ create unlogged table unspent_coins
 (
     transaction_id      varchar(256) not null,
     number              int not null,
-    block_id            varchar(256) not null,
     asset_id            bigint not null,
     amount              numeric not null,
     address             varchar(256),
@@ -120,9 +118,6 @@ create unlogged table unspent_coins
 
     constraint pk_unspent_coins primary key (transaction_id, number)
 ) partition by hash (transaction_id, number);
-
-create index ix_unspent_coins_block_id
-    on unspent_coins (block_id);
 
 create table unspent_coins_0 partition of unspent_coins for values with (modulus 20, remainder 0);
 create table unspent_coins_1 partition of unspent_coins for values with (modulus 20, remainder 1);
@@ -151,7 +146,6 @@ create unlogged table spent_coins
 (
     transaction_id              varchar(256) not null,
     number                      int not null,
-    block_id                    varchar(256) not null,
     asset_id                    bigint not null,
     amount                      numeric not null,
     address                     varchar(256),
@@ -226,7 +220,6 @@ create unlogged table fees
 (
     transaction_id      varchar(256) not null,
     asset_id            bigint not null,
-    block_id            varchar(256) not null,
     amount              numeric not null,
 
     constraint pk_fees primary key (transaction_id, asset_id)

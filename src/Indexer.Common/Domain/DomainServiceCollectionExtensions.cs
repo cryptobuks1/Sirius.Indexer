@@ -19,6 +19,7 @@ namespace Indexer.Common.Domain
             services.AddTransient<PrimaryBlockProcessor>();
             services.AddTransient<CoinsPrimaryBlockProcessor>();
             services.AddTransient<CoinsSecondaryBlockProcessor>();
+            services.AddTransient<CoinsBlockCanceler>();
 
             return services;
         }

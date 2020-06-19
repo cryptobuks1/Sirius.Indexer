@@ -17,5 +17,10 @@ namespace Indexer.Common.Persistence.Entities.BalanceUpdates
         {
             return _impl.InsertOrIgnore(blockchainId, balanceUpdates);
         }
+
+        public Task RemoveByBlock(string blockchainId, string blockId)
+        {
+            return _impl.RemoveByBlock(blockchainId, blockId);
+        }
     }
 }

@@ -73,7 +73,7 @@ namespace Indexer.Common.Persistence.Entities.TransactionHeaders
             await using var connection = await _connectionFactory.Invoke();
 
             var schema = DbSchema.GetName(blockchainId);
-            var query = $"delete from {schema}.{TableNames.TransactionHeaders} where bBlock_id = @blockId";
+            var query = $"delete from {schema}.{TableNames.TransactionHeaders} where block_id = @blockId";
 
             await connection.ExecuteAsync(query, new {blockId});
         }

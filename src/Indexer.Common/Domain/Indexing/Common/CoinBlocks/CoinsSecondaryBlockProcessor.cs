@@ -14,7 +14,7 @@ using Swisschain.Sirius.Sdk.Primitives;
 
 namespace Indexer.Common.Domain.Indexing.Common.CoinBlocks
 {
-    public class CoinsSecondaryBlockProcessor
+    public sealed class CoinsSecondaryBlockProcessor
     {
         private readonly IInputCoinsRepository _inputCoinsRepository;
         private readonly IUnspentCoinsRepository _unspentCoinsRepository;
@@ -53,10 +53,9 @@ namespace Indexer.Common.Domain.Indexing.Common.CoinBlocks
             {
                 var spentByBlockCoins = coinsToSpend.Select(x => x.Spend(inputsToSpend[x.Id])).ToArray();
 
-                await _spentCoinsRepository.InsertOrIgnore(blockHeader.BlockchainId, blockHeader.Id, spentByBlockCoins);
+                await _spentCoinsRepository.InsertOrIgnore(blockHeader.BlockchainId, spentByBlockCoins);
 
-                var blockOutputCoins =
-                    await _unspentCoinsRepository.GetByBlock(blockHeader.BlockchainId, blockHeader.Id);
+                var blockOutputCoins = await _unspentCoinsRepository.GetByBlock(blockHeader.BlockchainId, blockHeader.Id);
 
                 await UpdateBalances(blockHeader,
                     blockOutputCoins,
@@ -65,8 +64,7 @@ namespace Indexer.Common.Domain.Indexing.Common.CoinBlocks
                     blockOutputCoins,
                     spentByBlockCoins);
 
-                await _unspentCoinsRepository.Remove(blockHeader.BlockchainId,
-                    coinsToSpend.Select(x => x.Id).ToArray());
+                await _unspentCoinsRepository.Remove(blockHeader.BlockchainId, coinsToSpend.Select(x => x.Id).ToArray());
             }
         }
 
@@ -92,7 +90,7 @@ namespace Indexer.Common.Domain.Indexing.Common.CoinBlocks
             var burned = spentByBlockCoins
                 .Select(x => new
                 {
-                    TransactionId = x.SpentByTransactionId,
+                    TransactionId = x.SpentByCoinId.TransactionId,
                     AssetId = x.Unit.AssetId,
                     Amount = x.Unit.Amount
                 })

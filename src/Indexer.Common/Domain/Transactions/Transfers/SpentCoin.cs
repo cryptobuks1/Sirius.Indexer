@@ -9,16 +9,14 @@ namespace Indexer.Common.Domain.Transactions.Transfers
             string address,
             string tag,
             DestinationTagType? tagType,
-            string spentByTransactionId,
-            int spentByInputCoinNumber)
+            CoinId spentByCoinId)
         {
             Id = id;
             Unit = unit;
             Address = address;
             Tag = tag;
             TagType = tagType;
-            SpentByTransactionId = spentByTransactionId;
-            SpentByInputCoinNumber = spentByInputCoinNumber;
+            SpentByCoinId = spentByCoinId;
         }
 
         public CoinId Id { get; }
@@ -26,7 +24,16 @@ namespace Indexer.Common.Domain.Transactions.Transfers
         public string Address { get; }
         public string Tag { get; }
         public DestinationTagType? TagType { get; }
-        public string SpentByTransactionId { get; }
-        public int SpentByInputCoinNumber { get; }
+        public CoinId SpentByCoinId { get; }
+
+        public UnspentCoin Revert()
+        {
+            return new UnspentCoin(
+                Id,
+                Unit,
+                Address,
+                Tag,
+                TagType);
+        }
     }
 }

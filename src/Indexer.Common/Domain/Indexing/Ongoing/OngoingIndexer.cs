@@ -2,8 +2,8 @@
 using System.Linq;
 using System.Threading.Tasks;
 using Indexer.Common.Domain.Blocks;
-using Indexer.Common.Persistence.Entities.BlockHeaders;
-using Indexer.Common.Persistence.Entities.TransactionHeaders;
+using Indexer.Common.Domain.Indexing.Common;
+using Indexer.Common.Domain.Indexing.Common.CoinBlocks;
 using MassTransit;
 using Microsoft.Extensions.Logging;
 using Swisschain.Sirius.Indexer.MessagingContract;
@@ -72,8 +72,10 @@ namespace Indexer.Common.Domain.Indexing.Ongoing
         public async Task<IOngoingIndexingResult> IndexNextBlock(ILogger<OngoingIndexer> logger,
             IBlocksReader reader,
             ChainWalker chainWalker,
-            IBlockHeadersRepository blockHeadersRepository,
-            ITransactionHeadersRepository transactionHeadersRepository,
+            PrimaryBlockProcessor primaryBlockProcessor,
+            CoinsPrimaryBlockProcessor coinsPrimaryBlockProcessor,
+            CoinsSecondaryBlockProcessor coinsSecondaryBlockProcessor,
+            CoinsBlockCanceler coinsBlockCanceler,
             IPublishEndpoint publisher)
         {
             var newBlock = await reader.ReadCoinsBlockOrDefault(NextBlock);
@@ -91,6 +93,12 @@ namespace Indexer.Common.Domain.Indexing.Ongoing
             switch (chainWalkerMovement.Direction)
             {
                 case MovementDirection.Forward:
+                    await primaryBlockProcessor.Process(newBlock.Header, newBlock.Transfers.Select(x => x.Header).ToArray());
+                    await coinsPrimaryBlockProcessor.Process(newBlock);
+                    // TODO: We can pass some data from the primary block processor directly to the
+                    // secondary block processor directly skipping reading them from the DB
+                    await coinsSecondaryBlockProcessor.Process(newBlock.Header);
+
                     // This is needed to mitigate events publishing latency
                     indexingResult.AddBackgroundTask(
                         publisher.Publish(new BlockDetected
@@ -118,10 +126,6 @@ namespace Indexer.Common.Domain.Indexing.Ongoing
                         //    }));
                     }
 
-                    await blockHeadersRepository.InsertOrIgnore(newBlock.Header);
-                    await transactionHeadersRepository.InsertOrIgnore(newBlock.Transfers.Select(x => x.Header).ToArray());
-                    // TODO: Save rest of the data
-
                     NextBlock++;
                     Sequence++;
                     
@@ -135,6 +139,8 @@ namespace Indexer.Common.Domain.Indexing.Ongoing
                     break;
 
                 case MovementDirection.Backward:
+                    await coinsBlockCanceler.Cancel(chainWalkerMovement.EvictedBlockHeader);
+
                     // This is needed to mitigate events publishing latency
                     indexingResult.AddBackgroundTask(
                         publisher.Publish(new BlockCancelled
@@ -144,11 +150,7 @@ namespace Indexer.Common.Domain.Indexing.Ongoing
                             BlockNumber = chainWalkerMovement.EvictedBlockHeader.Number,
                             ChainSequence = Sequence
                         }));
-
-                    await blockHeadersRepository.Remove(chainWalkerMovement.EvictedBlockHeader.BlockchainId, chainWalkerMovement.EvictedBlockHeader.Id);
-                    await transactionHeadersRepository.RemoveByBlock(BlockchainId, chainWalkerMovement.EvictedBlockHeader.Id);
-                    // TODO: Remove rest of the data
-
+                    
                     NextBlock--;
                     Sequence++;
 

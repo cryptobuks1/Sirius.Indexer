@@ -8,5 +8,6 @@ namespace Indexer.Common.Persistence.Entities.InputCoins
     {
         Task InsertOrIgnore(string blockchainId, string blockId, IReadOnlyCollection<InputCoin> coins);
         Task<IReadOnlyCollection<InputCoin>> GetByBlock(string blockchainId, string blockId);
+        Task RemoveByBlock(string blockchainId, string blockId);
     }
 }

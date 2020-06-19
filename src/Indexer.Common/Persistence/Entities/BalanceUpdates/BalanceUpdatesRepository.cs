@@ -81,6 +81,16 @@ namespace Indexer.Common.Persistence.Entities.BalanceUpdates
             }
         }
 
+        public async Task RemoveByBlock(string blockchainId, string blockId)
+        {
+            await using var connection = await _connectionFactory.Invoke();
+
+            var schema = DbSchema.GetName(blockchainId);
+            var query = $@"delete from {schema}.{TableNames.BalanceUpdates} where block_id = @blockId";
+
+            await connection.ExecuteAsync(query, new {blockId});
+        }
+
         private static Task UpdateTotalBalance(NpgsqlConnection connection, 
             string schema,
             IReadOnlyCollection<BalanceUpdate> balanceUpdates)

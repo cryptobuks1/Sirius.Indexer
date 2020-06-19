@@ -51,7 +51,23 @@ namespace Indexer.Common.Persistence.Entities.Fees
 
         }
 
-        private async Task<IReadOnlyCollection<Fee>> ExcludeExistingInDb(string schema, NpgsqlConnection connection, IReadOnlyCollection<Fee> fees)
+        public async Task RemoveByBlock(string blockchainId, string blockId)
+        {
+            await using var connection = await _connectionFactory.Invoke();
+
+            var schema = DbSchema.GetName(blockchainId);
+            var query = $@"
+                delete 
+                from {schema}.{TableNames.Fees} f
+                using {schema}.{TableNames.TransactionHeaders} t
+                where 
+                    t.id = f.transaction_id and
+                    t.block_id = @blockId";
+
+            await connection.ExecuteAsync(query, new {blockId});
+        }
+
+        private static async Task<IReadOnlyCollection<Fee>> ExcludeExistingInDb(string schema, NpgsqlConnection connection, IReadOnlyCollection<Fee> fees)
         {
             if (!fees.Any())
             {

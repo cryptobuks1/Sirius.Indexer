@@ -3,7 +3,6 @@
     internal sealed class InputCoinEntity
     {
         // ReSharper disable InconsistentNaming
-        public string block_id { get; set; }
         public string transaction_id { get; set; }
         public int number { get; set; }
         public int type { get; set; }

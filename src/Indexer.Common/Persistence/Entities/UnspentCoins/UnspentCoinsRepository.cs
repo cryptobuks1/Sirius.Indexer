@@ -20,7 +20,7 @@ namespace Indexer.Common.Persistence.Entities.UnspentCoins
             _connectionFactory = connectionFactory;
         }
 
-        public async Task InsertOrIgnore(string blockchainId, string blockId, IReadOnlyCollection<UnspentCoin> coins)
+        public async Task InsertOrIgnore(string blockchainId, IReadOnlyCollection<UnspentCoin> coins)
         {
             if (!coins.Any())
             {
@@ -34,7 +34,6 @@ namespace Indexer.Common.Persistence.Entities.UnspentCoins
                 .UsePostgresQuoting()
                 .MapVarchar(nameof(UnspentCoinEntity.transaction_id), p => p.Id.TransactionId)
                 .MapInteger(nameof(UnspentCoinEntity.number), p => p.Id.Number)
-                .MapVarchar(nameof(UnspentCoinEntity.block_id), p => blockId)
                 .MapBigInt(nameof(UnspentCoinEntity.asset_id), p => p.Unit.AssetId)
                 .MapNumeric(nameof(UnspentCoinEntity.amount), p => p.Unit.Amount)
                 .MapVarchar(nameof(UnspentCoinEntity.address), p => p.Address)
@@ -112,13 +111,33 @@ namespace Indexer.Common.Persistence.Entities.UnspentCoins
             await using var connection = await _connectionFactory.Invoke();
 
             var schema = DbSchema.GetName(blockchainId);
-            var query = $"select * from {schema}.{TableNames.UnspentCoins} where block_id = @blockId";
+            var query = $@"
+                select * 
+                from {schema}.{TableNames.UnspentCoins} c
+                join {schema}.{TableNames.TransactionHeaders} t on t.id = c.transaction_id
+                where t.block_id = @blockId";
 
             var entities = await connection.QueryAsync<UnspentCoinEntity>(query, new {blockId});
 
             return entities
                 .Select(MapToDomain)
                 .ToArray();
+        }
+
+        public async Task RemoveByBlock(string blockchainId, string blockId)
+        {
+            await using var connection = await _connectionFactory.Invoke();
+
+            var schema = DbSchema.GetName(blockchainId);
+            var query = $@"
+                delete 
+                from {schema}.{TableNames.UnspentCoins} c
+                using {schema}.{TableNames.TransactionHeaders} t
+                where 
+                    t.id = c.transaction_id and
+                    t.block_id = @blockId";
+
+            await connection.ExecuteAsync(query, new {blockId});
         }
 
         private static async Task<IReadOnlyCollection<UnspentCoin>> ExcludeExistingInDb(

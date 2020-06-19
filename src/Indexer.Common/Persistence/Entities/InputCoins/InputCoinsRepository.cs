@@ -34,7 +34,6 @@ namespace Indexer.Common.Persistence.Entities.InputCoins
                 .UsePostgresQuoting()
                 .MapVarchar(nameof(InputCoinEntity.transaction_id), x => x.Id.TransactionId)
                 .MapInteger(nameof(InputCoinEntity.number), x => x.Id.Number)
-                .MapVarchar(nameof(InputCoinEntity.block_id), x => blockId)
                 .MapInteger(nameof(InputCoinEntity.type), x => (int)x.Type)
                 .MapVarchar(nameof(InputCoinEntity.prev_output_transaction_id), x => x.PreviousOutput?.TransactionId)
                 .MapNullable(nameof(InputCoinEntity.prev_output_coin_number), x => x.PreviousOutput?.Number, NpgsqlDbType.Integer);
@@ -59,7 +58,11 @@ namespace Indexer.Common.Persistence.Entities.InputCoins
             await using var connection = await _connectionFactory.Invoke();
 
             var schema = DbSchema.GetName(blockchainId);
-            var query = $"select * from {schema}.{TableNames.InputCoins} where block_id = @blockId";
+            var query = $@"
+                select * 
+                from {schema}.{TableNames.InputCoins} c
+                join {schema}.{TableNames.TransactionHeaders} t on t.id = c.transaction_id
+                where t.block_id = @blockId";
 
             var entities = await connection.QueryAsync<InputCoinEntity>(query, new {blockId});
 
@@ -71,6 +74,22 @@ namespace Indexer.Common.Persistence.Entities.InputCoins
                         ? new CoinId(x.prev_output_transaction_id, x.prev_output_coin_number.Value)
                         : null))
                 .ToArray();
+        }
+
+        public async Task RemoveByBlock(string blockchainId, string blockId)
+        {
+            await using var connection = await _connectionFactory.Invoke();
+
+            var schema = DbSchema.GetName(blockchainId);
+            var query = $@"
+                delete 
+                from {schema}.{TableNames.InputCoins} c
+                using {schema}.{TableNames.TransactionHeaders} t
+                where 
+                    t.id = c.transaction_id and
+                    t.block_id = @blockId";
+
+            await connection.ExecuteAsync(query, new {blockId});
         }
 
         private static async Task<IReadOnlyCollection<InputCoin>> ExcludeExistingInDb(

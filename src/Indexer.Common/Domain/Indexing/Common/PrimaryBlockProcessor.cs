@@ -7,7 +7,7 @@ using Indexer.Common.Persistence.Entities.TransactionHeaders;
 
 namespace Indexer.Common.Domain.Indexing.Common
 {
-    public class PrimaryBlockProcessor
+    public sealed class PrimaryBlockProcessor
     {
         private readonly IBlockHeadersRepository _blockHeadersRepository;
         private readonly ITransactionHeadersRepository _transactionHeadersRepository;

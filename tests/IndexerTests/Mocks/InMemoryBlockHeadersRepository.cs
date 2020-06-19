@@ -57,5 +57,13 @@ namespace IndexerTests.Mocks
                 return Task.FromResult<IEnumerable<BlockHeader>>(blocks);
             }
         }
+
+        public Task<BlockHeader> GetLast(string blockchainId)
+        {
+            lock (_store)
+            {
+                return Task.FromResult(_store.Values.OrderByDescending(x => x.Number).First());
+            }
+        }
     }
 }

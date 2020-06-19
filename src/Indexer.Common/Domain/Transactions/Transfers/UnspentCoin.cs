@@ -37,8 +37,7 @@ namespace Indexer.Common.Domain.Transactions.Transfers
                 Address,
                 Tag,
                 TagType,
-                byInputCoin.Id.TransactionId,
-                byInputCoin.Id.Number);
+                byInputCoin.Id);
         }
     }
 }

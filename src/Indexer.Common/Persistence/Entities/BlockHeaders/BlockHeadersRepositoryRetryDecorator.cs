@@ -37,5 +37,10 @@ namespace Indexer.Common.Persistence.Entities.BlockHeaders
         {
             return _retryPolicy.ExecuteAsync(() => _impl.GetBatch(blockchainId, startBlockNumber, limit));
         }
+
+        public Task<BlockHeader> GetLast(string blockchainId)
+        {
+            return _impl.GetLast(blockchainId);
+        }
     }
 }

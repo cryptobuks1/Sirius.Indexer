@@ -18,9 +18,9 @@ namespace Indexer.Common.Persistence.Entities.UnspentCoins
             _retryPolicy = Policies.DefaultRepositoryRetryPolicy();
         }
 
-        public Task InsertOrIgnore(string blockchainId, string blockId, IReadOnlyCollection<UnspentCoin> coins)
+        public Task InsertOrIgnore(string blockchainId, IReadOnlyCollection<UnspentCoin> coins)
         {
-            return _retryPolicy.ExecuteAsync(() => _impl.InsertOrIgnore(blockchainId, blockId, coins));
+            return _retryPolicy.ExecuteAsync(() => _impl.InsertOrIgnore(blockchainId, coins));
         }
 
         public Task<IReadOnlyCollection<UnspentCoin>> GetAnyOf(string blockchainId, IReadOnlyCollection<CoinId> ids)
@@ -36,6 +36,11 @@ namespace Indexer.Common.Persistence.Entities.UnspentCoins
         public Task<IReadOnlyCollection<UnspentCoin>> GetByBlock(string blockchainId, string blockId)
         {
             return _impl.GetByBlock(blockchainId, blockId);
+        }
+
+        public Task RemoveByBlock(string blockchainId, string blockId)
+        {
+            return _impl.RemoveByBlock(blockchainId, blockId);
         }
     }
 }

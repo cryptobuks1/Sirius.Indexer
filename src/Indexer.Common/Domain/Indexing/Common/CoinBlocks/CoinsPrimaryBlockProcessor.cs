@@ -7,7 +7,7 @@ using Indexer.Common.Persistence.Entities.UnspentCoins;
 
 namespace Indexer.Common.Domain.Indexing.Common.CoinBlocks
 {
-    public class CoinsPrimaryBlockProcessor
+    public sealed class CoinsPrimaryBlockProcessor
     {
         private readonly UnspentCoinsFactory _unspentCoinsFactory;
         private readonly IInputCoinsRepository _inputCoinsRepository;
@@ -28,7 +28,7 @@ namespace Indexer.Common.Domain.Indexing.Common.CoinBlocks
 
             var unspentCoins = await _unspentCoinsFactory.Create(block.Transfers);
 
-            await _unspentCoinsRepository.InsertOrIgnore(block.Header.BlockchainId, block.Header.Id, unspentCoins);
+            await _unspentCoinsRepository.InsertOrIgnore(block.Header.BlockchainId, unspentCoins);
         }
     }
 }

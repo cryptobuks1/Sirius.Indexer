@@ -27,5 +27,10 @@ namespace Indexer.Common.Persistence.Entities.InputCoins
         {
             return _impl.GetByBlock(blockchainId, blockId);
         }
+
+        public Task RemoveByBlock(string blockchainId, string blockId)
+        {
+            return _impl.RemoveByBlock(blockchainId, blockId);
+        }
     }
 }

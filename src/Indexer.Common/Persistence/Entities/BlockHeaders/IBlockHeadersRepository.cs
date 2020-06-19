@@ -10,5 +10,6 @@ namespace Indexer.Common.Persistence.Entities.BlockHeaders
         Task<BlockHeader> GetOrDefault(string blockchainId, long blockNumber);
         Task Remove(string blockchainId, string id);
         Task<IEnumerable<BlockHeader>> GetBatch(string blockchainId, long startBlockNumber, int limit);
+        Task<BlockHeader> GetLast(string blockchainId);
     }
 }

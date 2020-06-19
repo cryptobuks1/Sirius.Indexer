@@ -13,5 +13,5 @@ alter table fees set logged;
 
 -- Creates indexes
 
-create index if not exists ix_transaction_headers_block_id
-    on transaction_headers (block_id);
+create index ix_balance_updates_block_id
+    on balance_updates (block_id);

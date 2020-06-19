@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Indexer.Common.Domain.Blocks;
+using Indexer.Common.Domain.Indexing.Common;
+using Indexer.Common.Domain.Indexing.Common.CoinBlocks;
 using Indexer.Common.Domain.Indexing.Ongoing;
 using Indexer.Common.Persistence.Entities.Blockchains;
-using Indexer.Common.Persistence.Entities.BlockHeaders;
 using Indexer.Common.Persistence.Entities.OngoingIndexers;
-using Indexer.Common.Persistence.Entities.TransactionHeaders;
 using Indexer.Common.Telemetry;
 using MassTransit;
 using Microsoft.Extensions.Logging;
@@ -22,8 +22,10 @@ namespace Indexer.Worker.Jobs
         private readonly TimeSpan _delayOnBlockNotFound;
         private readonly IBlockchainSchemaBuilder _blockchainSchemaBuilder;
         private readonly IOngoingIndexersRepository _indexersRepository;
-        private readonly IBlockHeadersRepository _blockHeadersRepository;
-        private readonly ITransactionHeadersRepository _transactionHeadersRepository;
+        private readonly PrimaryBlockProcessor _primaryBlockProcessor;
+        private readonly CoinsPrimaryBlockProcessor _coinsPrimaryBlockProcessor;
+        private readonly CoinsSecondaryBlockProcessor _coinsSecondaryBlockProcessor;
+        private readonly CoinsBlockCanceler _coinsBlockCanceler;
         private readonly IBlocksReader _blocksReader;
         private readonly ChainWalker _chainWalker;
         private readonly IPublishEndpoint _publisher;
@@ -39,8 +41,10 @@ namespace Indexer.Worker.Jobs
             TimeSpan delayOnBlockNotFound,
             IBlockchainSchemaBuilder blockchainSchemaBuilder,
             IOngoingIndexersRepository indexersRepository,
-            IBlockHeadersRepository blockHeadersRepository,
-            ITransactionHeadersRepository transactionHeadersRepository,
+            PrimaryBlockProcessor primaryBlockProcessor,
+            CoinsPrimaryBlockProcessor coinsPrimaryBlockProcessor,
+            CoinsSecondaryBlockProcessor coinsSecondaryBlockProcessor,
+            CoinsBlockCanceler coinsBlockCanceler,
             IBlocksReader blocksReader,
             ChainWalker chainWalker,
             IPublishEndpoint publisher,
@@ -52,8 +56,10 @@ namespace Indexer.Worker.Jobs
             _delayOnBlockNotFound = delayOnBlockNotFound;
             _blockchainSchemaBuilder = blockchainSchemaBuilder;
             _indexersRepository = indexersRepository;
-            _blockHeadersRepository = blockHeadersRepository;
-            _transactionHeadersRepository = transactionHeadersRepository;
+            _primaryBlockProcessor = primaryBlockProcessor;
+            _coinsPrimaryBlockProcessor = coinsPrimaryBlockProcessor;
+            _coinsSecondaryBlockProcessor = coinsSecondaryBlockProcessor;
+            _coinsBlockCanceler = coinsBlockCanceler;
             _blocksReader = blocksReader;
             _chainWalker = chainWalker;
             _publisher = publisher;
@@ -77,7 +83,7 @@ namespace Indexer.Worker.Jobs
             _logger.LogInformation("Ongoing indexing job is being started {@context}", new
             {
                 BlockchainId = _blockchainId,
-                NextBlock = _indexer?.NextBlock
+                NextBlock = _indexer.NextBlock
             });
 
             if (_indexer.NextBlock == _indexer.StartBlock)
@@ -179,8 +185,10 @@ namespace Indexer.Worker.Jobs
                             _loggerFactory.CreateLogger<OngoingIndexer>(),
                             _blocksReader,
                             _chainWalker,
-                            _blockHeadersRepository,
-                            _transactionHeadersRepository,
+                            _primaryBlockProcessor,
+                            _coinsPrimaryBlockProcessor,
+                            _coinsSecondaryBlockProcessor,
+                            _coinsBlockCanceler,
                             _publisher);
 
                         batchBackgroundTasks.AddRange(indexingResult.BackgroundTasks);

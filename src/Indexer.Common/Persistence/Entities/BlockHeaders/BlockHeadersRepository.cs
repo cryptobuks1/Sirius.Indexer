@@ -4,8 +4,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Dapper;
 using Indexer.Common.Domain.Blocks;
-using Indexer.Common.Persistence.Entities.Blockchains;
-using Indexer.Common.Persistence.EntityFramework;
 using Indexer.Common.Telemetry;
 using Npgsql;
 
@@ -100,6 +98,25 @@ namespace Indexer.Common.Persistence.Entities.BlockHeaders
             var entities = await connection.QueryAsync<BlockHeaderEntity>(query, new {startBlockNumber, limit});
 
             return entities.Select(x => MapFromEntity(blockchainId, x));
+        }
+
+        public async Task<BlockHeader> GetLast(string blockchainId)
+        {
+            await using var connection = await _connectionFactory.Invoke();
+
+            var schema = DbSchema.GetName(blockchainId);
+            var query = $@"
+                select * 
+                from {schema}.{TableNames.BlockHeaders} 
+                where number = 
+                    (
+                        select max(number) 
+                        from {schema}.{TableNames.BlockHeaders}
+                    )";
+
+            var entity = await connection.QuerySingleAsync<BlockHeaderEntity>(query);
+
+            return MapFromEntity(blockchainId, entity);
         }
 
         private static BlockHeader MapFromEntity(string blockchainId, BlockHeaderEntity entity)

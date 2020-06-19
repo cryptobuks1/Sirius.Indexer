@@ -17,5 +17,10 @@ namespace Indexer.Common.Persistence.Entities.Fees
         {
             return _impl.InsertOrIgnore(blockchainId, fees);
         }
+
+        public Task RemoveByBlock(string blockchainId, string blockId)
+        {
+            return _impl.RemoveByBlock(blockchainId, blockId);
+        }
     }
 }
