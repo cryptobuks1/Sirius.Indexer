@@ -99,7 +99,7 @@ namespace Indexer.Common.Domain.Indexing.SecondPass
             }
             finally
             {
-                logger.LogInformation("Second-pass indexer has processed the blocks batch {@context}. {@processedBlocksCount}", this, processedBlocksCount);
+                logger.LogInformation("Second-pass indexer has processed the blocks batch {@context}. Processed blocks count: {@processedBlocksCount}", this, processedBlocksCount);
             }
 
             return SecondPassIndexingResult.IndexingInProgress;
