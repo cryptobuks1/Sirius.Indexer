@@ -252,7 +252,7 @@ create table observed_operations
 (
     id                  bigint not null,
     transaction_id      varchar(256) not null,
-    added_at            timestamp not null
+    added_at            timestamp not null,
 
     constraint pk_observed_operations primary key (id)
 );
