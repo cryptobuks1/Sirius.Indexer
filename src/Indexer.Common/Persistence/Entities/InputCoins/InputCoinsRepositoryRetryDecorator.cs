@@ -15,7 +15,7 @@ namespace Indexer.Common.Persistence.Entities.InputCoins
         {
             _impl = impl;
 
-            _retryPolicy = Policies.DefaultRepositoryRetryPolicy();
+            _retryPolicy = RetryPolicies.DefaultRepositoryRetryPolicy();
         }
 
         public Task InsertOrIgnore(string blockchainId, string blockId, IReadOnlyCollection<InputCoin> coins)

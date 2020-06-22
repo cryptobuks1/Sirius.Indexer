@@ -245,3 +245,17 @@ create table fees_16 partition of fees for values with (modulus 20, remainder 16
 create table fees_17 partition of fees for values with (modulus 20, remainder 17);
 create table fees_18 partition of fees for values with (modulus 20, remainder 18);
 create table fees_19 partition of fees for values with (modulus 20, remainder 19);
+
+-- Observed operations
+
+create table observed_operations
+(
+    id                  bigint not null,
+    transaction_id      varchar(256) not null,
+    added_at            timestamp not null
+
+    constraint pk_observed_operations primary key (id)
+);
+
+create unique index ix_observed_operations_transaction_id
+    on observed_operations (transaction_id);

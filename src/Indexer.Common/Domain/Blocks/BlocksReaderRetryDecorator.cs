@@ -12,7 +12,7 @@ namespace Indexer.Common.Domain.Blocks
         public BlocksReaderRetryDecorator(IBlocksReader impl)
         {
             _impl = impl;
-            _retryPolicy = Policies.DefaultWebServiceRetryPolicy();
+            _retryPolicy = RetryPolicies.DefaultWebServiceRetryPolicy();
         }
 
         public Task<CoinsBlock> ReadCoinsBlockOrDefault(long blockNumber)

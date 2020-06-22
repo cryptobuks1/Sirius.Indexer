@@ -10,7 +10,7 @@ using Polly.Retry;
 
 namespace Indexer.Common.Durability
 {
-    public static class Policies
+    public static class RetryPolicies
     {
         public static AsyncRetryPolicy DefaultRepositoryRetryPolicy()
         {

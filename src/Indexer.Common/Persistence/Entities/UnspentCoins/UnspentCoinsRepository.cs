@@ -112,7 +112,7 @@ namespace Indexer.Common.Persistence.Entities.UnspentCoins
 
             var schema = DbSchema.GetName(blockchainId);
             var query = $@"
-                select * 
+                select c.* 
                 from {schema}.{TableNames.UnspentCoins} c
                 join {schema}.{TableNames.TransactionHeaders} t on t.id = c.transaction_id
                 where t.block_id = @blockId";

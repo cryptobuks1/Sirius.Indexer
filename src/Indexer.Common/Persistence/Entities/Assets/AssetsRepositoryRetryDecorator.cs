@@ -15,7 +15,7 @@ namespace Indexer.Common.Persistence.Entities.Assets
         public AssetsRepositoryRetryDecorator(IAssetsRepository impl)
         {
             _impl = impl;
-            _retryPolicy = Policies.DefaultRepositoryRetryPolicy();
+            _retryPolicy = RetryPolicies.DefaultRepositoryRetryPolicy();
         }
         
         public Task<IReadOnlyCollection<Asset>> GetAllAsync(string blockchainId)

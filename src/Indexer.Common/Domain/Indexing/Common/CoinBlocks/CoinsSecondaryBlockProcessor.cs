@@ -37,6 +37,28 @@ namespace Indexer.Common.Domain.Indexing.Common.CoinBlocks
 
         public async Task Process(BlockHeader blockHeader)
         {
+            var generatingPhaseResult = await ProcessGenerationPhase(
+                blockHeader, 
+                () => _unspentCoinsRepository.GetByBlock(blockHeader.BlockchainId, blockHeader.Id));
+
+            await ProcessRemovingPhase(blockHeader, generatingPhaseResult.SpentCoins);
+        }
+
+        public Task<CoinsSecondaryBlockGenerationPhaseProcessingResult> ProcessGeneratingPhase(BlockHeader blockHeader, 
+            IReadOnlyCollection<UnspentCoin> blockOutputCoins)
+        {
+            return ProcessGenerationPhase(blockHeader, () => Task.FromResult(blockOutputCoins));
+        }
+
+        public Task ProcessRemovingPhase(BlockHeader blockHeader, 
+            CoinsSecondaryBlockGenerationPhaseProcessingResult generationPhaseResult)
+        {
+            return ProcessRemovingPhase(blockHeader, generationPhaseResult.SpentCoins);
+        }
+
+        private async Task<CoinsSecondaryBlockGenerationPhaseProcessingResult> ProcessGenerationPhase(BlockHeader blockHeader, 
+            Func<Task<IReadOnlyCollection<UnspentCoin>>> blockOutputCoinsProvider)
+        {
             var inputCoins = await _inputCoinsRepository.GetByBlock(blockHeader.BlockchainId, blockHeader.Id);
             var inputsToSpend = inputCoins
                 .Where(x => x.Type == InputCoinType.Regular)
@@ -55,20 +77,33 @@ namespace Indexer.Common.Domain.Indexing.Common.CoinBlocks
 
                 await _spentCoinsRepository.InsertOrIgnore(blockHeader.BlockchainId, spentByBlockCoins);
 
-                var blockOutputCoins = await _unspentCoinsRepository.GetByBlock(blockHeader.BlockchainId, blockHeader.Id);
+                var blockOutputCoins = await blockOutputCoinsProvider.Invoke();
 
-                await UpdateBalances(blockHeader,
+                var balanceUpdates = await UpdateBalances(blockHeader,
                     blockOutputCoins,
                     spentByBlockCoins);
-                await UpdateFees(blockHeader,
+                var fees = await UpdateFees(blockHeader,
                     blockOutputCoins,
                     spentByBlockCoins);
 
-                await _unspentCoinsRepository.Remove(blockHeader.BlockchainId, coinsToSpend.Select(x => x.Id).ToArray());
+                return new CoinsSecondaryBlockGenerationPhaseProcessingResult(
+                    spentByBlockCoins,
+                    fees,
+                    balanceUpdates);
             }
+
+            return new CoinsSecondaryBlockGenerationPhaseProcessingResult(
+                Array.Empty<SpentCoin>(),
+                Array.Empty<Fee>(),
+                Array.Empty<BalanceUpdate>());
         }
 
-        private async Task UpdateFees(BlockHeader blockHeader,
+        private async Task ProcessRemovingPhase(BlockHeader blockHeader, IReadOnlyCollection<SpentCoin> spentCoins)
+        {
+            await _unspentCoinsRepository.Remove(blockHeader.BlockchainId, spentCoins.Select(x => x.Id).ToArray());
+        }
+
+        private async Task<IReadOnlyCollection<Fee>> UpdateFees(BlockHeader blockHeader,
             IEnumerable<UnspentCoin> blockOutputCoins,
             IEnumerable<SpentCoin> spentByBlockCoins)
         {
@@ -131,18 +166,19 @@ namespace Indexer.Common.Domain.Indexing.Common.CoinBlocks
                 }
             }
 
-            await _feesRepository.InsertOrIgnore(
-                blockHeader.BlockchainId,
-                fees
-                    .Select(x => new Fee(
-                        x.Key.TransactionId,
-                        x.Key.AssetId,
-                        blockHeader.Id,
-                        x.Value))
-                    .ToArray());
+            var resultFees = fees
+                .Select(x => new Fee(
+                    x.Key.TransactionId,
+                    blockHeader.Id,
+                    new Unit(x.Key.AssetId, x.Value)))
+                .ToArray();
+            
+            await _feesRepository.InsertOrIgnore(blockHeader.BlockchainId, resultFees);
+
+            return resultFees;
         }
 
-        private async Task UpdateBalances(BlockHeader blockHeader,
+        private async Task<IReadOnlyCollection<BalanceUpdate>> UpdateBalances(BlockHeader blockHeader,
             IEnumerable<UnspentCoin> blockOutputCoins,
             IEnumerable<SpentCoin> spentByBlockCoins)
         {
@@ -207,17 +243,19 @@ namespace Indexer.Common.Domain.Indexing.Common.CoinBlocks
                 }
             }
 
-            await _balanceUpdatesRepository.InsertOrIgnore(
-                blockHeader.BlockchainId,
-                balanceUpdates
-                    .Select(x => BalanceUpdate.Create(
-                        x.Key.Address,
-                        x.Key.AssetId,
-                        blockHeader.Number,
-                        blockHeader.Id,
-                        blockHeader.MinedAt,
-                        x.Value))
-                    .ToArray());
+            var resultBalanceUpdates = balanceUpdates
+                .Select(x => BalanceUpdate.Create(
+                    x.Key.Address,
+                    x.Key.AssetId,
+                    blockHeader.Number,
+                    blockHeader.Id,
+                    blockHeader.MinedAt,
+                    x.Value))
+                .ToArray();
+
+            await _balanceUpdatesRepository.InsertOrIgnore(blockHeader.BlockchainId, resultBalanceUpdates);
+
+            return resultBalanceUpdates;
         }
     }
 }

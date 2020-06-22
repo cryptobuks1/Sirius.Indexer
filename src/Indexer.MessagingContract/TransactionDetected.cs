@@ -13,8 +13,12 @@ namespace Swisschain.Sirius.Indexer.MessagingContract
         public long? OperationId { get; set; }
         public IReadOnlyCollection<TransferSource> Sources { get; set; }
         public IReadOnlyCollection<TransferDestination> Destinations { get; set; }
-        public TransactionError Error { get; set; }
+        /* 
+        SpentCoin[] SpentCoins // can be added when needed
+        OutputCoin[] OutputCoins // can be added when needed
+        NonceUpdate[] NonceUpdates // can be added when needed
+        */
         public IReadOnlyCollection<Unit> Fees { get; set; }
-
+        public TransactionError Error { get; set; }
     }
 }

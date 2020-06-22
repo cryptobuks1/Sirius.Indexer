@@ -8,6 +8,16 @@
     <UserSecretsId>14fcbda7-d1ae-4c8e-91bc-c47b1bf428a0</UserSecretsId>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <WarningsAsErrors />
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <WarningsAsErrors />
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="MassTransit.Extensions.DependencyInjection" Version="6.2.4" />
     <PackageReference Include="MassTransit.RabbitMQ" Version="6.2.4" />

@@ -14,7 +14,7 @@ namespace Indexer.Common.Persistence.Entities.FirstPassIndexers
         public FirstPassIndexersRepositoryRetryDecorator(IFirstPassIndexersRepository impl)
         {
             _impl = impl;
-            _retryPolicy = Policies.DefaultRepositoryRetryPolicy();
+            _retryPolicy = RetryPolicies.DefaultRepositoryRetryPolicy();
         }
 
         public Task<FirstPassIndexer> Get(FirstPassIndexerId id)

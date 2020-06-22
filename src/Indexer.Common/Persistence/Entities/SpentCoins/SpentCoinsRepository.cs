@@ -64,7 +64,7 @@ namespace Indexer.Common.Persistence.Entities.SpentCoins
             var schema = DbSchema.GetName(blockchainId);
 
             var query = $@"
-                select * 
+                select c.* 
                 from {schema}.{TableNames.SpentCoins} c
                 join {schema}.{TableNames.TransactionHeaders} t on t.id = c.spent_by_transaction_id
                 where t.block_id = @blockId";

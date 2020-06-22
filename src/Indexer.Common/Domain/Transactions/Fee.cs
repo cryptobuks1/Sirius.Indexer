@@ -1,21 +1,20 @@
-﻿namespace Indexer.Common.Domain.Transactions
+﻿using Swisschain.Sirius.Sdk.Primitives;
+
+namespace Indexer.Common.Domain.Transactions
 {
     public sealed class Fee
     {
         public Fee(string transactionId,
-            long assetId,
             string blockId,
-            decimal amount)
+            Unit unit)
         {
             TransactionId = transactionId;
-            AssetId = assetId;
             BlockId = blockId;
-            Amount = amount;
+            Unit = unit;
         }
 
         public string TransactionId { get; }
-        public long AssetId { get; }
         public string BlockId { get; }
-        public decimal Amount { get; }
+        public Unit Unit { get; }
     }
 }

@@ -15,7 +15,7 @@ namespace Indexer.Common.Persistence.Entities.BlockHeaders
         {
             _impl = impl;
 
-            _retryPolicy = Policies.DefaultRepositoryRetryPolicy();
+            _retryPolicy = RetryPolicies.DefaultRepositoryRetryPolicy();
         }
 
         public Task InsertOrIgnore(BlockHeader blockHeader)

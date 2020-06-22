@@ -28,7 +28,9 @@ namespace Indexer.Common.Persistence
         public static IServiceCollection AddPersistence(this IServiceCollection services, string connectionString)
         {
             services.AddTransient<IBlockchainsRepository, BlockchainsRepository>();
-            services.AddTransient<IObservedOperationsRepository, ObservedOperationsRepository>();
+            services.AddTransient<IObservedOperationsRepository>(c =>
+                new ObservedOperationsRepositoryRetryDecorator(
+                    new ObservedOperationsRepository(c.GetRequiredService<Func<Task<NpgsqlConnection>>>())));
             services.AddTransient<IAssetsRepository>(c => 
                 new AssetsRepositoryCacheDecorator(
                     new AssetsRepositoryRetryDecorator(

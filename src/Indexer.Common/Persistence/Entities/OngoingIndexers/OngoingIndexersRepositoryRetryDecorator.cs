@@ -13,7 +13,7 @@ namespace Indexer.Common.Persistence.Entities.OngoingIndexers
         public OngoingIndexersRepositoryRetryDecorator(IOngoingIndexersRepository impl)
         {
             _impl = impl;
-            _retryPolicy = Policies.DefaultRepositoryRetryPolicy();
+            _retryPolicy = RetryPolicies.DefaultRepositoryRetryPolicy();
         }
 
         public Task<OngoingIndexer> Get(string blockchainId)

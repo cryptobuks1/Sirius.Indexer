@@ -15,13 +15,6 @@ message AddObservedOperationRequest {
   int64 operationId = 2;
   string blockchainId = 3;
   string transactionId = 4;
-  
-  int64 assetId = 24;
-  string bilv1OperationId = 25;
-  repeated .common.Unit fees = 26;
-  string destinationAddress = 27;
-  .common.BigDecimal operationAmount = 28;
-
 }
 
 message AddObservedOperationResponse {

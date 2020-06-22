@@ -8,6 +8,7 @@ using Indexer.Common.Domain.Indexing.Common;
 using Indexer.Common.Domain.Indexing.Common.CoinBlocks;
 using Indexer.Common.Domain.Indexing.Ongoing;
 using Indexer.Common.Persistence.Entities.Blockchains;
+using Indexer.Common.Persistence.Entities.ObservedOperations;
 using Indexer.Common.Persistence.Entities.OngoingIndexers;
 using Indexer.Common.Telemetry;
 using MassTransit;
@@ -31,7 +32,8 @@ namespace Indexer.Worker.Jobs
         private readonly IAppInsight _appInsight;
         private readonly SemaphoreSlim _lock;
         private readonly ConcurrentDictionary<string, OngoingIndexingJob> _jobs;
-        
+        private readonly IObservedOperationsRepository _observedOperationsRepository;
+
         public OngoingIndexingJobsManager(ILoggerFactory loggerFactory, 
             AppConfig appConfig,
             IBlockchainSchemaBuilder blockchainSchemaBuilder,
@@ -40,6 +42,7 @@ namespace Indexer.Worker.Jobs
             CoinsPrimaryBlockProcessor coinsPrimaryBlockProcessor,
             CoinsSecondaryBlockProcessor coinsSecondaryBlockProcessor,
             CoinsBlockCanceler coinsBlockCanceler,
+            IObservedOperationsRepository observedOperationsRepository,
             IBlockReadersProvider blockReadersProvider,
             ChainWalker chainWalker,
             IPublishEndpoint publisher,
@@ -53,6 +56,7 @@ namespace Indexer.Worker.Jobs
             _coinsPrimaryBlockProcessor = coinsPrimaryBlockProcessor;
             _coinsSecondaryBlockProcessor = coinsSecondaryBlockProcessor;
             _coinsBlockCanceler = coinsBlockCanceler;
+            _observedOperationsRepository = observedOperationsRepository;
             _blockReadersProvider = blockReadersProvider;
             _chainWalker = chainWalker;
             _publisher = publisher;
@@ -84,6 +88,7 @@ namespace Indexer.Worker.Jobs
                         _coinsPrimaryBlockProcessor,
                         _coinsSecondaryBlockProcessor,
                         _coinsBlockCanceler,
+                        _observedOperationsRepository,
                         blocksReader,
                         _chainWalker,
                         _publisher,

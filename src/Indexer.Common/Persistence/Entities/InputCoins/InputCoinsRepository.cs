@@ -59,7 +59,7 @@ namespace Indexer.Common.Persistence.Entities.InputCoins
 
             var schema = DbSchema.GetName(blockchainId);
             var query = $@"
-                select * 
+                select c.* 
                 from {schema}.{TableNames.InputCoins} c
                 join {schema}.{TableNames.TransactionHeaders} t on t.id = c.transaction_id
                 where t.block_id = @blockId";

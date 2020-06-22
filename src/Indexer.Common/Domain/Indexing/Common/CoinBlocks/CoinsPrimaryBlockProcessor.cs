@@ -22,13 +22,15 @@ namespace Indexer.Common.Domain.Indexing.Common.CoinBlocks
             _unspentCoinsRepository = unspentCoinsRepository;
         }
 
-        public async Task Process(CoinsBlock block)
+        public async Task<CoinsPrimaryBlockProcessingResult> Process(CoinsBlock block)
         {
             await _inputCoinsRepository.InsertOrIgnore(block.Header.BlockchainId, block.Header.Id, block.Transfers.SelectMany(x => x.InputCoins).ToArray());
 
             var unspentCoins = await _unspentCoinsFactory.Create(block.Transfers);
 
             await _unspentCoinsRepository.InsertOrIgnore(block.Header.BlockchainId, unspentCoins);
+
+            return new CoinsPrimaryBlockProcessingResult(unspentCoins);
         }
     }
 }

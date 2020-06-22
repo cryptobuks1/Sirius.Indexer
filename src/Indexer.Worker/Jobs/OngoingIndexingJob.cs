@@ -7,6 +7,7 @@ using Indexer.Common.Domain.Indexing.Common;
 using Indexer.Common.Domain.Indexing.Common.CoinBlocks;
 using Indexer.Common.Domain.Indexing.Ongoing;
 using Indexer.Common.Persistence.Entities.Blockchains;
+using Indexer.Common.Persistence.Entities.ObservedOperations;
 using Indexer.Common.Persistence.Entities.OngoingIndexers;
 using Indexer.Common.Telemetry;
 using MassTransit;
@@ -26,6 +27,7 @@ namespace Indexer.Worker.Jobs
         private readonly CoinsPrimaryBlockProcessor _coinsPrimaryBlockProcessor;
         private readonly CoinsSecondaryBlockProcessor _coinsSecondaryBlockProcessor;
         private readonly CoinsBlockCanceler _coinsBlockCanceler;
+        private readonly IObservedOperationsRepository _observedOperationsRepository;
         private readonly IBlocksReader _blocksReader;
         private readonly ChainWalker _chainWalker;
         private readonly IPublishEndpoint _publisher;
@@ -35,6 +37,7 @@ namespace Indexer.Worker.Jobs
         private readonly CancellationTokenSource _cts;
         private OngoingIndexer _indexer;
         
+
         public OngoingIndexingJob(ILogger<OngoingIndexingJob> logger,
             ILoggerFactory loggerFactory,
             string blockchainId,
@@ -45,6 +48,7 @@ namespace Indexer.Worker.Jobs
             CoinsPrimaryBlockProcessor coinsPrimaryBlockProcessor,
             CoinsSecondaryBlockProcessor coinsSecondaryBlockProcessor,
             CoinsBlockCanceler coinsBlockCanceler,
+            IObservedOperationsRepository observedOperationsRepository,
             IBlocksReader blocksReader,
             ChainWalker chainWalker,
             IPublishEndpoint publisher,
@@ -60,10 +64,12 @@ namespace Indexer.Worker.Jobs
             _coinsPrimaryBlockProcessor = coinsPrimaryBlockProcessor;
             _coinsSecondaryBlockProcessor = coinsSecondaryBlockProcessor;
             _coinsBlockCanceler = coinsBlockCanceler;
+            _observedOperationsRepository = observedOperationsRepository;
             _blocksReader = blocksReader;
             _chainWalker = chainWalker;
             _publisher = publisher;
             _appInsight = appInsight;
+            
 
             _timer = new Timer(TimerCallback, null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
             _done = new ManualResetEventSlim(false);
@@ -165,7 +171,6 @@ namespace Indexer.Worker.Jobs
             try
             {
                 var batchInitialBlock = _indexer.NextBlock;
-                var batchBackgroundTasks = new List<Task>();
 
                 while (!_cts.IsCancellationRequested)
                 {
@@ -179,8 +184,6 @@ namespace Indexer.Worker.Jobs
 
                     try
                     {
-                        // TODO: Add some delay in case of an error to reduce workload on the integration and DB
-
                         var indexingResult = await _indexer.IndexNextBlock(
                             _loggerFactory.CreateLogger<OngoingIndexer>(),
                             _blocksReader,
@@ -189,13 +192,12 @@ namespace Indexer.Worker.Jobs
                             _coinsPrimaryBlockProcessor,
                             _coinsSecondaryBlockProcessor,
                             _coinsBlockCanceler,
+                            _observedOperationsRepository,
                             _publisher);
 
-                        batchBackgroundTasks.AddRange(indexingResult.BackgroundTasks);
+                        telemetry.ResponseCode = indexingResult.ToString();
 
-                        telemetry.ResponseCode = indexingResult.BlockResult.ToString();
-
-                        if (indexingResult.BlockResult == OngoingBlockIndexingResult.BlockNotFound)
+                        if (indexingResult == OngoingBlockIndexingResult.BlockNotFound)
                         {
                             _logger.LogDebug("Ongoing block is not found {@context}",
                                 new
@@ -213,9 +215,6 @@ namespace Indexer.Worker.Jobs
 
                         if (_indexer.NextBlock - batchInitialBlock >= 100)
                         {
-                            // This is needed to mitigate single IO operation latency
-                            await Task.WhenAll(batchBackgroundTasks);
-
                             _indexer = await _indexersRepository.Update(_indexer);
 
                             batchInitialBlock = _indexer.NextBlock;
@@ -235,9 +234,6 @@ namespace Indexer.Worker.Jobs
 
                 if (_indexer.NextBlock != batchInitialBlock)
                 {
-                    // This is needed to mitigate single IO operation latency
-                    await Task.WhenAll(batchBackgroundTasks);
-
                     _indexer = await _indexersRepository.Update(_indexer);
                 }
             }
@@ -250,6 +246,8 @@ namespace Indexer.Worker.Jobs
                 });
 
                 _indexer = await _indexersRepository.Get(_blockchainId);
+
+                await Task.Delay(TimeSpan.FromSeconds(30));
             }
         }
     }

@@ -16,6 +16,6 @@ namespace Swisschain.Sirius.Indexer.MessagingContract
         /// <summary>
         /// Optional
         /// </summary>
-        public SpentCoin SpentCoin { get; set; }
+        public CoinId SpentCoin { get; set; }
     }
 }

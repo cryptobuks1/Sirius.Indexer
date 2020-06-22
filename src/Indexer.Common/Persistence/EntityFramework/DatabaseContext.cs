@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-using Indexer.Common.Persistence.Entities.FirstPassIndexers;
-using Indexer.Common.Persistence.Entities.ObservedOperations;
+﻿using Indexer.Common.Persistence.Entities.FirstPassIndexers;
 using Indexer.Common.Persistence.Entities.OngoingIndexers;
 using Indexer.Common.Persistence.Entities.SecondPassIndexers;
 using Indexer.Common.ReadModel.Blockchains;
@@ -8,7 +6,6 @@ using Indexer.Common.Telemetry;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using Swisschain.Extensions.Idempotency.EfCore;
-using Swisschain.Sirius.Sdk.Primitives;
 
 namespace Indexer.Common.Persistence.EntityFramework
 {
@@ -25,13 +22,12 @@ namespace Indexer.Common.Persistence.EntityFramework
 
         public IAppInsight AppInsight { get; }
 
-        public DbSet<ObservedOperationEntity> ObservedOperations { get; set; }
         public DbSet<FirstPassIndexerEntity> FirstPassHistoryIndexers { get; set; }
         public DbSet<SecondPassIndexerEntity> SecondPassIndexers { get; set; }
         public DbSet<OngoingIndexerEntity> OngoingIndexers { get; set; }
         public DbSet<OutboxEntity> Outbox { get; set; }
 
-        #region ReadModel
+        #region Read models
 
         public DbSet<BlockchainMetamodel> Blockchains { get; set; }
 
@@ -44,7 +40,6 @@ namespace Indexer.Common.Persistence.EntityFramework
             modelBuilder.BuildOutbox();
 
             BuildBlockchain(modelBuilder);
-            BuildObservedOperation(modelBuilder);
             BuildFirstPassIndexers(modelBuilder);
             BuildSecondPassIndexers(modelBuilder);
             BuildOngoingIndexers(modelBuilder);
@@ -99,31 +94,6 @@ namespace Indexer.Common.Persistence.EntityFramework
                     .ValueGeneratedOnAddOrUpdate()
                     .IsConcurrencyToken();
             });
-        }
-
-        private static void BuildObservedOperation(ModelBuilder modelBuilder)
-        {
-            modelBuilder.Entity<ObservedOperationEntity>()
-                .ToTable(TableNames.ObserverOperations)
-                .HasKey(x => x.OperationId);
-
-            modelBuilder.Entity<ObservedOperationEntity>()
-                .HasIndex(x => x.IsCompleted)
-                .IsUnique(false)
-                .HasName("IX_ObservedOperations_IsCompleted");
-
-            var jsonSerializingSettings = new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore };
-
-            #region Conversions
-
-            modelBuilder.Entity<ObservedOperationEntity>().Property(e => e.Fees).HasConversion(
-                v => JsonConvert.SerializeObject(v,
-                    jsonSerializingSettings),
-                v =>
-                    JsonConvert.DeserializeObject<IReadOnlyCollection<Unit>>(v,
-                        jsonSerializingSettings));
-
-            #endregion
         }
 
         private static void BuildBlockchain(ModelBuilder modelBuilder)

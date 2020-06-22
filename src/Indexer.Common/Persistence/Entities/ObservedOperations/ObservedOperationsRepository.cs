@@ -2,8 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Dapper;
 using Indexer.Common.Domain.ObservedOperations;
-using Indexer.Common.Persistence.EntityFramework;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 
@@ -11,90 +11,56 @@ namespace Indexer.Common.Persistence.Entities.ObservedOperations
 {
     public class ObservedOperationsRepository : IObservedOperationsRepository
     {
-        private readonly Func<DatabaseContext> _contextFactory;
+        private readonly Func<Task<NpgsqlConnection>> _connectionFactory;
 
-        public ObservedOperationsRepository(Func<DatabaseContext> contextFactory)
+        public ObservedOperationsRepository(Func<Task<NpgsqlConnection>> connectionFactory)
         {
-            _contextFactory = contextFactory;
+            _connectionFactory = connectionFactory;
         }
 
         public async Task AddOrIgnore(ObservedOperation observedOperation)
         {
-            await using var context = _contextFactory.Invoke();
-            var entity = MapToEntity(observedOperation);
+            await using var connection = await _connectionFactory.Invoke();
+
+            var schema = DbSchema.GetName(observedOperation.BlockchainId);
+            var query = $@"
+                insert into {schema}.{TableNames.ObserverOperations}
+                (id, transaction_id, added_at)
+                values (@id, @transactionId, @addedAt)";
 
             try
             {
-                context.ObservedOperations.Add(entity);
-                await context.SaveChangesAsync();
+                await connection.ExecuteAsync(query, new
+                    {
+                        id = observedOperation.Id,
+                        transaction_id = observedOperation.TransactionId,
+                        added_at = observedOperation.AddedAt
+                    });
             }
-            catch (DbUpdateException e) when (e.InnerException is PostgresException pgEx && pgEx.SqlState == "23505")
+            catch (DbUpdateException e) when (e.IsPrimaryKeyViolationException())
             {
             }
         }
 
-        public async Task<IReadOnlyCollection<ObservedOperation>> GetExecutingAsync(long? cursor, int limit)
+        public async Task<IReadOnlyCollection<ObservedOperation>> GetInvolvedInBlock(string blockchainId, string blockId)
         {
-            await using var context = _contextFactory.Invoke();
+            await using var connection = await _connectionFactory.Invoke();
 
-            var query = context.ObservedOperations.Where(x =>
-                !x.IsCompleted).Select(x => x);
+            var schema = DbSchema.GetName(blockchainId);
+            var query = $@"
+                select o.* from {schema}.{TableNames.ObserverOperations} o
+                join {schema}.{TableNames.TransactionHeaders} t on t.id = o.transaction_id
+                where t.block_id = @blockId";
 
-            if (cursor != null)
-            {
-                query = query.Where(x => x.OperationId > cursor);
-            }
+            var entities = await connection.QueryAsync<ObservedOperationEntity>(query, new {blockId});
 
-            return (await query
-                    .OrderBy(x => x.OperationId)
-                    .Take(limit)
-                    .ToArrayAsync())
-                .Select(MapFromEntity)
+            return entities
+                .Select(x => ObservedOperation.Restore(
+                    x.id,
+                    blockchainId,
+                    x.transaction_id,
+                    x.added_at))
                 .ToArray();
-        }
-
-        public async Task UpdateBatchAsync(IReadOnlyCollection<ObservedOperation> updatedOperations)
-        {
-            await using var context = _contextFactory.Invoke();
-
-            var entities = updatedOperations.Select(MapToEntity);
-
-            foreach (var entity in entities)
-            {
-                context.Attach(entity).State = EntityState.Modified;
-            }
-
-            await context.SaveChangesAsync();
-        }
-
-        private static ObservedOperationEntity MapToEntity(ObservedOperation observedOperation)
-        {
-            return new ObservedOperationEntity()
-            {
-                IsCompleted = observedOperation.IsCompleted,
-                OperationId = observedOperation.OperationId,
-                BlockchainId = observedOperation.BlockchainId,
-                TransactionId = observedOperation.TransactionId,
-                Fees = observedOperation.Fees,
-                AssetId = observedOperation.AssetId,
-                BilV1OperationId = observedOperation.BilV1OperationId,
-                DestinationAddress = observedOperation.DestinationAddress,
-                OperationAmount = observedOperation.OperationAmount,
-            };
-        }
-
-        private static ObservedOperation MapFromEntity(ObservedOperationEntity observedOperationEntity)
-        {
-            return ObservedOperation.Restore(
-                observedOperationEntity.OperationId,
-                observedOperationEntity.BlockchainId,
-                observedOperationEntity.TransactionId,
-                observedOperationEntity.IsCompleted,
-                observedOperationEntity.AssetId,
-                observedOperationEntity.BilV1OperationId,
-                observedOperationEntity.Fees,
-                observedOperationEntity.DestinationAddress,
-                observedOperationEntity.OperationAmount);
         }
     }
 }

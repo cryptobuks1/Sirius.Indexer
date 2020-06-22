@@ -14,7 +14,7 @@ namespace Indexer.Common.Persistence.Entities.SpentCoins
         public SpentCoinsRepositoryRetryDecorator(ISpentCoinsRepository impl)
         {
             _impl = impl;
-            _retryPolicy = Policies.DefaultRepositoryRetryPolicy();
+            _retryPolicy = RetryPolicies.DefaultRepositoryRetryPolicy();
         }
 
         public Task InsertOrIgnore(string blockchainId, IReadOnlyCollection<SpentCoin> coins)

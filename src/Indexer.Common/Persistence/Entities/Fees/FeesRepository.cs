@@ -31,8 +31,8 @@ namespace Indexer.Common.Persistence.Entities.Fees
             var copyHelper = new PostgreSQLCopyHelper<Fee>(schema, TableNames.Fees)
                 .UsePostgresQuoting()
                 .MapVarchar(nameof(FeeEntity.transaction_id), x => x.TransactionId)
-                .MapBigInt(nameof(FeeEntity.asset_id), x => x.AssetId)
-                .MapNumeric(nameof(FeeEntity.amount), x => x.Amount);
+                .MapBigInt(nameof(FeeEntity.asset_id), x => x.Unit.AssetId)
+                .MapNumeric(nameof(FeeEntity.amount), x => x.Unit.Amount);
 
             try
             {
@@ -79,14 +79,14 @@ namespace Indexer.Common.Persistence.Entities.Fees
                 fees,
                 columnsToSelect: "transaction_id, asset_id",
                 listColumns: "transaction_id, asset_id",
-                x => $"('{x.TransactionId}', {x.AssetId})",
+                x => $"('{x.TransactionId}', {x.Unit.AssetId})",
                 knownSourceLength: fees.Count);
 
             var existing = existingEntities
                 .Select(x => (x.transaction_id, x.asset_id))
                 .ToHashSet();
 
-            return fees.Where(x => !existing.Contains((x.TransactionId, x.AssetId))).ToArray();
+            return fees.Where(x => !existing.Contains((x.TransactionId, x.Unit.AssetId))).ToArray();
         }
     }
 }
