@@ -204,9 +204,7 @@ namespace Indexer.Common.Domain.Indexing.Ongoing
                             .Select(x => new TransferSource
                             {
                                 Address = x.Address,
-                                Unit = x.Unit,
-                                SpentCoin = x.Id,
-                                TransferId = $"input-{x.SpentByCoinId.Number.ToString()}"
+                                Unit = x.Unit
                             })
                             .ToArray(),
                         Destinations = unspentCoinsByTransaction[transfer.Header.Id]
@@ -215,9 +213,7 @@ namespace Indexer.Common.Domain.Indexing.Ongoing
                                 Address = x.Address,
                                 Unit = x.Unit,
                                 TagType = x.TagType,
-                                Tag = x.Tag,
-                                CoinNumber = x.Id.Number,
-                                TransferId = $"output-{x.Id.Number.ToString()}"
+                                Tag = x.Tag
                             })
                             .ToArray()
                     }));

@@ -6,7 +6,6 @@ namespace Swisschain.Sirius.Indexer.MessagingContract
     {
         public string Address { get; set; }
         public Unit Unit { get; set; }
-        public string TransferId { get; set; }
 
         /// <summary>
         /// Optional
@@ -17,10 +16,5 @@ namespace Swisschain.Sirius.Indexer.MessagingContract
         /// Optional
         /// </summary>
         public DestinationTagType? TagType { get; set; }
-        
-        /// <summary>
-        /// Optional
-        /// </summary>
-        public int? CoinNumber { get; set; }
     }
 }
