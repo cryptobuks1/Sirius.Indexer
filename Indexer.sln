@@ -38,7 +38,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Github workflow", "Github w
 		.github\workflows\release-api-client.yml = .github\workflows\release-api-client.yml
 		.github\workflows\release-messaging-contract.yml = .github\workflows\release-messaging-contract.yml
 		.github\workflows\release-service.yml = .github\workflows\release-service.yml
-		.github\workflows\validate-commit.yml = .github\workflows\validate-commit.yml
+		.github\workflows\validate-master.yml = .github\workflows\validate-master.yml
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Documentation", "Documentation", "{DB08FC9E-A784-4D4D-932C-DA320E3C5091}"
