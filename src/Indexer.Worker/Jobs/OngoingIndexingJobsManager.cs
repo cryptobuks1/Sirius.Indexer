@@ -33,6 +33,7 @@ namespace Indexer.Worker.Jobs
         private readonly SemaphoreSlim _lock;
         private readonly ConcurrentDictionary<string, OngoingIndexingJob> _jobs;
         private readonly IObservedOperationsRepository _observedOperationsRepository;
+        private readonly IBlockchainsRepository _blockchainsRepository;
 
         public OngoingIndexingJobsManager(ILoggerFactory loggerFactory, 
             AppConfig appConfig,
@@ -43,6 +44,7 @@ namespace Indexer.Worker.Jobs
             CoinsSecondaryBlockProcessor coinsSecondaryBlockProcessor,
             CoinsBlockCanceler coinsBlockCanceler,
             IObservedOperationsRepository observedOperationsRepository,
+            IBlockchainsRepository blockchainsRepository,
             IBlockReadersProvider blockReadersProvider,
             ChainWalker chainWalker,
             IPublishEndpoint publisher,
@@ -57,6 +59,7 @@ namespace Indexer.Worker.Jobs
             _coinsSecondaryBlockProcessor = coinsSecondaryBlockProcessor;
             _coinsBlockCanceler = coinsBlockCanceler;
             _observedOperationsRepository = observedOperationsRepository;
+            _blockchainsRepository = blockchainsRepository;
             _blockReadersProvider = blockReadersProvider;
             _chainWalker = chainWalker;
             _publisher = publisher;
@@ -75,12 +78,14 @@ namespace Indexer.Worker.Jobs
                 if (!_jobs.ContainsKey(blockchainId))
                 {
                     var blockchainConfig = _appConfig.Indexing.Blockchains[blockchainId];
+                    var blockchainMetadata = await _blockchainsRepository.GetAsync(blockchainId);
                     var blocksReader = await _blockReadersProvider.Get(blockchainId);
 
                     var job = new OngoingIndexingJob(
                         _loggerFactory.CreateLogger<OngoingIndexingJob>(),
                         _loggerFactory,
                         blockchainId,
+                        blockchainMetadata.Protocol.DoubleSpendingProtectionType,
                         blockchainConfig.DelayOnBlockNotFound,
                         _blockchainSchemaBuilder,
                         _indexersRepository,

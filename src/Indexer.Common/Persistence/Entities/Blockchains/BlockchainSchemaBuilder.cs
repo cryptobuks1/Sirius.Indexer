@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Dapper;
 using Microsoft.Extensions.Logging;
 using Npgsql;
+using Swisschain.Sirius.Sdk.Primitives;
 
 namespace Indexer.Common.Persistence.Entities.Blockchains
 {
@@ -20,11 +21,12 @@ namespace Indexer.Common.Persistence.Entities.Blockchains
             _connectionFactory = connectionFactory;
         }
 
-        public async Task<bool> ProvisionForIndexing(string blockchainId)
+        public async Task<bool> ProvisionForIndexing(string blockchainId, DoubleSpendingProtectionType blockchainDoubleSpendingProtectionType)
         {
-            _logger.LogInformation("Provisioning DB schema for {@blockchainId}...", blockchainId);
+            _logger.LogInformation("DB schema for {@blockchainId} is being provisioned...", blockchainId);
 
             await using var connection = await _connectionFactory.Invoke();
+            await using var transaction = await connection.BeginTransactionAsync();
 
             if (await CheckSchema(blockchainId, connection))
             {
@@ -33,37 +35,133 @@ namespace Indexer.Common.Persistence.Entities.Blockchains
                 return false;
             }
 
-            await CreateSchema(blockchainId, connection);
+            await CreateCommonSchema(blockchainId, connection);
+
+            switch (blockchainDoubleSpendingProtectionType)
+            {
+                case DoubleSpendingProtectionType.Coins:
+                    await CreateCoinsSchema(blockchainId, connection);
+                    break;
+
+                case DoubleSpendingProtectionType.Nonce:
+                    await CreateNonceSchema(blockchainId, connection);
+                    break;
+
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(blockchainDoubleSpendingProtectionType), blockchainDoubleSpendingProtectionType, "");
+            }
+
+            await transaction.CommitAsync();
+
+            _logger.LogInformation("DB schema for {@blockchainId} has been provisioned", blockchainId);
 
             return true;
         }
 
-        public async Task ProceedToOngoingIndexing(string blockchainId)
+        public async Task UpgradeToOngoingIndexing(string blockchainId, DoubleSpendingProtectionType blockchainDoubleSpendingProtectionType)
         {
-            _logger.LogInformation("Proceeding DB schema for {@blockchainId} to ongoing indexing...", blockchainId);
+            _logger.LogInformation("DB schema for {@blockchainId} is being upgraded to ongoing indexing...", blockchainId);
 
             await using var connection = await _connectionFactory.Invoke();
+            await using var transaction = await connection.BeginTransactionAsync();
 
-            var query = await LoadScript("before-ongoing-indexing.sql");
+            await UpgradeCommonSchemaToOngoingIndexing(blockchainId, connection);
 
-            query = query.Replace("@schemaName", DbSchema.GetName(blockchainId));
+            switch (blockchainDoubleSpendingProtectionType)
+            {
+                case DoubleSpendingProtectionType.Coins:
+                    await UpgradeCoinsSchemaToOngoingIndexing(blockchainId, connection);
+                    break;
 
-            await connection.ExecuteAsync(query);
+                case DoubleSpendingProtectionType.Nonce:
+                    await UpgradeNonceSchemaToOngoingIndexing(blockchainId, connection);
+                    break;
 
-            _logger.LogInformation("DB schema for {@blockchainId} has been proceeded to ongoing indexing", blockchainId);
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(blockchainDoubleSpendingProtectionType), blockchainDoubleSpendingProtectionType, "");
+            }
+
+            await transaction.CommitAsync();
+
+            _logger.LogInformation("DB schema for {@blockchainId} has been upgraded to ongoing indexing", blockchainId);
         }
 
-        private async Task CreateSchema(string blockchainId, NpgsqlConnection connection)
+        private async Task CreateCommonSchema(string blockchainId, NpgsqlConnection connection)
         {
-            _logger.LogInformation("Creating schema for {@blockchainId}...", blockchainId);
+            _logger.LogInformation("Common DB schema for {@blockchainId} is being created...", blockchainId);
             
-            var query = await LoadScript("before-indexing.sql");
+            var query = await LoadScript("Initialization/before-indexing.sql");
 
             query = query.Replace("@schemaName", DbSchema.GetName(blockchainId));
 
             await connection.ExecuteAsync(query);
 
-            _logger.LogInformation("DB schema for {@blockchainId} has been created", blockchainId);
+            _logger.LogInformation("Common DB schema for {@blockchainId} has been created", blockchainId);
+        }
+
+        private async Task CreateCoinsSchema(string blockchainId, NpgsqlConnection connection)
+        {
+            _logger.LogInformation("Coins DB schema for {@blockchainId} is being created...", blockchainId);
+            
+            var query = await LoadScript("Initialization/Coins/before-coins-indexing.sql");
+
+            query = query.Replace("@schemaName", DbSchema.GetName(blockchainId));
+
+            await connection.ExecuteAsync(query);
+
+            _logger.LogInformation("Coins DB schema for {@blockchainId} has been created", blockchainId);
+        }
+
+        private async Task CreateNonceSchema(string blockchainId, NpgsqlConnection connection)
+        {
+            _logger.LogInformation("Nonce DB schema for {@blockchainId} is being created...", blockchainId);
+            
+            var query = await LoadScript("Initialization/Nonce/before-nonce-indexing.sql");
+
+            query = query.Replace("@schemaName", DbSchema.GetName(blockchainId));
+
+            await connection.ExecuteAsync(query);
+
+            _logger.LogInformation("Nonce DB schema for {@blockchainId} has been created", blockchainId);
+        }
+
+        private async Task UpgradeCommonSchemaToOngoingIndexing(string blockchainId, NpgsqlConnection connection)
+        {
+            _logger.LogInformation("Common DB schema for {@blockchainId} is being upgraded to ongoing indexing...", blockchainId);
+
+            var query = await LoadScript("Initialization/before-ongoing-indexing.sql");
+
+            query = query.Replace("@schemaName", DbSchema.GetName(blockchainId));
+
+            await connection.ExecuteAsync(query);
+
+            _logger.LogInformation("Common DB schema for {@blockchainId} has been upgraded to ongoing indexing", blockchainId);
+        }
+
+        private async Task UpgradeCoinsSchemaToOngoingIndexing(string blockchainId, NpgsqlConnection connection)
+        {
+            _logger.LogInformation("Coins DB schema for {@blockchainId} is being upgraded to ongoing indexing...", blockchainId);
+
+            var query = await LoadScript("Initialization/Coins/before-coins-ongoing-indexing.sql");
+
+            query = query.Replace("@schemaName", DbSchema.GetName(blockchainId));
+
+            await connection.ExecuteAsync(query);
+
+            _logger.LogInformation("Coins DB schema for {@blockchainId} has been upgraded to ongoing indexing", blockchainId);
+        }
+
+        private async Task UpgradeNonceSchemaToOngoingIndexing(string blockchainId, NpgsqlConnection connection)
+        {
+            _logger.LogInformation("Nonce DB schema for {@blockchainId} is being upgraded to ongoing indexing...", blockchainId);
+
+            var query = await LoadScript("Initialization/Nonce/before-nonce-ongoing-indexing.sql");
+
+            query = query.Replace("@schemaName", DbSchema.GetName(blockchainId));
+
+            await connection.ExecuteAsync(query);
+
+            _logger.LogInformation("Nonce DB schema for {@blockchainId} has been upgraded to ongoing indexing", blockchainId);
         }
 
         private static async Task<bool> CheckSchema(string blockchainId, NpgsqlConnection connection)

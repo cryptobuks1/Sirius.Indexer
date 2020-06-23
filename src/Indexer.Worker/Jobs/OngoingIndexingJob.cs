@@ -12,6 +12,7 @@ using Indexer.Common.Persistence.Entities.OngoingIndexers;
 using Indexer.Common.Telemetry;
 using MassTransit;
 using Microsoft.Extensions.Logging;
+using Swisschain.Sirius.Sdk.Primitives;
 
 namespace Indexer.Worker.Jobs
 {
@@ -20,6 +21,7 @@ namespace Indexer.Worker.Jobs
         private readonly ILogger<OngoingIndexingJob> _logger;
         private readonly ILoggerFactory _loggerFactory;
         private readonly string _blockchainId;
+        private readonly DoubleSpendingProtectionType _blockchainDoubleSpendingProtectionType;
         private readonly TimeSpan _delayOnBlockNotFound;
         private readonly IBlockchainSchemaBuilder _blockchainSchemaBuilder;
         private readonly IOngoingIndexersRepository _indexersRepository;
@@ -41,6 +43,7 @@ namespace Indexer.Worker.Jobs
         public OngoingIndexingJob(ILogger<OngoingIndexingJob> logger,
             ILoggerFactory loggerFactory,
             string blockchainId,
+            DoubleSpendingProtectionType blockchainDoubleSpendingProtectionType,
             TimeSpan delayOnBlockNotFound,
             IBlockchainSchemaBuilder blockchainSchemaBuilder,
             IOngoingIndexersRepository indexersRepository,
@@ -57,6 +60,7 @@ namespace Indexer.Worker.Jobs
             _logger = logger;
             _loggerFactory = loggerFactory;
             _blockchainId = blockchainId;
+            _blockchainDoubleSpendingProtectionType = blockchainDoubleSpendingProtectionType;
             _delayOnBlockNotFound = delayOnBlockNotFound;
             _blockchainSchemaBuilder = blockchainSchemaBuilder;
             _indexersRepository = indexersRepository;
@@ -94,7 +98,7 @@ namespace Indexer.Worker.Jobs
 
             if (_indexer.NextBlock == _indexer.StartBlock)
             {
-                await _blockchainSchemaBuilder.ProceedToOngoingIndexing(_blockchainId);
+                await _blockchainSchemaBuilder.UpgradeToOngoingIndexing(_blockchainId, _blockchainDoubleSpendingProtectionType);
             }
             else
             {

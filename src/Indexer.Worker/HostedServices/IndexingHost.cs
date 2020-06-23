@@ -93,7 +93,7 @@ namespace Indexer.Worker.HostedServices
                 var blockchainMetamodel = await _blockchainsRepository.GetAsync(blockchainId);
                 var blocksReader = await _blockReadersProvider.Get(blockchainId);
 
-                await ProvisionSchema(blockchainId);
+                await ProvisionDbSchema(blockchainMetamodel);
                 var firstPassIndexers = await ProvisionFirstPassIndexers(blockchainId, blockchainConfig, blockchainMetamodel);
                 var secondPassIndexer = await ProvisionSecondPassIndexer(blockchainId, blockchainConfig, blockchainMetamodel);
                 var ongoingIndexer = await ProvisionOngoingIndexer(blockchainId, blockchainConfig, blockchainMetamodel);
@@ -140,17 +140,17 @@ namespace Indexer.Worker.HostedServices
             _ongoingIndexingJobsManager.Dispose();
         }
 
-        private async Task ProvisionSchema(string blockchainId)
+        private async Task ProvisionDbSchema(BlockchainMetamodel blockchainMetamodel)
         {
-            if (await _blockchainSchemaBuilder.ProvisionForIndexing(blockchainId))
+            if (await _blockchainSchemaBuilder.ProvisionForIndexing(blockchainMetamodel.Id, blockchainMetamodel.Protocol.DoubleSpendingProtectionType))
             {
-                _logger.LogInformation("Cleaning {@blockchainId} indexers up since schema was just created...", blockchainId);
+                _logger.LogInformation("Cleaning {@blockchainId} indexers up since schema was just created...", blockchainMetamodel.Id);
 
-                await _firstPassIndexersRepository.Remove(blockchainId);
-                await _secondPassIndexersRepository.Remove(blockchainId);
-                await _ongoingIndexersRepository.Remove(blockchainId);
+                await _firstPassIndexersRepository.Remove(blockchainMetamodel.Id);
+                await _secondPassIndexersRepository.Remove(blockchainMetamodel.Id);
+                await _ongoingIndexersRepository.Remove(blockchainMetamodel.Id);
 
-                _logger.LogInformation("{@blockchainId} indexers cleaned up", blockchainId);
+                _logger.LogInformation("{@blockchainId} indexers cleaned up", blockchainMetamodel.Id);
             }
         }
 
