@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using Swisschain.Sirius.Sdk.Primitives;
 
 namespace Swisschain.Sirius.Indexer.MessagingContract
@@ -8,6 +9,7 @@ namespace Swisschain.Sirius.Indexer.MessagingContract
         public string BlockchainId { get; set; }
         public string BlockId { get; set; }
         public long BlockNumber { get; set; }
+        public DateTime BlockMinedAt { get; set; }
         public string TransactionId { get; set; }
         public int TransactionNumber { get; set; }
         public long? OperationId { get; set; }

@@ -176,6 +176,7 @@ namespace Indexer.Common.Domain.Indexing.Ongoing
                     BlockchainId = BlockchainId,
                     BlockId = newBlock.Header.Id,
                     BlockNumber = newBlock.Header.Number,
+                    MinedAt = newBlock.Header.MinedAt,
                     PreviousBlockId = newBlock.Header.PreviousId,
                     ChainSequence = Sequence
                 })
@@ -193,6 +194,7 @@ namespace Indexer.Common.Domain.Indexing.Ongoing
                         BlockchainId = BlockchainId,
                         BlockId = newBlock.Header.Id,
                         BlockNumber = newBlock.Header.Number,
+                        BlockMinedAt = newBlock.Header.MinedAt,
                         TransactionId = transfer.Header.Id,
                         TransactionNumber = transfer.Header.Number,
                         Error = transfer.Header.Error,
