@@ -21,6 +21,7 @@ namespace Indexer.Worker.MessageConsumers
         private readonly ILoggerFactory _loggerFactory;
         private readonly IBlockHeadersRepository _blockHeadersRepository;
         private readonly ISecondPassIndexersRepository _secondPassIndexersRepository;
+        private readonly SecondPassIndexingJobsManager _secondPassIndexingJobsManager;
         private readonly OngoingIndexingJobsManager _ongoingIndexingJobsManager;
         private readonly IAppInsight _appInsight;
         private readonly CoinsSecondaryBlockProcessor _coinsSecondaryBlockProcessor;
@@ -28,6 +29,7 @@ namespace Indexer.Worker.MessageConsumers
         public FirstPassBlockDetectedConsumer(ILoggerFactory loggerFactory,
             IBlockHeadersRepository blockHeadersRepository,
             ISecondPassIndexersRepository secondPassIndexersRepository,
+            SecondPassIndexingJobsManager secondPassIndexingJobsManager,
             OngoingIndexingJobsManager ongoingIndexingJobsManager,
             IAppInsight appInsight,
             CoinsSecondaryBlockProcessor coinsSecondaryBlockProcessor)
@@ -35,6 +37,7 @@ namespace Indexer.Worker.MessageConsumers
             _loggerFactory = loggerFactory;
             _blockHeadersRepository = blockHeadersRepository;
             _secondPassIndexersRepository = secondPassIndexersRepository;
+            _secondPassIndexingJobsManager = secondPassIndexingJobsManager;
             _ongoingIndexingJobsManager = ongoingIndexingJobsManager;
             _appInsight = appInsight;
             _coinsSecondaryBlockProcessor = coinsSecondaryBlockProcessor;
@@ -52,17 +55,33 @@ namespace Indexer.Worker.MessageConsumers
 
             using var concurrencyLimiter = await ConcurrencyLimiter.Enter($"{nameof(FirstPassBlockDetected)}-{evt.BlockchainId}");
 
-            var secondPassIndexer = await _secondPassIndexersRepository.Get(evt.BlockchainId);
+            _secondPassIndexingJobsManager.BlockStart(evt.BlockchainId);
 
-            var secondPassIndexingResult = await secondPassIndexer.IndexAvailableBlocks(
-                _loggerFactory.CreateLogger<SecondPassIndexer>(),
-                // TODO: To config
-                100,
-                _blockHeadersRepository,
-                _appInsight,
-                _coinsSecondaryBlockProcessor);
+            SecondPassIndexingResult secondPassIndexingResult;
 
-            await _secondPassIndexersRepository.Update(secondPassIndexer);
+            try
+            {
+                if (_secondPassIndexingJobsManager.IsStarted(evt.BlockchainId))
+                {
+                    return;
+                }
+
+                var secondPassIndexer = await _secondPassIndexersRepository.Get(evt.BlockchainId);
+
+                secondPassIndexingResult = await secondPassIndexer.IndexAvailableBlocks(
+                    _loggerFactory.CreateLogger<SecondPassIndexer>(),
+                    // TODO: To config
+                    100,
+                    _blockHeadersRepository,
+                    _appInsight,
+                    _coinsSecondaryBlockProcessor);
+
+                await _secondPassIndexersRepository.Update(secondPassIndexer);
+            }
+            finally
+            {
+                _secondPassIndexingJobsManager.AllowStart(evt.BlockchainId);
+            }
 
             if (secondPassIndexingResult == SecondPassIndexingResult.IndexingCompleted)
             {

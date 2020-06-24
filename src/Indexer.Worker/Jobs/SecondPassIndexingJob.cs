@@ -2,13 +2,8 @@
 using System.Threading.Tasks;
 using Indexer.Common.Domain.Indexing.Common.CoinBlocks;
 using Indexer.Common.Domain.Indexing.SecondPass;
-using Indexer.Common.Persistence.Entities.BalanceUpdates;
 using Indexer.Common.Persistence.Entities.BlockHeaders;
-using Indexer.Common.Persistence.Entities.Fees;
-using Indexer.Common.Persistence.Entities.InputCoins;
 using Indexer.Common.Persistence.Entities.SecondPassIndexers;
-using Indexer.Common.Persistence.Entities.SpentCoins;
-using Indexer.Common.Persistence.Entities.UnspentCoins;
 using Indexer.Common.Telemetry;
 using Microsoft.Extensions.Logging;
 

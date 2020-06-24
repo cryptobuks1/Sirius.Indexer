@@ -22,6 +22,7 @@ namespace Indexer.Worker.Jobs
         private readonly SemaphoreSlim _lock;
         private readonly ConcurrentDictionary<string, SecondPassIndexingJob> _jobs;
         private readonly CoinsSecondaryBlockProcessor _secondaryBlockProcessor;
+        private readonly ConcurrentDictionary<string, SemaphoreSlim> _jobStartBlockers;
 
         public SecondPassIndexingJobsManager(ILoggerFactory loggerFactory, 
             AppConfig appConfig,
@@ -41,10 +42,16 @@ namespace Indexer.Worker.Jobs
 
             _lock = new SemaphoreSlim(1, 1);
             _jobs = new ConcurrentDictionary<string, SecondPassIndexingJob>();
+            _jobStartBlockers = new ConcurrentDictionary<string, SemaphoreSlim>();
         }
 
         public async Task EnsureStarted(string blockchainId)
         {
+            while (_jobStartBlockers.ContainsKey(blockchainId))
+            {
+                await Task.Delay(TimeSpan.FromMilliseconds(100));
+            }
+
             await _lock.WaitAsync();
 
             try
@@ -73,6 +80,21 @@ namespace Indexer.Worker.Jobs
             {
                 _lock.Release();
             }
+        }
+
+        public bool IsStarted(string blockchainId)
+        {
+            return _jobs.ContainsKey(blockchainId);
+        }
+
+        public void BlockStart(string blockchainId)
+        {
+            _jobStartBlockers.TryAdd(blockchainId, default);
+        }
+
+        public void AllowStart(string blockchainId)
+        {
+            _jobStartBlockers.TryRemove(blockchainId, out _);
         }
 
         public void Stop()
