@@ -90,7 +90,7 @@ namespace Indexer.Common.Persistence.Entities.Blockchains
         {
             _logger.LogInformation("Common DB schema for {@blockchainId} is being created...", blockchainId);
             
-            var query = await LoadScript("Initialization/before-indexing.sql");
+            var query = await LoadScript("before-indexing.sql");
 
             query = query.Replace("@schemaName", DbSchema.GetName(blockchainId));
 
@@ -103,7 +103,7 @@ namespace Indexer.Common.Persistence.Entities.Blockchains
         {
             _logger.LogInformation("Coins DB schema for {@blockchainId} is being created...", blockchainId);
             
-            var query = await LoadScript("Initialization/Coins/before-coins-indexing.sql");
+            var query = await LoadScript("Coins.before-coins-indexing.sql");
 
             query = query.Replace("@schemaName", DbSchema.GetName(blockchainId));
 
@@ -116,7 +116,7 @@ namespace Indexer.Common.Persistence.Entities.Blockchains
         {
             _logger.LogInformation("Nonce DB schema for {@blockchainId} is being created...", blockchainId);
             
-            var query = await LoadScript("Initialization/Nonce/before-nonce-indexing.sql");
+            var query = await LoadScript("Nonce.before-nonce-indexing.sql");
 
             query = query.Replace("@schemaName", DbSchema.GetName(blockchainId));
 
@@ -129,7 +129,7 @@ namespace Indexer.Common.Persistence.Entities.Blockchains
         {
             _logger.LogInformation("Common DB schema for {@blockchainId} is being upgraded to ongoing indexing...", blockchainId);
 
-            var query = await LoadScript("Initialization/before-ongoing-indexing.sql");
+            var query = await LoadScript("before-ongoing-indexing.sql");
 
             query = query.Replace("@schemaName", DbSchema.GetName(blockchainId));
 
@@ -142,7 +142,7 @@ namespace Indexer.Common.Persistence.Entities.Blockchains
         {
             _logger.LogInformation("Coins DB schema for {@blockchainId} is being upgraded to ongoing indexing...", blockchainId);
 
-            var query = await LoadScript("Initialization/Coins/before-coins-ongoing-indexing.sql");
+            var query = await LoadScript("Coins.before-coins-ongoing-indexing.sql");
 
             query = query.Replace("@schemaName", DbSchema.GetName(blockchainId));
 
@@ -155,7 +155,7 @@ namespace Indexer.Common.Persistence.Entities.Blockchains
         {
             _logger.LogInformation("Nonce DB schema for {@blockchainId} is being upgraded to ongoing indexing...", blockchainId);
 
-            var query = await LoadScript("Initialization/Nonce/before-nonce-ongoing-indexing.sql");
+            var query = await LoadScript("Nonce.before-nonce-ongoing-indexing.sql");
 
             query = query.Replace("@schemaName", DbSchema.GetName(blockchainId));
 
@@ -175,16 +175,18 @@ namespace Indexer.Common.Persistence.Entities.Blockchains
 
         private static async Task<string> LoadScript(string fileName)
         {
-            var entryPointPath = Assembly.GetEntryAssembly()?.Location;
+            var assembly = Assembly.GetExecutingAssembly();
+            var resourceName = $"Indexer.Common.Persistence.SqlScripts.Initialization.{fileName}";
 
-            if (entryPointPath != null)
+            await using var stream = assembly.GetManifestResourceStream(resourceName);
+
+            if (stream == null)
             {
-                var binPath = Path.GetDirectoryName(entryPointPath);
-
-                return await File.ReadAllTextAsync($@"{binPath}/Persistence/SqlScripts/{fileName}");
+                throw new InvalidOperationException($"Resource {resourceName} is not found");
             }
 
-            return await File.ReadAllTextAsync(fileName);
+            using var reader = new StreamReader(stream);
+            return reader.ReadToEnd();
         }
     }
 }

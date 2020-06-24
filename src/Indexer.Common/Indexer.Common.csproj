@@ -16,6 +16,24 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Persistence\SqlScripts\Initialization\before-indexing.sql" />
+    <None Remove="Persistence\SqlScripts\Initialization\before-ongoing-indexing.sql" />
+    <None Remove="Persistence\SqlScripts\Initialization\Coins\before-coins-indexing.sql" />
+    <None Remove="Persistence\SqlScripts\Initialization\Coins\before-coins-ongoing-indexing.sql" />
+    <None Remove="Persistence\SqlScripts\Initialization\Nonce\before-nonce-indexing.sql" />
+    <None Remove="Persistence\SqlScripts\Initialization\Nonce\before-nonce-ongoing-indexing.sql" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Persistence\SqlScripts\Initialization\before-indexing.sql" />
+    <EmbeddedResource Include="Persistence\SqlScripts\Initialization\before-ongoing-indexing.sql" />
+    <EmbeddedResource Include="Persistence\SqlScripts\Initialization\Coins\before-coins-indexing.sql" />
+    <EmbeddedResource Include="Persistence\SqlScripts\Initialization\Coins\before-coins-ongoing-indexing.sql" />
+    <EmbeddedResource Include="Persistence\SqlScripts\Initialization\Nonce\before-nonce-indexing.sql" />
+    <EmbeddedResource Include="Persistence\SqlScripts\Initialization\Nonce\before-nonce-ongoing-indexing.sql" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Dapper" Version="2.0.35" />
     <PackageReference Include="MassTransit" Version="6.2.4" />
     <PackageReference Include="Microsoft.ApplicationInsights" Version="2.14.0" />
@@ -52,27 +70,6 @@
 
   <ItemGroup>
     <Folder Include="Persistence\SqlScripts\Migrations\" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Update="Persistence\SqlScripts\Initialization\before-indexing.sql">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="Persistence\SqlScripts\Initialization\before-ongoing-indexing.sql">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="Persistence\SqlScripts\Initialization\Coins\before-coins-indexing.sql">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="Persistence\SqlScripts\Initialization\Coins\before-coins-ongoing-indexing.sql">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="Persistence\SqlScripts\Initialization\Nonce\before-nonce-indexing.sql">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="Persistence\SqlScripts\Initialization\Nonce\before-nonce-ongoing-indexing.sql">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
   </ItemGroup>
 
 </Project>

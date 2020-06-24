@@ -68,7 +68,7 @@ namespace Indexer.Common.Domain.Indexing.Common.CoinBlocks
 
             if (inputsToSpend.Count != coinsToSpend.Count && coinsToSpend.Count != 0)
             {
-                throw new InvalidOperationException($"Not all unspent coins found {coinsToSpend.Count} for the given inputs to spend {inputsToSpend.Count}");
+                throw new InvalidOperationException($"Not all unspent coins found ({coinsToSpend.Count}) for the given inputs to spend ({inputsToSpend.Count})");
             }
 
             if (coinsToSpend.Any())

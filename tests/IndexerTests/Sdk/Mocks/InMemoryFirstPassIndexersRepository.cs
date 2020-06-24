@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using Indexer.Common.Domain.Indexing.FirstPass;
 using Indexer.Common.Persistence.Entities.FirstPassIndexers;
 
-namespace IndexerTests.Mocks
+namespace IndexerTests.Sdk.Mocks
 {
     internal class InMemoryFirstPassIndexersRepository : IFirstPassIndexersRepository
     {

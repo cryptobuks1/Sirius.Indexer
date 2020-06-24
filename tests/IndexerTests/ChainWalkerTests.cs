@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Indexer.Common.Domain.Blocks;
 using Indexer.Common.Domain.Indexing.Ongoing;
-using IndexerTests.Mocks;
+using IndexerTests.Sdk.Mocks;
 using Microsoft.Extensions.Logging.Abstractions;
 using Shouldly;
 using Xunit;

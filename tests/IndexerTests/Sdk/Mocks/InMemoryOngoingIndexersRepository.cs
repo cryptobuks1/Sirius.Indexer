@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 using Indexer.Common.Domain.Indexing.Ongoing;
 using Indexer.Common.Persistence.Entities.OngoingIndexers;
 
-namespace IndexerTests.Mocks
+namespace IndexerTests.Sdk.Mocks
 {
     internal sealed class InMemoryOngoingIndexersRepository : IOngoingIndexersRepository
     {

@@ -3,7 +3,7 @@ using Swisschain.Sirius.Sdk.Primitives;
 
 namespace Indexer.Common.Domain.Transactions.Transfers
 {
-    public sealed class UnspentCoin
+    public sealed class UnspentCoin : IEquatable<UnspentCoin>
     {
         public UnspentCoin(CoinId id,
             Unit unit,
@@ -38,6 +38,27 @@ namespace Indexer.Common.Domain.Transactions.Transfers
                 Tag,
                 TagType,
                 byInputCoin.Id);
+        }
+
+        public bool Equals(UnspentCoin other)
+        {
+            if (ReferenceEquals(null, other)) return false;
+            if (ReferenceEquals(this, other)) return true;
+            return Equals(Id, other.Id) && Equals(Unit, other.Unit) && Address == other.Address && Tag == other.Tag && TagType == other.TagType;
+        }
+
+        public override bool Equals(object obj)
+        {
+            return ReferenceEquals(this, obj) || obj is UnspentCoin other && Equals(other);
+        }
+
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(Id,
+                Unit,
+                Address,
+                Tag,
+                TagType);
         }
     }
 }

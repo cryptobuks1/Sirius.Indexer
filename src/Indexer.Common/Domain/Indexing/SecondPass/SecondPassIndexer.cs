@@ -75,19 +75,19 @@ namespace Indexer.Common.Domain.Indexing.SecondPass
                 return SecondPassIndexingResult.IndexingCompleted;
             }
 
-            var blocks = await blockHeadersRepository.GetBatch(BlockchainId, NextBlock, maxBlocksCount);
+            var blockHeaders = await blockHeadersRepository.GetBatch(BlockchainId, NextBlock, maxBlocksCount);
             var processedBlocksCount = 0;
 
             try
             {
-                foreach (var block in blocks)
+                foreach (var blockHeader in blockHeaders)
                 {
-                    if (NextBlock != block.Number)
+                    if (NextBlock != blockHeader.Number)
                     {
                         return SecondPassIndexingResult.IndexingInProgress;
                     }
 
-                    await IndexBlock(block, appInsight, coinsSecondaryBlockProcessor);
+                    await IndexBlock(blockHeader, appInsight, coinsSecondaryBlockProcessor);
 
                     ++processedBlocksCount;
 

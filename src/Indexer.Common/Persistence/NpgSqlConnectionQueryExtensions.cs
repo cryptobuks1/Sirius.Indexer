@@ -11,6 +11,8 @@ namespace Indexer.Common.Persistence
 {
     public static class NpgSqlConnectionQueryExtensions
     {
+        public const int BatchSize = 1000;
+
         public static Task<IReadOnlyCollection<TEntity>> QueryInList<TEntity, TSource>(this NpgsqlConnection connection, 
             string schema,
             string table,
@@ -43,8 +45,6 @@ namespace Indexer.Common.Persistence
             int knownSourceLength = 0,
             bool isListValuesUnique = true)
         {
-            const int batchSize = 1000;
-
             async Task<IEnumerable<TEntity>> ReadBatch(IEnumerable<TSource> batch)
             {
                 var listKeys = string.Join(", ", batch.Select(listValuesFactory));
@@ -64,12 +64,12 @@ namespace Indexer.Common.Persistence
 
                 var query = queryBuilder.ToString();
 
-                return await connection.QueryAsync<TEntity>(query, new {limit = batchSize});
+                return await connection.QueryAsync<TEntity>(query, new {limit = BatchSize});
             }
 
-            var entities = new List<TEntity>(knownSourceLength == 0 ? batchSize : knownSourceLength);
+            var entities = new List<TEntity>(knownSourceLength == 0 ? BatchSize : knownSourceLength);
             
-            foreach (var batch in source.Batch(batchSize))
+            foreach (var batch in source.Batch(BatchSize))
             {
                 entities.AddRange(await ReadBatch(batch));
             }
