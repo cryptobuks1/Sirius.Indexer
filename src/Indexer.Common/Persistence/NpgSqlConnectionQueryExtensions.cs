@@ -47,7 +47,7 @@ namespace Indexer.Common.Persistence
         {
             async Task<IEnumerable<TEntity>> ReadBatch(IEnumerable<TSource> batch)
             {
-                var listKeys = string.Join(", ", batch.Select(x => $"({listValuesFactory})"));
+                var listKeys = string.Join(", ", batch.Select(x => $"({listValuesFactory.Invoke(x)})"));
                 var queryBuilder = new StringBuilder();
 
                 queryBuilder.AppendLine($@"
