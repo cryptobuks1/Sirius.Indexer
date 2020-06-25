@@ -31,7 +31,6 @@ namespace Indexer.Common.Persistence.Entities.BalanceUpdates
             }
             
             await using var connection = await _connectionFactory.Invoke();
-            var transaction = await connection.BeginTransactionAsync();
             
             var schema = DbSchema.GetName(blockchainId);
             var copyHelper = new PostgreSQLCopyHelper<BalanceUpdate>(schema, TableNames.BalanceUpdates)
@@ -41,43 +40,20 @@ namespace Indexer.Common.Persistence.Entities.BalanceUpdates
                 .MapVarchar(nameof(BalanceUpdateEntity.block_id), x => x.BlockId)
                 .MapBigInt(nameof(BalanceUpdateEntity.block_number), x => x.BlockNumber)
                 .MapTimeStamp(nameof(BalanceUpdateEntity.block_mined_at), x => x.BlockMinedAt)
-                .MapNumeric(nameof(BalanceUpdateEntity.amount), x => x.Amount)
-                .MapNumeric(nameof(BalanceUpdateEntity.total), x => x.Total);
+                .MapNumeric(nameof(BalanceUpdateEntity.amount), x => x.Amount);
 
             try
             {
-                try
-                {
-                    await copyHelper.SaveAllAsync(connection, balanceUpdates);
-                }
-                catch (PostgresException e) when (e.IsPrimaryKeyViolationException())
-                {
-                    await transaction.RollbackAsync();
-                    await transaction.DisposeAsync();
-
-                    transaction = await connection.BeginTransactionAsync();
-
-                    var notExisted = await ExcludeExistingInDb(schema, connection, balanceUpdates);
-
-                    if (notExisted.Any())
-                    {
-                        await copyHelper.SaveAllAsync(connection, notExisted);
-                    }
-                }
-
-                await UpdateTotalBalance(connection, schema, balanceUpdates);
-
-                await transaction.CommitAsync();
+                await copyHelper.SaveAllAsync(connection, balanceUpdates);
             }
-            catch
+            catch (PostgresException e) when (e.IsPrimaryKeyViolationException())
             {
-                await transaction.RollbackAsync();
+                var notExisted = await ExcludeExistingInDb(schema, connection, balanceUpdates);
 
-                throw;
-            }
-            finally
-            {
-                await transaction.DisposeAsync();
+                if (notExisted.Any())
+                {
+                    await copyHelper.SaveAllAsync(connection, notExisted);
+                }
             }
         }
 
@@ -89,34 +65,6 @@ namespace Indexer.Common.Persistence.Entities.BalanceUpdates
             var query = $@"delete from {schema}.{TableNames.BalanceUpdates} where block_id = @blockId";
 
             await connection.ExecuteAsync(query, new {blockId});
-        }
-
-        private static Task UpdateTotalBalance(NpgsqlConnection connection, 
-            string schema,
-            IReadOnlyCollection<BalanceUpdate> balanceUpdates)
-        {
-            var blockNumber = balanceUpdates.First().BlockNumber;
-            var query = $@"
-                update {schema}.{TableNames.BalanceUpdates} as cur
-	            set total = amount + 
-	            (
-		            select prev_total from coalesce 
-		            (
-			            (
-                            select total from {schema}.{TableNames.BalanceUpdates} as prev
-				            where 
-			 		            prev.address = cur.address and
-			 		            prev.asset_id = cur.asset_id and
-			 		            prev.block_number < cur.block_number
-				            order by prev.block_number desc
-				            limit 1
-                        ),
-			            0
-		            ) as prev_total
-	            )
-	            where block_number = @blockNumber";
-
-            return connection.ExecuteAsync(query, new {blockNumber});
         }
 
         private static async Task<IReadOnlyCollection<BalanceUpdate>> ExcludeExistingInDb(

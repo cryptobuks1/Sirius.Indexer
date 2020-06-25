@@ -82,7 +82,6 @@ create unlogged table balance_updates
     block_id        varchar(256) not null,
     block_mined_at  timestamp not null,
     amount          numeric not null,
-    total           numeric not null,
 
     constraint pk_balance_updates primary key (address, asset_id, block_number)
 ) partition by hash (address, asset_id);

@@ -11,7 +11,5 @@ namespace Indexer.Common.Persistence.Entities.BalanceUpdates
         public string block_id { get; set; }
         public DateTime block_mined_at { get; set; }
         public decimal amount { get; set; }
-        public decimal total { get; set; }
-
     }
 }

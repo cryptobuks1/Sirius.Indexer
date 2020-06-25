@@ -9,8 +9,7 @@ namespace Indexer.Common.Domain.Transactions.Transfers
             long blockNumber,
             string blockId,
             DateTime blockMinedAt,
-            decimal amount,
-            decimal total)
+            decimal amount)
         {
             Address = address;
             AssetId = assetId;
@@ -18,7 +17,6 @@ namespace Indexer.Common.Domain.Transactions.Transfers
             BlockId = blockId;
             BlockMinedAt = blockMinedAt;
             Amount = amount;
-            Total = total;
         }
 
         public string Address { get; }
@@ -27,7 +25,6 @@ namespace Indexer.Common.Domain.Transactions.Transfers
         public string BlockId { get; }
         public DateTime BlockMinedAt { get; }
         public decimal Amount { get; }
-        public decimal Total { get; }
 
         public static BalanceUpdate Create(string address,
             long assetId,
@@ -42,8 +39,7 @@ namespace Indexer.Common.Domain.Transactions.Transfers
                 blockNumber,
                 blockId,
                 blockMinedAt,
-                amount,
-                0);
+                amount);
         }
     }
 }
