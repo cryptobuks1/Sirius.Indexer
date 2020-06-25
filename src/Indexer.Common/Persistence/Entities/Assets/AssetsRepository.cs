@@ -100,9 +100,9 @@ namespace Indexer.Common.Persistence.Entities.Assets
             async Task<IEnumerable<AssetEntity>> ReadBatch(IReadOnlyCollection<BlockchainAssetId> batch)
             {
                 var idsWithAddress = batch.Where(x => x.Address != null).ToArray();
-                var inListWithAddress = string.Join(", ", idsWithAddress.Select(x => $"('{x.Symbol}', '{x.Address}'"));
+                var inListWithAddress = string.Join(", ", idsWithAddress.Select(x => $"('{x.Symbol}', '{x.Address}')"));
                 var idsWithoutAddress = batch.Where(x => x.Address == null).ToArray();
-                var inListWithoutAddress = string.Join("', '", idsWithoutAddress.Select(x => x.Symbol));
+                var inListWithoutAddress = string.Join(", ", idsWithoutAddress.Select(x => $"('{x.Symbol}')"));
 
                 var queryBuilder = new StringBuilder();
 
@@ -110,7 +110,7 @@ namespace Indexer.Common.Persistence.Entities.Assets
 
                 if (idsWithAddress.Any())
                 {
-                    queryBuilder.AppendLine($"address is not null and (symbol, address) in ({inListWithAddress})");
+                    queryBuilder.AppendLine($"address is not null and (symbol, address) in (values {inListWithAddress})");
 
                     if (idsWithoutAddress.Any())
                     {
@@ -120,7 +120,7 @@ namespace Indexer.Common.Persistence.Entities.Assets
 
                 if (idsWithoutAddress.Any())
                 {
-                    queryBuilder.AppendLine($"address is null and symbol in ('{inListWithoutAddress}')");
+                    queryBuilder.AppendLine($"address is null and symbol in (values {inListWithoutAddress})");
                 }
 
                 queryBuilder.AppendLine("limit @limit");

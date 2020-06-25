@@ -47,13 +47,13 @@ namespace Indexer.Common.Persistence
         {
             async Task<IEnumerable<TEntity>> ReadBatch(IEnumerable<TSource> batch)
             {
-                var listKeys = string.Join(", ", batch.Select(listValuesFactory));
+                var listKeys = string.Join(", ", batch.Select(x => $"({listValuesFactory})"));
                 var queryBuilder = new StringBuilder();
 
                 queryBuilder.AppendLine($@"
                     select {columnsToSelect} 
                     from {schema}.{table} 
-                    where ({listColumns}) in ({listKeys})");
+                    where ({listColumns}) in (values {listKeys})");
 
                 if (isListValuesUnique)
                 {

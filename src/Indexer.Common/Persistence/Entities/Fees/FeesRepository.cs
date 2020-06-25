@@ -79,7 +79,7 @@ namespace Indexer.Common.Persistence.Entities.Fees
                 fees,
                 columnsToSelect: "transaction_id, asset_id",
                 listColumns: "transaction_id, asset_id",
-                x => $"('{x.TransactionId}', {x.Unit.AssetId})",
+                x => $"'{x.TransactionId}', {x.Unit.AssetId}",
                 knownSourceLength: fees.Count);
 
             var existing = existingEntities

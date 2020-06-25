@@ -108,7 +108,7 @@ namespace Indexer.Common.Persistence.Entities.InputCoins
                 coins,
                 columnsToSelect: "transaction_id, number ",
                 listColumns: "transaction_id, number",
-                x => $"('{x.Id.TransactionId}', {x.Id.Number})",
+                x => $"'{x.Id.TransactionId}', {x.Id.Number}",
                 knownSourceLength: coins.Count);
 
             var existing = existingEntities

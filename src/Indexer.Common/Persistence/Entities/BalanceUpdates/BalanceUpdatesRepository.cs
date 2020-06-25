@@ -135,7 +135,7 @@ namespace Indexer.Common.Persistence.Entities.BalanceUpdates
                 balanceUpdates,
                 columnsToSelect: "address, asset_id, block_number",
                 listColumns: "address, asset_id, block_number",
-                x => $"('{x.Address}', {x.AssetId}, {x.BlockNumber})",
+                x => $"'{x.Address}', {x.AssetId}, {x.BlockNumber}",
                 knownSourceLength: balanceUpdates.Count);
 
             var existing = existingEntities

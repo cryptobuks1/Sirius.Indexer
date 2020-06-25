@@ -71,7 +71,7 @@ namespace Indexer.Common.Persistence.Entities.UnspentCoins
                 ids,
                 columnsToSelect: "*",
                 listColumns: "transaction_id, number",
-                x => $"('{x.TransactionId}', {x.Number})",
+                x => $"'{x.TransactionId}', {x.Number}",
                 knownSourceLength: ids.Count);
 
             var domainObjects = entities
@@ -95,7 +95,7 @@ namespace Indexer.Common.Persistence.Entities.UnspentCoins
             async Task RemoveBatch(NpgsqlConnection conn, IEnumerable<CoinId> batch)
             {
                 var inList = string.Join(", ", batch.Select(x => $"('{x.TransactionId}', {x.Number})"));
-                var query = $"delete from {schema}.{TableNames.UnspentCoins} where (transaction_id, number) in ({inList})";
+                var query = $"delete from {schema}.{TableNames.UnspentCoins} where (transaction_id, number) in (values {inList})";
 
                 await conn.ExecuteAsync(query);
             }
@@ -156,7 +156,7 @@ namespace Indexer.Common.Persistence.Entities.UnspentCoins
                 coins,
                 columnsToSelect: "transaction_id, number ",
                 listColumns: "transaction_id, number",
-                x => $"('{x.Id.TransactionId}', {x.Id.Number})",
+                x => $"'{x.Id.TransactionId}', {x.Id.Number}",
                 knownSourceLength: coins.Count);
             
             var existing = existingEntities
