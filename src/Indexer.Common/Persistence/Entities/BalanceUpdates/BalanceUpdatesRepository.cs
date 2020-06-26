@@ -67,6 +67,9 @@ namespace Indexer.Common.Persistence.Entities.BalanceUpdates
             await connection.ExecuteAsync(query, new {blockId});
         }
 
+        // TODO: to get a balance at a specified block number
+        // select sum(amount) from bitcoin.balance_updates where address='1VayNert3x1KzbpzMGt2qdqrAThiRovi8' and block_number<=232985
+
         private static async Task<IReadOnlyCollection<BalanceUpdate>> ExcludeExistingInDb(
             string schema,
             NpgsqlConnection connection,

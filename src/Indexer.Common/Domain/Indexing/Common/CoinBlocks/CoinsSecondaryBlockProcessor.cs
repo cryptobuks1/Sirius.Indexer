@@ -44,7 +44,7 @@ namespace Indexer.Common.Domain.Indexing.Common.CoinBlocks
             await ProcessRemovingPhase(blockHeader, generatingPhaseResult.SpentCoins);
         }
 
-        public Task<CoinsSecondaryBlockGenerationPhaseProcessingResult> ProcessGeneratingPhase(BlockHeader blockHeader, 
+        public Task<CoinsSecondaryBlockGenerationPhaseProcessingResult> ProcessGenerationPhase(BlockHeader blockHeader, 
             IReadOnlyCollection<UnspentCoin> blockOutputCoins)
         {
             return ProcessGenerationPhase(blockHeader, () => Task.FromResult(blockOutputCoins));

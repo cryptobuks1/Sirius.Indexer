@@ -131,7 +131,7 @@ namespace Indexer.Common.Domain.Indexing.Ongoing
             await primaryBlockProcessor.Process(newBlock.Header, newBlock.Transfers.Select(x => x.Header).ToArray());
 
             var primaryBlockProcessingResult = await coinsPrimaryBlockProcessor.Process(newBlock);
-            var secondaryBlockGeneratingPhaseProcessingResult = await coinsSecondaryBlockProcessor.ProcessGeneratingPhase(
+            var secondaryBlockGeneratingPhaseProcessingResult = await coinsSecondaryBlockProcessor.ProcessGenerationPhase(
                 newBlock.Header, 
                 primaryBlockProcessingResult.UnspentCoins);
             
