@@ -77,7 +77,7 @@ namespace Indexer.Worker.Jobs
             {
                 if (!_jobs.ContainsKey(blockchainId))
                 {
-                    var blockchainConfig = _appConfig.Indexing.Blockchains[blockchainId];
+                    var blockchainConfig = _appConfig.Blockchains[blockchainId];
                     var blockchainMetadata = await _blockchainsRepository.GetAsync(blockchainId);
                     var blocksReader = await _blockReadersProvider.Get(blockchainId);
 
@@ -86,7 +86,7 @@ namespace Indexer.Worker.Jobs
                         _loggerFactory,
                         blockchainId,
                         blockchainMetadata.Protocol.DoubleSpendingProtectionType,
-                        blockchainConfig.DelayOnBlockNotFound,
+                        blockchainConfig.Indexing.DelayOnBlockNotFound,
                         _blockchainSchemaBuilder,
                         _indexersRepository,
                         _primaryBlockProcessor,

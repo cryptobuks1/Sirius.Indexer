@@ -1,6 +1,6 @@
 ﻿namespace Indexer.Common.Configuration
 {
-    public class DbConfig
+    public class CommonDbConfig
     {
         public string ConnectionString { get; set; }
     }

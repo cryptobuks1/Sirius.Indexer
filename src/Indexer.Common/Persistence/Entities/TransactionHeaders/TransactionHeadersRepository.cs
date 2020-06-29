@@ -13,10 +13,10 @@ namespace Indexer.Common.Persistence.Entities.TransactionHeaders
 {
     internal class TransactionHeadersRepository : ITransactionHeadersRepository
     {
-        private readonly Func<Task<NpgsqlConnection>> _connectionFactory;
+        private readonly IBlockchainDbConnectionFactory _connectionFactory;
         private readonly IAppInsight _appInsight;
 
-        public TransactionHeadersRepository(Func<Task<NpgsqlConnection>> connectionFactory,
+        public TransactionHeadersRepository(IBlockchainDbConnectionFactory connectionFactory,
             IAppInsight appInsight)
         {
             _connectionFactory = connectionFactory;
@@ -29,11 +29,14 @@ namespace Indexer.Common.Persistence.Entities.TransactionHeaders
             {
                 return;
             }
+
+            var blockchainId = transactionHeaders.First().BlockchainId;
             
-            await using var connection = await _connectionFactory.Invoke();
+            await using var connection = await _connectionFactory.Create(blockchainId);
             
+            var schema = DbSchema.GetName(blockchainId);
             var telemetry = _appInsight.StartSqlCopyCommand<TransactionHeader>();
-            var schema = DbSchema.GetName(transactionHeaders.First().BlockchainId);
+            
             var copyHelper = new PostgreSQLCopyHelper<TransactionHeader>(schema, TableNames.TransactionHeaders)
                 .UsePostgresQuoting()
                 .MapVarchar(nameof(TransactionHeaderEntity.block_id), p => p.BlockId)
@@ -70,7 +73,7 @@ namespace Indexer.Common.Persistence.Entities.TransactionHeaders
 
         public async Task RemoveByBlock(string blockchainId, string blockId)
         {
-            await using var connection = await _connectionFactory.Invoke();
+            await using var connection = await _connectionFactory.Create(blockchainId);
 
             var schema = DbSchema.GetName(blockchainId);
             var query = $"delete from {schema}.{TableNames.TransactionHeaders} where block_id = @blockId";

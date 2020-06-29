@@ -12,10 +12,10 @@ namespace Indexer.Common.Persistence.Entities.Blockchains
     internal sealed class BlockchainSchemaBuilder : IBlockchainSchemaBuilder
     {
         private readonly ILogger<BlockchainSchemaBuilder> _logger;
-        private readonly Func<Task<NpgsqlConnection>> _connectionFactory;
+        private readonly IBlockchainDbConnectionFactory _connectionFactory;
 
         public BlockchainSchemaBuilder(ILogger<BlockchainSchemaBuilder> logger,
-            Func<Task<NpgsqlConnection>> connectionFactory)
+            IBlockchainDbConnectionFactory connectionFactory)
         {
             _logger = logger;
             _connectionFactory = connectionFactory;
@@ -25,7 +25,7 @@ namespace Indexer.Common.Persistence.Entities.Blockchains
         {
             _logger.LogInformation("DB schema for {@blockchainId} is being provisioned...", blockchainId);
 
-            await using var connection = await _connectionFactory.Invoke();
+            await using var connection = await _connectionFactory.Create(blockchainId);
             await using var transaction = await connection.BeginTransactionAsync();
 
             if (await CheckSchema(blockchainId, connection))
@@ -62,7 +62,7 @@ namespace Indexer.Common.Persistence.Entities.Blockchains
         {
             _logger.LogInformation("DB schema for {@blockchainId} is being upgraded to ongoing indexing...", blockchainId);
 
-            await using var connection = await _connectionFactory.Invoke();
+            await using var connection = await _connectionFactory.Create(blockchainId);
             await using var transaction = await connection.BeginTransactionAsync();
 
             await UpgradeCommonSchemaToOngoingIndexing(blockchainId, connection);

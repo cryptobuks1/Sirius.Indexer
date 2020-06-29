@@ -11,9 +11,9 @@ namespace Indexer.Common.Persistence.Entities.FirstPassIndexers
 {
     internal class FirstPassIndexersRepository : IFirstPassIndexersRepository
     {
-        private readonly Func<DatabaseContext> _contextFactory;
+        private readonly Func<CommonDatabaseContext> _contextFactory;
 
-        public FirstPassIndexersRepository(Func<DatabaseContext> contextFactory)
+        public FirstPassIndexersRepository(Func<CommonDatabaseContext> contextFactory)
         {
             _contextFactory = contextFactory;
         }

@@ -38,6 +38,11 @@ namespace Indexer.Common.Persistence.Entities.UnspentCoins
             return _impl.GetByBlock(blockchainId, blockId);
         }
 
+        public Task<IReadOnlyCollection<UnspentCoin>> GetByAddress(string blockchainId, string address, long? asAtBlockNumber)
+        {
+            return _impl.GetByAddress(blockchainId, address, asAtBlockNumber);
+        }
+
         public Task RemoveByBlock(string blockchainId, string blockId)
         {
             return _impl.RemoveByBlock(blockchainId, blockId);

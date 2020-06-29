@@ -1,11 +1,11 @@
 ﻿namespace Indexer.Common.Persistence.Entities.Assets
 {
-    internal sealed class AssetEntity
+    public sealed class AssetEntity
     {
-        // ReSharper disable InconsistentNaming
-        public long id { get; set; }
-        public string symbol { get; set; }
-        public string address { get; set; }
-        public int accuracy { get; set; }
+        public long Id { get; set; }
+        public string BlockchainId { get; set; }
+        public string Symbol { get; set; }
+        public string Address { get; set; }
+        public int Accuracy { get; set; }
     }
 }

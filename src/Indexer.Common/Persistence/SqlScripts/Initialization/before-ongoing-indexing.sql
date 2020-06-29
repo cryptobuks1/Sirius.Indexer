@@ -2,7 +2,6 @@
 
 -- Turns 'logged' on
 
-alter table assets set logged;
 alter table block_headers set logged;
 alter table transaction_headers set logged;
 alter table balance_updates set logged;

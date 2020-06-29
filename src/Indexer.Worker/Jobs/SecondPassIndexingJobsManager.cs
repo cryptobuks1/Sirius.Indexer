@@ -58,13 +58,13 @@ namespace Indexer.Worker.Jobs
             {
                 if (!_jobs.ContainsKey(blockchainId))
                 {
-                    var blockchainConfig = _appConfig.Indexing.Blockchains[blockchainId];
+                    var blockchainConfig = _appConfig.Blockchains[blockchainId];
 
                     var job = new SecondPassIndexingJob(
                         _loggerFactory.CreateLogger<SecondPassIndexingJob>(),
                         _loggerFactory,
                         blockchainId,
-                        blockchainConfig.LastHistoricalBlockNumber,
+                        blockchainConfig.Indexing.LastHistoricalBlockNumber,
                         _indexersRepository,
                         _blockHeadersRepository,
                         _ongoingIndexingJobsManager,

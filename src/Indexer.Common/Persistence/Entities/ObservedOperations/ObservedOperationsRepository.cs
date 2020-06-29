@@ -1,26 +1,24 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Dapper;
 using Indexer.Common.Domain.ObservedOperations;
 using Microsoft.EntityFrameworkCore;
-using Npgsql;
 
 namespace Indexer.Common.Persistence.Entities.ObservedOperations
 {
     public class ObservedOperationsRepository : IObservedOperationsRepository
     {
-        private readonly Func<Task<NpgsqlConnection>> _connectionFactory;
+        private readonly IBlockchainDbConnectionFactory _connectionFactory;
 
-        public ObservedOperationsRepository(Func<Task<NpgsqlConnection>> connectionFactory)
+        public ObservedOperationsRepository(IBlockchainDbConnectionFactory connectionFactory)
         {
             _connectionFactory = connectionFactory;
         }
 
         public async Task AddOrIgnore(ObservedOperation observedOperation)
         {
-            await using var connection = await _connectionFactory.Invoke();
+            await using var connection = await _connectionFactory.Create(observedOperation.BlockchainId);
 
             var schema = DbSchema.GetName(observedOperation.BlockchainId);
             var query = $@"
@@ -44,7 +42,7 @@ namespace Indexer.Common.Persistence.Entities.ObservedOperations
 
         public async Task<IReadOnlyCollection<ObservedOperation>> GetInvolvedInBlock(string blockchainId, string blockId)
         {
-            await using var connection = await _connectionFactory.Invoke();
+            await using var connection = await _connectionFactory.Create(blockchainId);
 
             var schema = DbSchema.GetName(blockchainId);
             var query = $@"

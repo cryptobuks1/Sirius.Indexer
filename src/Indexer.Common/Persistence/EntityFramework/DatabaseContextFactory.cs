@@ -4,16 +4,16 @@ using Microsoft.EntityFrameworkCore.Design;
 
 namespace Indexer.Common.Persistence.EntityFramework
 {
-    public class DatabaseContextFactory : IDesignTimeDbContextFactory<DatabaseContext>
+    public class DatabaseContextFactory : IDesignTimeDbContextFactory<CommonDatabaseContext>
     {
-        public DatabaseContext CreateDbContext(string[] args)
+        public CommonDatabaseContext CreateDbContext(string[] args)
         {
             var connectionString = Environment.GetEnvironmentVariable("POSTGRE_SQL_CONNECTION_STRING");
 
-            var optionsBuilder = new DbContextOptionsBuilder<DatabaseContext>();
+            var optionsBuilder = new DbContextOptionsBuilder<CommonDatabaseContext>();
             optionsBuilder.UseNpgsql(connectionString);
 
-            return new DatabaseContext(optionsBuilder.Options, null);
+            return new CommonDatabaseContext(optionsBuilder.Options, null);
         }
     }
 }

@@ -1,9 +1,11 @@
-﻿namespace Indexer.Common.Configuration
+﻿using System.Collections.Generic;
+
+namespace Indexer.Common.Configuration
 {
     public class AppConfig
     {
-        public DbConfig Db { get; set; }
+        public CommonDbConfig CommonDb { get; set; }
         public RabbitMqConfig RabbitMq { get; set; }
-        public IndexingConfig Indexing { get; set; }
+        public IReadOnlyDictionary<string, BlockchainConfig> Blockchains { get; set; }
     }
 }

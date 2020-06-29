@@ -9,9 +9,9 @@ namespace Indexer.Common.Persistence.Entities.SecondPassIndexers
 {
     internal sealed class SecondPassIndexersRepository : ISecondPassIndexersRepository
     {
-        private readonly Func<DatabaseContext> _contextFactory;
+        private readonly Func<CommonDatabaseContext> _contextFactory;
 
-        public SecondPassIndexersRepository(Func<DatabaseContext> contextFactory)
+        public SecondPassIndexersRepository(Func<CommonDatabaseContext> contextFactory)
         {
             _contextFactory = contextFactory;
         }

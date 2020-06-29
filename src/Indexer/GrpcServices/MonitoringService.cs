@@ -1,7 +1,7 @@
 ﻿using System.Threading.Tasks;
 using Grpc.Core;
 using Swisschain.Sdk.Server.Common;
-using Swisschain.Sirius.Indexer.ApiContract;
+using Swisschain.Sirius.Indexer.ApiContract.Monitoring;
 
 namespace Indexer.GrpcServices
 {

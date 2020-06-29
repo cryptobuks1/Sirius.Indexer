@@ -5,16 +5,15 @@ using System.Threading.Tasks;
 using Dapper;
 using Indexer.Common.Domain.Blocks;
 using Indexer.Common.Telemetry;
-using Npgsql;
 
 namespace Indexer.Common.Persistence.Entities.BlockHeaders
 {
     internal class BlockHeadersRepository : IBlockHeadersRepository
     {
-        private readonly Func<Task<NpgsqlConnection>> _connectionFactory;
+        private readonly IBlockchainDbConnectionFactory _connectionFactory;
         private readonly IAppInsight _appInsight;
 
-        public BlockHeadersRepository(Func<Task<NpgsqlConnection>> connectionFactory, IAppInsight appInsight)
+        public BlockHeadersRepository(IBlockchainDbConnectionFactory connectionFactory, IAppInsight appInsight)
         {
             _connectionFactory = connectionFactory;
             _appInsight = appInsight;
@@ -22,7 +21,7 @@ namespace Indexer.Common.Persistence.Entities.BlockHeaders
 
         public async Task InsertOrIgnore(BlockHeader blockHeader)
         {
-            await using var connection = await _connectionFactory.Invoke();
+            await using var connection = await _connectionFactory.Create(blockHeader.BlockchainId);
 
             var schema = DbSchema.GetName(blockHeader.BlockchainId);
             var query = @$"
@@ -68,7 +67,7 @@ namespace Indexer.Common.Persistence.Entities.BlockHeaders
 
         public async Task<BlockHeader> GetOrDefault(string blockchainId, long blockNumber)
         {
-            await using var connection = await _connectionFactory.Invoke();
+            await using var connection = await _connectionFactory.Create(blockchainId);
 
             var schema = DbSchema.GetName(blockchainId);
             var query = $"select * from {schema}.{TableNames.BlockHeaders} where number = @blockNumber";
@@ -80,7 +79,7 @@ namespace Indexer.Common.Persistence.Entities.BlockHeaders
         
         public async Task Remove(string blockchainId, string id)
         {
-            await using var connection = await _connectionFactory.Invoke();
+            await using var connection = await _connectionFactory.Create(blockchainId);
 
             var schema = DbSchema.GetName(blockchainId);
             var query = $"delete from {schema}.{TableNames.BlockHeaders} where id = @id";
@@ -90,7 +89,7 @@ namespace Indexer.Common.Persistence.Entities.BlockHeaders
 
         public async Task<IEnumerable<BlockHeader>> GetBatch(string blockchainId, long startBlockNumber, int limit)
         {
-            await using var connection = await _connectionFactory.Invoke();
+            await using var connection = await _connectionFactory.Create(blockchainId);
 
             var schema = DbSchema.GetName(blockchainId);
             var query = $"select * from {schema}.{TableNames.BlockHeaders} where number >= @startBlockNumber order by number limit @limit";
@@ -102,7 +101,7 @@ namespace Indexer.Common.Persistence.Entities.BlockHeaders
 
         public async Task<BlockHeader> GetLast(string blockchainId)
         {
-            await using var connection = await _connectionFactory.Invoke();
+            await using var connection = await _connectionFactory.Create(blockchainId);
 
             var schema = DbSchema.GetName(blockchainId);
             var query = $@"

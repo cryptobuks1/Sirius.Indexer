@@ -3,7 +3,8 @@ using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using Swisschain.Sirius.Indexer.ApiClient;
-using Swisschain.Sirius.Indexer.ApiContract;
+using Swisschain.Sirius.Indexer.ApiContract.Monitoring;
+using Swisschain.Sirius.Indexer.ApiContract.ObservedOperations;
 
 namespace TestClient
 {

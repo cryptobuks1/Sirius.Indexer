@@ -1,10 +1,10 @@
 ﻿using System;
 using GreenPipes;
+using Indexer.Common.Configuration;
 using MassTransit;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Indexer.Common.Configuration;
 using Indexer.Common.Domain;
 using Indexer.Common.HostedServices;
 using Indexer.Common.Messaging.InMemoryBus;
@@ -28,7 +28,7 @@ namespace Indexer.Worker
             base.ConfigureServicesExt(services);
 
             services.AddHttpClient();
-            services.AddPersistence(Config.Db.ConnectionString);
+            services.AddPersistence(Config.CommonDb.ConnectionString);
             services.AddDomain();
             services.AddJobs();
             services.AddMessageConsumers();

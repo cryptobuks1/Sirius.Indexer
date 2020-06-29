@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+option csharp_namespace = "Swisschain.Sirius.Indexer.ApiContract.UnspentCoins";
+
+import "common.proto";
+import "google/protobuf/wrappers.proto";
+
+package swisschain.indexer.unspentCoins;
+
+service UnspentCoins {
+  rpc GetUnspentCoins (GetUnspentCoinsRequest) returns (GetUnspentCoinsResponse);
+}
+
+message GetUnspentCoinsRequest {
+    string blockchainId = 1;
+    string address = 2;
+    google.protobuf.Int64Value asAtBlockNumber = 3;
+}
+
+message GetUnspentCoinsResponse {
+    oneof body {
+        GetUnspentCoinsResponseBody response = 1;
+        ErrorResponseBody error = 2;
+    }
+}
+
+message GetUnspentCoinsResponseBody {
+    repeated unspentCoins.UnspentCoin unspentCoins = 1;
+}
+
+message ErrorResponseBody {
+
+    enum ErrorCode {
+        UNKNOWN = 0;
+        INVALID_PARAMETERS = 1;
+    }
+
+    ErrorCode errorCode = 1;
+    string errorMessage = 2;
+}
+
+message UnspentCoin {
+    common.CoinId id = 1;
+    common.Unit unit = 2;
+    string address = 3;
+}
