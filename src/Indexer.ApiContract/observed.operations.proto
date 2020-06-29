@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+option csharp_namespace = "Swisschain.Sirius.Indexer.ApiContract.ObservedOperations";
+
+import "common.proto";
+
+package swisschain.indexer.observedOperations;
+
+service ObservedOperations {
+  rpc AddObservedOperation (AddObservedOperationRequest) returns (AddObservedOperationResponse);
+}
+
+message AddObservedOperationRequest {
+  string requestId = 1;
+  int64 operationId = 2;
+  string blockchainId = 3;
+  string transactionId = 4;
+}
+
+message AddObservedOperationResponse {
+    oneof body {
+        AddObservedOperationResponseBody response = 1;
+        ErrorResponseBody error = 2;
+    }
+}
+
+message AddObservedOperationResponseBody {
+}
+
+message ErrorResponseBody {
+
+    enum ErrorCode {
+        UNKNOWN = 0;
+        INVALID_PARAMETERS = 1;
+    }
+
+    ErrorCode errorCode = 1;
+    string errorMessage = 2;
+}
+
+

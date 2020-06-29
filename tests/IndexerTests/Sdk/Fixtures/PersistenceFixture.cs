@@ -6,7 +6,6 @@ using IndexerTests.Sdk.Containers.Postgres;
 using IndexerTests.Sdk.Mocks;
 using Microsoft.Extensions.Logging.Abstractions;
 using Npgsql;
-using Swisschain.Sirius.Sdk.Primitives;
 using Xunit;
 
 namespace IndexerTests.Sdk.Fixtures
@@ -15,7 +14,6 @@ namespace IndexerTests.Sdk.Fixtures
     {
         private readonly PostgresContainer _container;
         private readonly ConcurrentBag<NpgsqlConnection> _connections;
-        private readonly BlockchainSchemaBuilder _schemaBuilder;
 
         public PersistenceFixture()
         {
@@ -23,12 +21,12 @@ namespace IndexerTests.Sdk.Fixtures
             _connections = new ConcurrentBag<NpgsqlConnection>();
 
             BlockchainDbConnectionFactory = new TestBlockchainDbConnectionFactory(CreateConnection);
-
-            _schemaBuilder = new BlockchainSchemaBuilder(NullLogger<BlockchainSchemaBuilder>.Instance, BlockchainDbConnectionFactory);
+            SchemaBuilder = new BlockchainSchemaBuilder(NullLogger<BlockchainSchemaBuilder>.Instance, BlockchainDbConnectionFactory);
         }
 
         public string ConnectionString => _container.ConnectionString;
         public IBlockchainDbConnectionFactory BlockchainDbConnectionFactory { get; }
+        public IBlockchainSchemaBuilder SchemaBuilder { get; }
 
         public async Task<NpgsqlConnection> CreateConnection()
         {
@@ -39,11 +37,6 @@ namespace IndexerTests.Sdk.Fixtures
             _connections.Add(connection);
 
             return connection;
-        }
-
-        public async Task CreateBlockchainSchema(string blockchainName, DoubleSpendingProtectionType doubleSpendingProtectionType)
-        {
-            await _schemaBuilder.ProvisionForIndexing(blockchainName, doubleSpendingProtectionType);
         }
 
         public async Task InitializeAsync()

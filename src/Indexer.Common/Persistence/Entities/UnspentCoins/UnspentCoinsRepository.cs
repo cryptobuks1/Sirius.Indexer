@@ -124,6 +124,33 @@ namespace Indexer.Common.Persistence.Entities.UnspentCoins
                 .ToArray();
         }
 
+        public async Task<IReadOnlyCollection<UnspentCoin>> GetByAddress(string blockchainId, string address, long? asAtBlockNumber)
+        {
+            await using var connection = await _connectionFactory.Create(blockchainId);
+
+            var schema = DbSchema.GetName(blockchainId);
+
+            var query = asAtBlockNumber.HasValue
+                ? $@"
+                    select c.*
+                    from {schema}.{TableNames.UnspentCoins} c
+                    join {schema}.{TableNames.TransactionHeaders} t on t.id = c.transaction_id
+                    join {schema}.{TableNames.BlockHeaders} b on b.id = t.block_id
+                    where 
+                        c.address = @address and
+                        b.number <= @asAtBlockNumber"
+                : $@"
+                    select c.*
+                    from {schema}.{TableNames.UnspentCoins} c
+                    where c.address = @address";
+
+            var entities = await connection.QueryAsync<UnspentCoinEntity>(query, new {address, asAtBlockNumber});
+
+            return entities
+                .Select(MapToDomain)
+                .ToArray();
+        }
+
         public async Task RemoveByBlock(string blockchainId, string blockId)
         {
             await using var connection = await _connectionFactory.Create(blockchainId);
