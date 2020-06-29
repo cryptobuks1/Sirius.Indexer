@@ -9,9 +9,9 @@ namespace Indexer.Common.Persistence.Entities.OngoingIndexers
 {
     internal sealed class OngoingIndexersRepository : IOngoingIndexersRepository
     {
-        private readonly Func<DatabaseContext> _contextFactory;
+        private readonly Func<CommonDatabaseContext> _contextFactory;
 
-        public OngoingIndexersRepository(Func<DatabaseContext> contextFactory)
+        public OngoingIndexersRepository(Func<CommonDatabaseContext> contextFactory)
         {
             _contextFactory = contextFactory;
         }

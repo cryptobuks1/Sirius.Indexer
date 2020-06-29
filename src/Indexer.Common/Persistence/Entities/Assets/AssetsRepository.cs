@@ -5,6 +5,8 @@ using System.Text;
 using System.Threading.Tasks;
 using Dapper;
 using Indexer.Common.Domain.Assets;
+using Indexer.Common.Persistence.EntityFramework;
+using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using Swisschain.Sirius.Sdk.Primitives;
 using PostgreSQLCopyHelper;
@@ -13,32 +15,31 @@ namespace Indexer.Common.Persistence.Entities.Assets
 {
     internal class AssetsRepository : IAssetsRepository
     {
-        private readonly Func<Task<NpgsqlConnection>> _connectionFactory;
+        private readonly Func<CommonDatabaseContext> _contextFactory;
 
-        public AssetsRepository(Func<Task<NpgsqlConnection>> connectionFactory)
+        public AssetsRepository(Func<CommonDatabaseContext> contextFactory)
         {
-            _connectionFactory = connectionFactory;
+            _contextFactory = contextFactory;
         }
 
         public async Task<IReadOnlyCollection<Asset>> GetAllAsync(string blockchainId)
         {
-            await using var connection = await _connectionFactory.Invoke();
+            await using var context = _contextFactory.Invoke();
 
-            var schema = DbSchema.GetName(blockchainId);
-            var query = $"select * from {schema}.{TableNames.Assets}";
-            var entities = await connection.QueryAsync<AssetEntity>(query);
-
-            return entities.Select(x => MapToDomain(blockchainId, x)).ToArray();
+            var entities = await context.Assets
+                .Where(x => x.BlockchainId == blockchainId)
+                .ToArrayAsync();
+            
+            return entities.Select(MapToDomain).ToArray();
         }
 
         public async Task<IReadOnlyCollection<Asset>> GetExisting(string blockchainId, IReadOnlyCollection<BlockchainAssetId> blockchainAssetIds)
         {
-            await using var connection = await _connectionFactory.Invoke();
+            await using var connection = (NpgsqlConnection) _contextFactory.Invoke().Database.GetDbConnection();
 
-            var schema = DbSchema.GetName(blockchainId);
-            var entities = await GetInList(connection, schema, blockchainAssetIds);
+            var entities = await GetInList(connection, blockchainAssetIds);
 
-            return entities.Select(x => MapToDomain(blockchainId, x)).ToArray();
+            return entities.Select(MapToDomain).ToArray();
         }
 
         public async Task Add(string blockchainId, IReadOnlyCollection<BlockchainAsset> blockchainAssets)
@@ -48,15 +49,13 @@ namespace Indexer.Common.Persistence.Entities.Assets
                 return;
             }
 
-            await using var connection = await _connectionFactory.Invoke();
+            await using var connection = (NpgsqlConnection) _contextFactory.Invoke().Database.GetDbConnection();
 
-            var schema = DbSchema.GetName(blockchainId);
-
-            var copyHelper = new PostgreSQLCopyHelper<BlockchainAsset>(schema, TableNames.Assets)
+            var copyHelper = new PostgreSQLCopyHelper<BlockchainAsset>(CommonDatabaseContext.SchemaName, TableNames.Assets)
                 .UsePostgresQuoting()
-                .MapVarchar(nameof(AssetEntity.symbol), p => p.Id.Symbol)
-                .MapVarchar(nameof(AssetEntity.address), p => p.Id.Address)
-                .MapInteger(nameof(AssetEntity.accuracy), p => p.Accuracy);
+                .MapVarchar(nameof(AssetEntity.Symbol), p => p.Id.Symbol)
+                .MapVarchar(nameof(AssetEntity.Address), p => p.Id.Address)
+                .MapInteger(nameof(AssetEntity.Accuracy), p => p.Accuracy);
 
             try
             {
@@ -65,7 +64,7 @@ namespace Indexer.Common.Persistence.Entities.Assets
             catch (PostgresException e) when (e.IsUniqueIndexViolationException("ix_assets_symbol") ||
                                               e.IsUniqueIndexViolationException("ix_assets_symbol_address"))
             {
-                var notExisting = await ExcludeExistingInDb(connection, schema, blockchainAssets);
+                var notExisting = await ExcludeExistingInDb(connection, blockchainAssets);
 
                 if (notExisting.Any())
                 {
@@ -75,7 +74,6 @@ namespace Indexer.Common.Persistence.Entities.Assets
         }
 
         private static async Task<IReadOnlyCollection<BlockchainAsset>> ExcludeExistingInDb(NpgsqlConnection connection, 
-            string schema,
             IReadOnlyCollection<BlockchainAsset> blockchainAssets)
         {
             if (!blockchainAssets.Any())
@@ -83,16 +81,16 @@ namespace Indexer.Common.Persistence.Entities.Assets
                 return Array.Empty<BlockchainAsset>();
             }
 
-            var existingEntities = await GetInList(connection, schema, blockchainAssets.Select(x => x.Id).ToArray());
+            var existingEntities = await GetInList(connection, blockchainAssets.Select(x => x.Id).ToArray());
 
-            var existingIds = Enumerable.ToHashSet(existingEntities
-                    .Select(x => new BlockchainAssetId(x.symbol, x.address)));
+            var existingIds = existingEntities
+                .Select(x => new BlockchainAssetId(x.Symbol, x.Address))
+                .ToHashSet();
             
             return blockchainAssets.Where(x => !existingIds.Contains(x.Id)).ToArray();
         }
 
         private static async Task<IEnumerable<AssetEntity>> GetInList(NpgsqlConnection connection,
-            string schema, 
             IReadOnlyCollection<BlockchainAssetId> blockchainAssetIds)
         {
             const int batchSize = 1000;
@@ -106,7 +104,7 @@ namespace Indexer.Common.Persistence.Entities.Assets
 
                 var queryBuilder = new StringBuilder();
 
-                queryBuilder.AppendLine($"select * from {schema}.{TableNames.Assets} where");
+                queryBuilder.AppendLine($"select * from {CommonDatabaseContext.SchemaName}.{TableNames.Assets} where");
 
                 if (idsWithAddress.Any())
                 {
@@ -140,14 +138,14 @@ namespace Indexer.Common.Persistence.Entities.Assets
             return entities;
         }
 
-        private static Asset MapToDomain(string blockchainId, AssetEntity entity)
+        private static Asset MapToDomain(AssetEntity entity)
         {
             return Asset.Restore(
-                entity.id,
-                blockchainId,
-                entity.symbol,
-                entity.address,
-                entity.accuracy);
+                entity.Id,
+                entity.BlockchainId,
+                entity.Symbol,
+                entity.Address,
+                entity.Accuracy);
         }
     }
 }

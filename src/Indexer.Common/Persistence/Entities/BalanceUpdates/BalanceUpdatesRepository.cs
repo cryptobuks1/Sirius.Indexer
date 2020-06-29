@@ -11,9 +11,9 @@ namespace Indexer.Common.Persistence.Entities.BalanceUpdates
 {
     internal sealed class BalanceUpdatesRepository : IBalanceUpdatesRepository
     {
-        private readonly Func<Task<NpgsqlConnection>> _connectionFactory;
+        private readonly IBlockchainDbConnectionFactory _connectionFactory;
 
-        public BalanceUpdatesRepository(Func<Task<NpgsqlConnection>> connectionFactory)
+        public BalanceUpdatesRepository(IBlockchainDbConnectionFactory connectionFactory)
         {
             _connectionFactory = connectionFactory;
         }
@@ -30,7 +30,7 @@ namespace Indexer.Common.Persistence.Entities.BalanceUpdates
                 return;
             }
             
-            await using var connection = await _connectionFactory.Invoke();
+            await using var connection = await _connectionFactory.Create(blockchainId);
             
             var schema = DbSchema.GetName(blockchainId);
             var copyHelper = new PostgreSQLCopyHelper<BalanceUpdate>(schema, TableNames.BalanceUpdates)
@@ -59,7 +59,7 @@ namespace Indexer.Common.Persistence.Entities.BalanceUpdates
 
         public async Task RemoveByBlock(string blockchainId, string blockId)
         {
-            await using var connection = await _connectionFactory.Invoke();
+            await using var connection = await _connectionFactory.Create(blockchainId);
 
             var schema = DbSchema.GetName(blockchainId);
             var query = $@"delete from {schema}.{TableNames.BalanceUpdates} where block_id = @blockId";

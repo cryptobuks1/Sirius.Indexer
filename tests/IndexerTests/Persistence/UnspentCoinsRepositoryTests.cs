@@ -1,5 +1,4 @@
 ﻿using System.Linq;
-using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Indexer.Common.Domain.Transactions.Transfers;
 using Indexer.Common.Persistence;
@@ -24,7 +23,7 @@ namespace IndexerTests.Persistence
         {
             await Fixture.CreateSchema("test", DoubleSpendingProtectionType.Coins);
 
-            var repo = new UnspentCoinsRepository(Fixture.CreateConnection);
+            var repo = new UnspentCoinsRepository(Fixture.BlockchainDbConnectionFactory);
 
             var generatedCoins = Enumerable
                 .Range(0, NpgSqlConnectionQueryExtensions.BatchSize + 50)

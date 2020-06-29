@@ -1,15 +1,4 @@
-﻿using System;
-using System.Threading.Tasks;
-using Indexer.Common.Domain.Blocks;
-using Indexer.Common.Domain.Indexing.Common;
-using Indexer.Common.Domain.Indexing.Common.CoinBlocks;
-using Indexer.Common.Domain.Indexing.FirstPass;
-using Indexer.Common.Domain.Indexing.SecondPass;
-using Microsoft.Extensions.Logging.Abstractions;
-using Xunit;
-using InMemoryBus = Indexer.Common.Messaging.InMemoryBus.InMemoryBus;
-
-namespace IndexerTests.Acceptance
+﻿namespace IndexerTests.Acceptance
 {
     public class CoinsIndexingTests
     {

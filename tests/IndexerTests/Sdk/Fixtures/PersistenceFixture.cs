@@ -1,7 +1,9 @@
 ﻿using System.Collections.Concurrent;
 using System.Threading.Tasks;
+using Indexer.Common.Persistence;
 using Indexer.Common.Persistence.Entities.Blockchains;
 using IndexerTests.Sdk.Containers.Postgres;
+using IndexerTests.Sdk.Mocks;
 using Microsoft.Extensions.Logging.Abstractions;
 using Npgsql;
 using Swisschain.Sirius.Sdk.Primitives;
@@ -15,14 +17,17 @@ namespace IndexerTests.Sdk.Fixtures
         private readonly ConcurrentBag<NpgsqlConnection> _connections;
         private readonly BlockchainSchemaBuilder _schemaBuilder;
 
-        public string ConnectionString => _container.ConnectionString;
-
         public PersistenceFixture()
         {
             _container = new PostgresContainer("tests-pg", PortManager.GetNextPort());
             _connections = new ConcurrentBag<NpgsqlConnection>();
             _schemaBuilder = new BlockchainSchemaBuilder(NullLogger<BlockchainSchemaBuilder>.Instance, CreateConnection);
+
+            BlockchainDbConnectionFactory = new TestBlockchainDbConnectionFactory(CreateConnection);
         }
+
+        public string ConnectionString => _container.ConnectionString;
+        public IBlockchainDbConnectionFactory BlockchainDbConnectionFactory { get; }
 
         public async Task<NpgsqlConnection> CreateConnection()
         {

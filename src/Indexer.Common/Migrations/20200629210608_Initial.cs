@@ -12,6 +12,24 @@ namespace Indexer.Common.Migrations
                 name: "indexer");
 
             migrationBuilder.CreateTable(
+                name: "assets",
+                schema: "indexer",
+                columns: table => new
+                {
+                    Id = table.Column<long>(nullable: false)
+                        .Annotation("Npgsql:IdentitySequenceOptions", "'100000', '1', '', '', 'False', '1'")
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    BlockchainId = table.Column<string>(nullable: true),
+                    Symbol = table.Column<string>(nullable: true),
+                    Address = table.Column<string>(nullable: true),
+                    Accuracy = table.Column<int>(nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_assets", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "blockchains",
                 schema: "indexer",
                 columns: table => new
@@ -49,27 +67,6 @@ namespace Indexer.Common.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "observed_operations",
-                schema: "indexer",
-                columns: table => new
-                {
-                    OperationId = table.Column<long>(nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    BlockchainId = table.Column<string>(nullable: true),
-                    TransactionId = table.Column<string>(nullable: true),
-                    IsCompleted = table.Column<bool>(nullable: false),
-                    BilV1OperationId = table.Column<Guid>(nullable: false),
-                    AssetId = table.Column<long>(nullable: false),
-                    Fees = table.Column<string>(nullable: true),
-                    DestinationAddress = table.Column<string>(nullable: true),
-                    OperationAmount = table.Column<decimal>(nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_observed_operations", x => x.OperationId);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "ongoing_indexers",
                 schema: "indexer",
                 columns: table => new
@@ -85,26 +82,6 @@ namespace Indexer.Common.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_ongoing_indexers", x => x.BlockchainId);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "outbox",
-                schema: "indexer",
-                columns: table => new
-                {
-                    RequestId = table.Column<string>(nullable: false),
-                    AggregateId = table.Column<long>(nullable: false)
-                        .Annotation("Npgsql:IdentitySequenceOptions", "'2', '1', '', '', 'False', '1'")
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    Response = table.Column<string>(nullable: true),
-                    Events = table.Column<string>(nullable: true),
-                    Commands = table.Column<string>(nullable: true),
-                    IsStored = table.Column<bool>(nullable: false),
-                    IsDispatched = table.Column<bool>(nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_outbox", x => x.RequestId);
                 });
 
             migrationBuilder.CreateTable(
@@ -125,20 +102,40 @@ namespace Indexer.Common.Migrations
                 });
 
             migrationBuilder.CreateIndex(
+                name: "ix_assets_blockchain_id",
+                schema: "indexer",
+                table: "assets",
+                column: "BlockchainId");
+
+            migrationBuilder.CreateIndex(
+                name: "ix_assets_symbol",
+                schema: "indexer",
+                table: "assets",
+                column: "Symbol",
+                unique: true,
+                filter: "\"Address\" is null");
+
+            migrationBuilder.CreateIndex(
+                name: "ix_assets_symbol_address",
+                schema: "indexer",
+                table: "assets",
+                columns: new[] { "Symbol", "Address" },
+                unique: true,
+                filter: "\"Address\" is not null");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_FirstPassIndexers_BlockchainId",
                 schema: "indexer",
                 table: "first_pass_indexers",
                 column: "BlockchainId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_ObservedOperations_IsCompleted",
-                schema: "indexer",
-                table: "observed_operations",
-                column: "IsCompleted");
         }
 
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropTable(
+                name: "assets",
+                schema: "indexer");
+
             migrationBuilder.DropTable(
                 name: "blockchains",
                 schema: "indexer");
@@ -148,15 +145,7 @@ namespace Indexer.Common.Migrations
                 schema: "indexer");
 
             migrationBuilder.DropTable(
-                name: "observed_operations",
-                schema: "indexer");
-
-            migrationBuilder.DropTable(
                 name: "ongoing_indexers",
-                schema: "indexer");
-
-            migrationBuilder.DropTable(
-                name: "outbox",
                 schema: "indexer");
 
             migrationBuilder.DropTable(

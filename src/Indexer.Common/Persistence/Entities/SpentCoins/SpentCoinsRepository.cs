@@ -13,9 +13,9 @@ namespace Indexer.Common.Persistence.Entities.SpentCoins
 {
     internal sealed class SpentCoinsRepository : ISpentCoinsRepository
     {
-        private readonly Func<Task<NpgsqlConnection>> _connectionFactory;
+        private readonly IBlockchainDbConnectionFactory _connectionFactory;
 
-        public SpentCoinsRepository(Func<Task<NpgsqlConnection>> connectionFactory)
+        public SpentCoinsRepository(IBlockchainDbConnectionFactory connectionFactory)
         {
             _connectionFactory = connectionFactory;
         }
@@ -27,7 +27,7 @@ namespace Indexer.Common.Persistence.Entities.SpentCoins
                 return;
             }
             
-            await using var connection = await _connectionFactory.Invoke();
+            await using var connection = await _connectionFactory.Create(blockchainId);
             
             var schema = DbSchema.GetName(blockchainId);
             var copyHelper = new PostgreSQLCopyHelper<SpentCoin>(schema, TableNames.SpentCoins)
@@ -59,7 +59,7 @@ namespace Indexer.Common.Persistence.Entities.SpentCoins
 
         public async Task<IReadOnlyCollection<SpentCoin>> GetSpentByBlock(string blockchainId, string blockId)
         {
-            await using var connection = await _connectionFactory.Invoke();
+            await using var connection = await _connectionFactory.Create(blockchainId);
             
             var schema = DbSchema.GetName(blockchainId);
 
@@ -84,7 +84,7 @@ namespace Indexer.Common.Persistence.Entities.SpentCoins
 
         public async Task RemoveSpentByBlock(string blockchainId, string blockId)
         {
-            await using var connection = await _connectionFactory.Invoke();
+            await using var connection = await _connectionFactory.Create(blockchainId);
 
             var schema = DbSchema.GetName(blockchainId);
             var query = $@"

@@ -1,31 +1,30 @@
-﻿using Indexer.Common.Persistence.Entities.FirstPassIndexers;
+﻿using Indexer.Common.Persistence.Entities.Assets;
+using Indexer.Common.Persistence.Entities.FirstPassIndexers;
 using Indexer.Common.Persistence.Entities.OngoingIndexers;
 using Indexer.Common.Persistence.Entities.SecondPassIndexers;
 using Indexer.Common.ReadModel.Blockchains;
 using Indexer.Common.Telemetry;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
-using Swisschain.Extensions.Idempotency.EfCore;
 
 namespace Indexer.Common.Persistence.EntityFramework
 {
-    public class DatabaseContext : DbContext, IDbContextWithOutbox
+    public class CommonDatabaseContext : DbContext
     {
         public const string SchemaName = "indexer";
         public const string MigrationHistoryTable = "__EFMigrationsHistory";
 
-        public DatabaseContext(DbContextOptions<DatabaseContext> options, IAppInsight appInsight) :
+        public CommonDatabaseContext(DbContextOptions<CommonDatabaseContext> options, IAppInsight appInsight) :
             base(options)
         {
             AppInsight = appInsight;
         }
 
         public IAppInsight AppInsight { get; }
-
         public DbSet<FirstPassIndexerEntity> FirstPassHistoryIndexers { get; set; }
         public DbSet<SecondPassIndexerEntity> SecondPassIndexers { get; set; }
         public DbSet<OngoingIndexerEntity> OngoingIndexers { get; set; }
-        public DbSet<OutboxEntity> Outbox { get; set; }
+        public DbSet<AssetEntity> Assets { get; set; }
 
         #region Read models
 
@@ -37,14 +36,43 @@ namespace Indexer.Common.Persistence.EntityFramework
         {
             modelBuilder.HasDefaultSchema(SchemaName);
 
-            modelBuilder.BuildOutbox();
-
             BuildBlockchain(modelBuilder);
             BuildFirstPassIndexers(modelBuilder);
             BuildSecondPassIndexers(modelBuilder);
             BuildOngoingIndexers(modelBuilder);
+            BuildAssets(modelBuilder);
 
             base.OnModelCreating(modelBuilder);
+        }
+
+        private void BuildAssets(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<AssetEntity>(e =>
+            {
+                e.ToTable(TableNames.Assets);
+                e.HasKey(x => x.Id);
+
+                e.Property(x => x.Id)
+                    .HasIdentityOptions(100_000)
+                    .ValueGeneratedOnAdd();
+
+                e.HasIndex(x => x.BlockchainId)
+                    .HasName("ix_assets_blockchain_id");
+
+                e.HasIndex(x => x.Symbol)
+                    .IsUnique()
+                    .HasFilter($"\"{nameof(AssetEntity.Address)}\" is null")
+                    .HasName("ix_assets_symbol");
+
+                e.HasIndex(x => new
+                    {
+                        x.Symbol,
+                        x.Address
+                    })
+                    .IsUnique()
+                    .HasFilter($"\"{nameof(AssetEntity.Address)}\" is not null")
+                    .HasName("ix_assets_symbol_address");
+            });
         }
 
         private static void BuildOngoingIndexers(ModelBuilder modelBuilder)

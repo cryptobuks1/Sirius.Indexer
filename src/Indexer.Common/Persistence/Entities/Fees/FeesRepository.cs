@@ -11,9 +11,9 @@ namespace Indexer.Common.Persistence.Entities.Fees
 {
     internal sealed class FeesRepository : IFeesRepository
     {
-        private readonly Func<Task<NpgsqlConnection>> _connectionFactory;
+        private readonly IBlockchainDbConnectionFactory _connectionFactory;
 
-        public FeesRepository(Func<Task<NpgsqlConnection>> connectionFactory)
+        public FeesRepository(IBlockchainDbConnectionFactory connectionFactory)
         {
             _connectionFactory = connectionFactory;
         }
@@ -25,7 +25,7 @@ namespace Indexer.Common.Persistence.Entities.Fees
                 return;
             }
             
-            await using var connection = await _connectionFactory.Invoke();
+            await using var connection = await _connectionFactory.Create(blockchainId);
             
             var schema = DbSchema.GetName(blockchainId);
             var copyHelper = new PostgreSQLCopyHelper<Fee>(schema, TableNames.Fees)
@@ -52,7 +52,7 @@ namespace Indexer.Common.Persistence.Entities.Fees
 
         public async Task RemoveByBlock(string blockchainId, string blockId)
         {
-            await using var connection = await _connectionFactory.Invoke();
+            await using var connection = await _connectionFactory.Create(blockchainId);
 
             var schema = DbSchema.GetName(blockchainId);
             var query = $@"

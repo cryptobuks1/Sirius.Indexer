@@ -9,9 +9,9 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 namespace Indexer.Common.Migrations
 {
-    [DbContext(typeof(DatabaseContext))]
-    [Migration("20200622142105_MoveObservedOperationToBlockchainSchema")]
-    partial class MoveObservedOperationToBlockchainSchema
+    [DbContext(typeof(CommonDatabaseContext))]
+    [Migration("20200629210608_Initial")]
+    partial class Initial
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -21,6 +21,44 @@ namespace Indexer.Common.Migrations
                 .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn)
                 .HasAnnotation("ProductVersion", "3.1.3")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
+
+            modelBuilder.Entity("Indexer.Common.Persistence.Entities.Assets.AssetEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasAnnotation("Npgsql:IdentitySequenceOptions", "'100000', '1', '', '', 'False', '1'")
+                        .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+
+                    b.Property<int>("Accuracy")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Address")
+                        .HasColumnType("text");
+
+                    b.Property<string>("BlockchainId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Symbol")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BlockchainId")
+                        .HasName("ix_assets_blockchain_id");
+
+                    b.HasIndex("Symbol")
+                        .IsUnique()
+                        .HasName("ix_assets_symbol")
+                        .HasFilter("\"Address\" is null");
+
+                    b.HasIndex("Symbol", "Address")
+                        .IsUnique()
+                        .HasName("ix_assets_symbol_address")
+                        .HasFilter("\"Address\" is not null");
+
+                    b.ToTable("assets");
+                });
 
             modelBuilder.Entity("Indexer.Common.Persistence.Entities.FirstPassIndexers.FirstPassIndexerEntity", b =>
                 {
@@ -145,37 +183,6 @@ namespace Indexer.Common.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("blockchains");
-                });
-
-            modelBuilder.Entity("Swisschain.Extensions.Idempotency.EfCore.OutboxEntity", b =>
-                {
-                    b.Property<string>("RequestId")
-                        .HasColumnType("text");
-
-                    b.Property<long>("AggregateId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasAnnotation("Npgsql:IdentitySequenceOptions", "'2', '1', '', '', 'False', '1'")
-                        .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
-
-                    b.Property<string>("Commands")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Events")
-                        .HasColumnType("text");
-
-                    b.Property<bool>("IsDispatched")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsStored")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Response")
-                        .HasColumnType("text");
-
-                    b.HasKey("RequestId");
-
-                    b.ToTable("outbox");
                 });
 #pragma warning restore 612, 618
         }

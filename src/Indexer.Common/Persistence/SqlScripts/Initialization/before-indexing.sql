@@ -6,28 +6,6 @@ create schema @schemaName;
 
 set search_path to @schemaName;
 
--- Assets
-
--- TODO: the sequence should be global for all blockchains for all indexer instances
--- probably a separate service
-create unlogged table assets
-(
-    id          bigserial not null,
-    symbol      varchar(64) not null,
-    address     varchar(256),
-    accuracy    int not null,
-
-    constraint pk_assets primary key (id)
-);
-
-create unique index ix_assets_symbol
-    on assets (symbol)
-    where address is null;
-
-create unique index ix_assets_symbol_address
-    on assets (symbol, address)
-    where address is not null;
-
 -- Block headers
 
 create unlogged table block_headers

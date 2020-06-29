@@ -13,9 +13,9 @@ namespace Indexer.Common.Persistence.Entities.UnspentCoins
 {
     internal sealed class UnspentCoinsRepository : IUnspentCoinsRepository
     {
-        private readonly Func<Task<NpgsqlConnection>> _connectionFactory;
+        private readonly IBlockchainDbConnectionFactory _connectionFactory;
 
-        public UnspentCoinsRepository(Func<Task<NpgsqlConnection>> connectionFactory)
+        public UnspentCoinsRepository(IBlockchainDbConnectionFactory connectionFactory)
         {
             _connectionFactory = connectionFactory;
         }
@@ -27,7 +27,7 @@ namespace Indexer.Common.Persistence.Entities.UnspentCoins
                 return;
             }
             
-            await using var connection = await _connectionFactory.Invoke();
+            await using var connection = await _connectionFactory.Create(blockchainId);
             
             var schema = DbSchema.GetName(blockchainId);
             var copyHelper = new PostgreSQLCopyHelper<UnspentCoin>(schema, TableNames.UnspentCoins)
@@ -62,7 +62,7 @@ namespace Indexer.Common.Persistence.Entities.UnspentCoins
                 return Array.Empty<UnspentCoin>();
             }
             
-            await using var connection = await _connectionFactory.Invoke();
+            await using var connection = await _connectionFactory.Create(blockchainId);
 
             var schema = DbSchema.GetName(blockchainId);
             var entities = await connection.QueryInList<UnspentCoinEntity, CoinId>(
@@ -88,7 +88,7 @@ namespace Indexer.Common.Persistence.Entities.UnspentCoins
                 return;
             }
             
-            await using var connection = await _connectionFactory.Invoke();
+            await using var connection = await _connectionFactory.Create(blockchainId);
 
             var schema = DbSchema.GetName(blockchainId);
 
@@ -108,7 +108,7 @@ namespace Indexer.Common.Persistence.Entities.UnspentCoins
 
         public async Task<IReadOnlyCollection<UnspentCoin>> GetByBlock(string blockchainId, string blockId)
         {
-            await using var connection = await _connectionFactory.Invoke();
+            await using var connection = await _connectionFactory.Create(blockchainId);
 
             var schema = DbSchema.GetName(blockchainId);
             var query = $@"
@@ -126,7 +126,7 @@ namespace Indexer.Common.Persistence.Entities.UnspentCoins
 
         public async Task RemoveByBlock(string blockchainId, string blockId)
         {
-            await using var connection = await _connectionFactory.Invoke();
+            await using var connection = await _connectionFactory.Create(blockchainId);
 
             var schema = DbSchema.GetName(blockchainId);
             var query = $@"

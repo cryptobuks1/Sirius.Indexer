@@ -11,9 +11,9 @@ namespace Indexer.Common.Persistence.Entities.Blockchains
 {
     public class BlockchainsRepository : IBlockchainsRepository
     {
-        private readonly Func<DatabaseContext> _contextFactory;
+        private readonly Func<CommonDatabaseContext> _contextFactory;
 
-        public BlockchainsRepository(Func<DatabaseContext> contextFactory)
+        public BlockchainsRepository(Func<CommonDatabaseContext> contextFactory)
         {
             _contextFactory = contextFactory;
         }
