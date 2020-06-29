@@ -21,9 +21,10 @@ namespace IndexerTests.Sdk.Fixtures
         {
             _container = new PostgresContainer("tests-pg", PortManager.GetNextPort());
             _connections = new ConcurrentBag<NpgsqlConnection>();
-            _schemaBuilder = new BlockchainSchemaBuilder(NullLogger<BlockchainSchemaBuilder>.Instance, CreateConnection);
 
             BlockchainDbConnectionFactory = new TestBlockchainDbConnectionFactory(CreateConnection);
+
+            _schemaBuilder = new BlockchainSchemaBuilder(NullLogger<BlockchainSchemaBuilder>.Instance, BlockchainDbConnectionFactory);
         }
 
         public string ConnectionString => _container.ConnectionString;
@@ -40,7 +41,7 @@ namespace IndexerTests.Sdk.Fixtures
             return connection;
         }
 
-        public async Task CreateSchema(string blockchainName, DoubleSpendingProtectionType doubleSpendingProtectionType)
+        public async Task CreateBlockchainSchema(string blockchainName, DoubleSpendingProtectionType doubleSpendingProtectionType)
         {
             await _schemaBuilder.ProvisionForIndexing(blockchainName, doubleSpendingProtectionType);
         }

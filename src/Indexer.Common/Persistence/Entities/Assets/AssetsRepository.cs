@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -37,6 +38,11 @@ namespace Indexer.Common.Persistence.Entities.Assets
         {
             await using var connection = (NpgsqlConnection) _contextFactory.Invoke().Database.GetDbConnection();
 
+            if (connection.State != ConnectionState.Open)
+            {
+                await connection.OpenAsync();
+            }
+
             var entities = await GetInList(connection, blockchainAssetIds);
 
             return entities.Select(MapToDomain).ToArray();
@@ -51,8 +57,14 @@ namespace Indexer.Common.Persistence.Entities.Assets
 
             await using var connection = (NpgsqlConnection) _contextFactory.Invoke().Database.GetDbConnection();
 
+            if (connection.State != ConnectionState.Open)
+            {
+                await connection.OpenAsync();
+            }
+
             var copyHelper = new PostgreSQLCopyHelper<BlockchainAsset>(CommonDatabaseContext.SchemaName, TableNames.Assets)
                 .UsePostgresQuoting()
+                .MapVarchar(nameof(AssetEntity.BlockchainId), p => blockchainId)
                 .MapVarchar(nameof(AssetEntity.Symbol), p => p.Id.Symbol)
                 .MapVarchar(nameof(AssetEntity.Address), p => p.Id.Address)
                 .MapInteger(nameof(AssetEntity.Accuracy), p => p.Accuracy);
@@ -108,7 +120,7 @@ namespace Indexer.Common.Persistence.Entities.Assets
 
                 if (idsWithAddress.Any())
                 {
-                    queryBuilder.AppendLine($"address is not null and (symbol, address) in (values {inListWithAddress})");
+                    queryBuilder.AppendLine($"\"Address\" is not null and (\"Symbol\", \"address\") in (values {inListWithAddress})");
 
                     if (idsWithoutAddress.Any())
                     {
@@ -118,7 +130,7 @@ namespace Indexer.Common.Persistence.Entities.Assets
 
                 if (idsWithoutAddress.Any())
                 {
-                    queryBuilder.AppendLine($"address is null and symbol in (values {inListWithoutAddress})");
+                    queryBuilder.AppendLine($"\"Address\" is null and \"Symbol\" in (values {inListWithoutAddress})");
                 }
 
                 queryBuilder.AppendLine("limit @limit");

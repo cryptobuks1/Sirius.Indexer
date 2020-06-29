@@ -9,5 +9,6 @@ namespace Indexer.Common.Persistence.Entities.Blockchains
         Task<IReadOnlyCollection<BlockchainMetamodel>> GetAllAsync(string cursor, int limit);
         Task AddOrReplaceAsync(BlockchainMetamodel blockchainMetamodel);
         Task<BlockchainMetamodel> GetAsync(string blockchainId);
+        Task<BlockchainMetamodel> GetOrDefaultAsync(string blockchainId);
     }
 }

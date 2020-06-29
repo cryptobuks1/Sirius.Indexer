@@ -90,7 +90,20 @@ namespace Indexer.Worker.HostedServices
                         BlockchainConfig = blockchainConfig
                     });
 
-                var blockchainMetamodel = await _blockchainsRepository.GetAsync(blockchainId);
+                var blockchainMetamodel = await _blockchainsRepository.GetOrDefaultAsync(blockchainId);
+
+                if (blockchainMetamodel == null)
+                {
+                    _logger.LogWarning(@"Blockchain metamodel not found. Indexing for this blockchain couldn't be started {@context}",
+                        new
+                        {
+                            BlockchainId = blockchainId,
+                            BlockchainConfig = blockchainConfig
+                        });
+
+                    continue;
+                }
+
                 var blocksReader = await _blockReadersProvider.Get(blockchainId);
 
                 await ProvisionDbSchema(blockchainMetamodel);

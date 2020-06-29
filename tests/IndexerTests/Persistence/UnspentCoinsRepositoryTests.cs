@@ -21,7 +21,7 @@ namespace IndexerTests.Persistence
         [Fact]
         public async Task CanReadAndRemoveMoreThan1000CoinsByIdsList()
         {
-            await Fixture.CreateSchema("test", DoubleSpendingProtectionType.Coins);
+            await Fixture.CreateBlockchainSchema("test", DoubleSpendingProtectionType.Coins);
 
             var repo = new UnspentCoinsRepository(Fixture.BlockchainDbConnectionFactory);
 

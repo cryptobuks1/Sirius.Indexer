@@ -20,7 +20,7 @@ namespace IndexerTests.Persistence
         [InlineData("test-nonce", DoubleSpendingProtectionType.Nonce)]
         public async Task CanProvisionCoinsSchema(string blockchainId, DoubleSpendingProtectionType doubleSpendingProtectionType)
         {
-            var schemaBuilder = new BlockchainSchemaBuilder(NullLogger<BlockchainSchemaBuilder>.Instance, Fixture.CreateConnection);
+            var schemaBuilder = new BlockchainSchemaBuilder(NullLogger<BlockchainSchemaBuilder>.Instance, Fixture.BlockchainDbConnectionFactory);
 
             await schemaBuilder.ProvisionForIndexing(blockchainId, doubleSpendingProtectionType);
         }
@@ -30,7 +30,7 @@ namespace IndexerTests.Persistence
         [InlineData("test-nonce", DoubleSpendingProtectionType.Nonce)]
         public async Task CanUpgradeCoinsSchemaToOngoingIndexing(string blockchainId, DoubleSpendingProtectionType doubleSpendingProtectionType)
         {
-            var schemaBuilder = new BlockchainSchemaBuilder(NullLogger<BlockchainSchemaBuilder>.Instance, Fixture.CreateConnection);
+            var schemaBuilder = new BlockchainSchemaBuilder(NullLogger<BlockchainSchemaBuilder>.Instance, Fixture.BlockchainDbConnectionFactory);
 
             await schemaBuilder.UpgradeToOngoingIndexing(blockchainId, doubleSpendingProtectionType);
         }

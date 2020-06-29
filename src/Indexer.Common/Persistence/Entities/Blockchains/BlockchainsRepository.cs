@@ -58,7 +58,15 @@ namespace Indexer.Common.Persistence.Entities.Blockchains
         {
             await using var context = _contextFactory.Invoke();
 
-            var result = await context.Blockchains.FirstAsync(x => x.Id == blockchainId);
+            var result = await context.Blockchains.SingleAsync(x => x.Id == blockchainId);
+            return result;
+        }
+
+        public async Task<BlockchainMetamodel> GetOrDefaultAsync(string blockchainId)
+        {
+            await using var context = _contextFactory.Invoke();
+
+            var result = await context.Blockchains.SingleOrDefaultAsync(x => x.Id == blockchainId);
             return result;
         }
     }

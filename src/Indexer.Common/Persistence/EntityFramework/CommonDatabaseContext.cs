@@ -56,6 +56,12 @@ namespace Indexer.Common.Persistence.EntityFramework
                     .HasIdentityOptions(100_000)
                     .ValueGeneratedOnAdd();
 
+                e.Property(x => x.BlockchainId)
+                    .IsRequired();
+
+                e.Property(x => x.Symbol)
+                    .IsRequired();
+
                 e.HasIndex(x => x.BlockchainId)
                     .HasName("ix_assets_blockchain_id");
 
