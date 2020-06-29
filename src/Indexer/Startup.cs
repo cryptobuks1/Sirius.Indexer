@@ -52,6 +52,7 @@ namespace Indexer
 
             endpoints.MapGrpcService<MonitoringService>();
             endpoints.MapGrpcService<ObservedOperationService>();
+            endpoints.MapGrpcService<UnspentCoinsService>();
         }
     }
 }
