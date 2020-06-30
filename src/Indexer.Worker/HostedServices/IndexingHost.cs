@@ -87,7 +87,7 @@ namespace Indexer.Worker.HostedServices
                     new
                     {
                         BlockchainId = blockchainId,
-                        BlockchainConfig = blockchainConfig
+                        BlockchainConfig = blockchainConfig.Indexing
                     });
 
                 var blockchainMetamodel = await _blockchainsRepository.GetOrDefaultAsync(blockchainId);
@@ -98,7 +98,7 @@ namespace Indexer.Worker.HostedServices
                         new
                         {
                             BlockchainId = blockchainId,
-                            BlockchainConfig = blockchainConfig
+                            BlockchainConfig = blockchainConfig.Indexing
                         });
 
                     continue;
