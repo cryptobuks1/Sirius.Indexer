@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Threading.Tasks;
-using Indexer.Common.Domain.Indexing.Common.CoinBlocks;
 using Indexer.Common.Domain.Indexing.SecondPass;
-using Indexer.Common.Persistence.Entities.BlockHeaders;
+using Indexer.Common.Persistence;
 using Indexer.Common.Persistence.Entities.SecondPassIndexers;
-using Indexer.Common.Telemetry;
 using Microsoft.Extensions.Logging;
 
 namespace Indexer.Worker.Jobs
@@ -16,33 +14,27 @@ namespace Indexer.Worker.Jobs
         private readonly string _blockchainId;
         private readonly long _stopBlock;
         private readonly ISecondPassIndexersRepository _indexersRepository;
-        private readonly IBlockHeadersRepository _blockHeadersRepository;
+        private readonly IBlockchainDbUnitOfWorkFactory _blockchainDbUnitOfWorkFactory;
         private readonly OngoingIndexingJobsManager _ongoingIndexingJobsManager;
-        private readonly IAppInsight _appInsight;
         private readonly BackgroundJob _job;
         private SecondPassIndexer _indexer;
-        private readonly CoinsSecondaryBlockProcessor _coinsSecondaryBlockProcessor;
-
+        
         public SecondPassIndexingJob(ILogger<SecondPassIndexingJob> logger,
             ILoggerFactory loggerFactory,
             string blockchainId,
             long stopBlock,
             ISecondPassIndexersRepository indexersRepository,
-            IBlockHeadersRepository blockHeadersRepository,
-            OngoingIndexingJobsManager ongoingIndexingJobsManager,
-            IAppInsight appInsight,
-            CoinsSecondaryBlockProcessor coinsSecondaryBlockProcessor)
+            IBlockchainDbUnitOfWorkFactory blockchainDbUnitOfWorkFactory,
+            OngoingIndexingJobsManager ongoingIndexingJobsManager)
         {
             _logger = logger;
             _loggerFactory = loggerFactory;
             _blockchainId = blockchainId;
             _stopBlock = stopBlock;
             _indexersRepository = indexersRepository;
-            _blockHeadersRepository = blockHeadersRepository;
+            _blockchainDbUnitOfWorkFactory = blockchainDbUnitOfWorkFactory;
             _ongoingIndexingJobsManager = ongoingIndexingJobsManager;
-            _appInsight = appInsight;
-            _coinsSecondaryBlockProcessor = coinsSecondaryBlockProcessor;
-
+            
             _job = new BackgroundJob(
                 _logger,
                 "Second-pass indexing",
@@ -85,9 +77,7 @@ namespace Indexer.Worker.Jobs
                 var indexingResult = await _indexer.IndexAvailableBlocks(
                     _loggerFactory.CreateLogger<SecondPassIndexer>(),
                     maxBlocksCount: 100,
-                    _blockHeadersRepository,
-                    _appInsight,
-                    _coinsSecondaryBlockProcessor);
+                    _blockchainDbUnitOfWorkFactory);
 
                 if (indexingResult == SecondPassIndexingResult.IndexingCompleted)
                 {

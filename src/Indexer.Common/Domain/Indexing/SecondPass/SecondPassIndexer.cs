@@ -1,11 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Indexer.Common.Domain.Blocks;
-using Indexer.Common.Domain.Indexing.Common.CoinBlocks;
-using Indexer.Common.Persistence.Entities.BlockHeaders;
-using Indexer.Common.Telemetry;
+using Indexer.Common.Domain.Indexing.Common;
+using Indexer.Common.Persistence;
 using Microsoft.Extensions.Logging;
+using Swisschain.Sirius.Sdk.Primitives;
 
 namespace Indexer.Common.Domain.Indexing.SecondPass
 {
@@ -66,16 +66,16 @@ namespace Indexer.Common.Domain.Indexing.SecondPass
         public async Task<SecondPassIndexingResult> IndexAvailableBlocks(
             ILogger<SecondPassIndexer> logger,
             int maxBlocksCount,
-            IBlockHeadersRepository blockHeadersRepository,
-            IAppInsight appInsight, 
-            CoinsSecondaryBlockProcessor coinsSecondaryBlockProcessor)
+            IBlockchainDbUnitOfWorkFactory blockchainDbUnitOfWorkFactory)
         {
             if (IsCompleted)
             {
                 return SecondPassIndexingResult.IndexingCompleted;
             }
 
-            var blockHeaders = await blockHeadersRepository.GetBatch(BlockchainId, NextBlock, maxBlocksCount);
+            await using var unitOfWork = await blockchainDbUnitOfWorkFactory.Start(BlockchainId);
+
+            var blockHeaders = await unitOfWork.BlockHeaders.GetBatch(NextBlock, maxBlocksCount);
             var processedBlocksCount = 0;
 
             try
@@ -87,7 +87,7 @@ namespace Indexer.Common.Domain.Indexing.SecondPass
                         return SecondPassIndexingResult.IndexingInProgress;
                     }
 
-                    await IndexBlock(blockHeader, appInsight, coinsSecondaryBlockProcessor);
+                    await IndexBlock(blockHeader, unitOfWork);
 
                     ++processedBlocksCount;
 
@@ -105,34 +105,49 @@ namespace Indexer.Common.Domain.Indexing.SecondPass
             return SecondPassIndexingResult.IndexingInProgress;
         }
         
-        private async Task IndexBlock(BlockHeader blockHeader,
-            IAppInsight appInsight, 
-            CoinsSecondaryBlockProcessor coinsSecondaryBlockProcessor)
+        private async Task IndexBlock(BlockHeader blockHeader, IBlockchainDbUnitOfWork unitOfWork)
         {
-            var telemetry = appInsight.StartRequest("Second-pass block indexing",
-                new Dictionary<string, string>
-                {
-                    ["blockchainId"] = BlockchainId,
-                    ["nextBlock"] = NextBlock.ToString()
-                });
+            var inputCoins = await unitOfWork.InputCoins.GetByBlock(blockHeader.Id);
+            var inputsToSpend = inputCoins
+                .Where(x => x.Type == InputCoinType.Regular)
+                .ToDictionary(x => x.PreviousOutput);
 
-            try
-            {
-                await coinsSecondaryBlockProcessor.Process(blockHeader);
+            var coinsToSpend = await unitOfWork.UnspentCoins.GetAnyOf(inputsToSpend.Keys);
 
-                NextBlock = blockHeader.Number + 1;
-                UpdatedAt = DateTime.UtcNow;
-            }
-            catch (Exception ex)
+            if (inputsToSpend.Count != coinsToSpend.Count && coinsToSpend.Count != 0)
             {
-                telemetry.Fail(ex);
+                throw new InvalidOperationException($"Not all unspent coins found ({coinsToSpend.Count}) for the given inputs to spend ({inputsToSpend.Count})");
+            }
 
-                throw;
-            }
-            finally
+            if (coinsToSpend.Any())
             {
-                telemetry.Stop();
+                var spentByBlockCoins = coinsToSpend.Select(x => x.Spend(inputsToSpend[x.Id])).ToArray();
+
+                //TODO: insert into xx from select u.* from unspent_coins, input_coins, transaction_headers...
+                await unitOfWork.SpentCoins.InsertOrIgnore(spentByBlockCoins);
+
+                var blockOutputCoins = await unitOfWork.UnspentCoins.GetByBlock(blockHeader.Id);
+
+                var balanceUpdates = BalanceUpdatesCalculator.Calculate(
+                    blockHeader,
+                    blockOutputCoins,
+                    spentByBlockCoins);
+
+                await unitOfWork.BalanceUpdates.InsertOrIgnore(balanceUpdates);
+
+                var fees = FeesCalculator.Calculate(
+                    blockHeader,
+                    blockOutputCoins,
+                    spentByBlockCoins);
+
+                await unitOfWork.Fees.InsertOrIgnore(fees);
+
+                // TODO: delete from xx (select u.* from unspent_coins, input_coins, transaction_headers...
+                await unitOfWork.UnspentCoins.Remove(spentByBlockCoins.Select(x => x.Id).ToArray());
             }
+
+            NextBlock = blockHeader.Number + 1;
+            UpdatedAt = DateTime.UtcNow;
         }
     }
 }

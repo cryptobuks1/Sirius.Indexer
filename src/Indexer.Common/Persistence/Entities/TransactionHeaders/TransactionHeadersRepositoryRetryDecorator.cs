@@ -22,9 +22,9 @@ namespace Indexer.Common.Persistence.Entities.TransactionHeaders
             return _retryPolicy.ExecuteAsync(() => _impl.InsertOrIgnore(transactionHeaders));
         }
 
-        public Task RemoveByBlock(string blockchainId, string blockId)
+        public Task RemoveByBlock(string blockId)
         {
-            return _retryPolicy.ExecuteAsync(() => _impl.RemoveByBlock(blockchainId, blockId));
+            return _retryPolicy.ExecuteAsync(() => _impl.RemoveByBlock(blockId));
         }
     }
 }

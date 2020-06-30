@@ -4,14 +4,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using Indexer.Common.Configuration;
 using Indexer.Common.Domain.Blocks;
-using Indexer.Common.Domain.Indexing.Common;
-using Indexer.Common.Domain.Indexing.Common.CoinBlocks;
 using Indexer.Common.Domain.Indexing.Ongoing;
 using Indexer.Common.Persistence.Entities.Blockchains;
-using Indexer.Common.Persistence.Entities.ObservedOperations;
 using Indexer.Common.Persistence.Entities.OngoingIndexers;
 using Indexer.Common.Telemetry;
-using MassTransit;
 using Microsoft.Extensions.Logging;
 
 namespace Indexer.Worker.Jobs
@@ -22,49 +18,38 @@ namespace Indexer.Worker.Jobs
         private readonly AppConfig _appConfig;
         private readonly IBlockchainSchemaBuilder _blockchainSchemaBuilder;
         private readonly IOngoingIndexersRepository _indexersRepository;
-        private readonly PrimaryBlockProcessor _primaryBlockProcessor;
-        private readonly CoinsPrimaryBlockProcessor _coinsPrimaryBlockProcessor;
-        private readonly CoinsSecondaryBlockProcessor _coinsSecondaryBlockProcessor;
+        private readonly CoinsBlockApplier _coinsBlockApplier;
         private readonly CoinsBlockCanceler _coinsBlockCanceler;
         private readonly IBlockReadersProvider _blockReadersProvider;
         private readonly ChainWalker _chainWalker;
-        private readonly IPublishEndpoint _publisher;
         private readonly IAppInsight _appInsight;
         private readonly SemaphoreSlim _lock;
         private readonly ConcurrentDictionary<string, OngoingIndexingJob> _jobs;
-        private readonly IObservedOperationsRepository _observedOperationsRepository;
         private readonly IBlockchainsRepository _blockchainsRepository;
+        
 
         public OngoingIndexingJobsManager(ILoggerFactory loggerFactory, 
             AppConfig appConfig,
             IBlockchainSchemaBuilder blockchainSchemaBuilder,
             IOngoingIndexersRepository indexersRepository,
-            PrimaryBlockProcessor primaryBlockProcessor,
-            CoinsPrimaryBlockProcessor coinsPrimaryBlockProcessor,
-            CoinsSecondaryBlockProcessor coinsSecondaryBlockProcessor,
+            CoinsBlockApplier coinsBlockApplier,
             CoinsBlockCanceler coinsBlockCanceler,
-            IObservedOperationsRepository observedOperationsRepository,
             IBlockchainsRepository blockchainsRepository,
             IBlockReadersProvider blockReadersProvider,
             ChainWalker chainWalker,
-            IPublishEndpoint publisher,
             IAppInsight appInsight)
         {
             _loggerFactory = loggerFactory;
             _appConfig = appConfig;
             _blockchainSchemaBuilder = blockchainSchemaBuilder;
             _indexersRepository = indexersRepository;
-            _primaryBlockProcessor = primaryBlockProcessor;
-            _coinsPrimaryBlockProcessor = coinsPrimaryBlockProcessor;
-            _coinsSecondaryBlockProcessor = coinsSecondaryBlockProcessor;
+            _coinsBlockApplier = coinsBlockApplier;
             _coinsBlockCanceler = coinsBlockCanceler;
-            _observedOperationsRepository = observedOperationsRepository;
             _blockchainsRepository = blockchainsRepository;
             _blockReadersProvider = blockReadersProvider;
             _chainWalker = chainWalker;
-            _publisher = publisher;
             _appInsight = appInsight;
-
+            
             _lock = new SemaphoreSlim(1, 1);
             _jobs = new ConcurrentDictionary<string, OngoingIndexingJob>();
         }
@@ -89,14 +74,10 @@ namespace Indexer.Worker.Jobs
                         blockchainConfig.Indexing.DelayOnBlockNotFound,
                         _blockchainSchemaBuilder,
                         _indexersRepository,
-                        _primaryBlockProcessor,
-                        _coinsPrimaryBlockProcessor,
-                        _coinsSecondaryBlockProcessor,
+                        _coinsBlockApplier,
                         _coinsBlockCanceler,
-                        _observedOperationsRepository,
                         blocksReader,
                         _chainWalker,
-                        _publisher,
                         _appInsight);
 
                     _jobs.TryAdd(blockchainId, job);

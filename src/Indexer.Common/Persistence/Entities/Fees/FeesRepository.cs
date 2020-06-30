@@ -11,24 +11,23 @@ namespace Indexer.Common.Persistence.Entities.Fees
 {
     internal sealed class FeesRepository : IFeesRepository
     {
-        private readonly IBlockchainDbConnectionFactory _connectionFactory;
+        private readonly NpgsqlConnection _connection;
+        private readonly string _schema;
 
-        public FeesRepository(IBlockchainDbConnectionFactory connectionFactory)
+        public FeesRepository(NpgsqlConnection connection, string schema)
         {
-            _connectionFactory = connectionFactory;
+            _connection = connection;
+            _schema = schema;
         }
 
-        public async Task InsertOrIgnore(string blockchainId, IReadOnlyCollection<Fee> fees)
+        public async Task InsertOrIgnore(IReadOnlyCollection<Fee> fees)
         {
             if (!fees.Any())
             {
                 return;
             }
             
-            await using var connection = await _connectionFactory.Create(blockchainId);
-            
-            var schema = DbSchema.GetName(blockchainId);
-            var copyHelper = new PostgreSQLCopyHelper<Fee>(schema, TableNames.Fees)
+            var copyHelper = new PostgreSQLCopyHelper<Fee>(_schema, TableNames.Fees)
                 .UsePostgresQuoting()
                 .MapVarchar(nameof(FeeEntity.transaction_id), x => x.TransactionId)
                 .MapBigInt(nameof(FeeEntity.asset_id), x => x.Unit.AssetId)
@@ -36,45 +35,42 @@ namespace Indexer.Common.Persistence.Entities.Fees
 
             try
             {
-                await copyHelper.SaveAllAsync(connection, fees);
+                await copyHelper.SaveAllAsync(_connection, fees);
             }
             catch (PostgresException e) when (e.IsPrimaryKeyViolationException())
             {
-                var notExisted = await ExcludeExistingInDb(schema, connection, fees);
+                var notExisted = await ExcludeExistingInDb(fees);
 
                 if (notExisted.Any())
                 {
-                    await copyHelper.SaveAllAsync(connection, notExisted);
+                    await copyHelper.SaveAllAsync(_connection, notExisted);
                 }
             }
 
         }
 
-        public async Task RemoveByBlock(string blockchainId, string blockId)
+        public async Task RemoveByBlock(string blockId)
         {
-            await using var connection = await _connectionFactory.Create(blockchainId);
-
-            var schema = DbSchema.GetName(blockchainId);
             var query = $@"
                 delete 
-                from {schema}.{TableNames.Fees} f
-                using {schema}.{TableNames.TransactionHeaders} t
+                from {_schema}.{TableNames.Fees} f
+                using {_schema}.{TableNames.TransactionHeaders} t
                 where 
                     t.id = f.transaction_id and
                     t.block_id = @blockId";
 
-            await connection.ExecuteAsync(query, new {blockId});
+            await _connection.ExecuteAsync(query, new {blockId});
         }
 
-        private static async Task<IReadOnlyCollection<Fee>> ExcludeExistingInDb(string schema, NpgsqlConnection connection, IReadOnlyCollection<Fee> fees)
+        private async Task<IReadOnlyCollection<Fee>> ExcludeExistingInDb(IReadOnlyCollection<Fee> fees)
         {
             if (!fees.Any())
             {
                 return Array.Empty<Fee>();
             }
 
-            var existingEntities = await connection.QueryInList<FeeEntity, Fee>(
-                schema,
+            var existingEntities = await _connection.QueryInList<FeeEntity, Fee>(
+                _schema,
                 TableNames.Fees,
                 fees,
                 columnsToSelect: "transaction_id, asset_id",

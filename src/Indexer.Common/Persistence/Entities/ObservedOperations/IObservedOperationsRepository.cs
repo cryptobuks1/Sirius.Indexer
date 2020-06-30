@@ -7,6 +7,6 @@ namespace Indexer.Common.Persistence.Entities.ObservedOperations
     public interface IObservedOperationsRepository
     {
         Task AddOrIgnore(ObservedOperation observedOperation);
-        Task<IReadOnlyCollection<ObservedOperation>> GetInvolvedInBlock(string blockchainId, string blockId);
+        Task<IReadOnlyCollection<ObservedOperation>> GetInvolvedInBlock(string blockId);
     }
 }

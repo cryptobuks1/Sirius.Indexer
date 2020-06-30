@@ -3,14 +3,10 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Indexer.Common.Domain.Blocks;
-using Indexer.Common.Domain.Indexing.Common;
-using Indexer.Common.Domain.Indexing.Common.CoinBlocks;
 using Indexer.Common.Domain.Indexing.Ongoing;
 using Indexer.Common.Persistence.Entities.Blockchains;
-using Indexer.Common.Persistence.Entities.ObservedOperations;
 using Indexer.Common.Persistence.Entities.OngoingIndexers;
 using Indexer.Common.Telemetry;
-using MassTransit;
 using Microsoft.Extensions.Logging;
 using Swisschain.Sirius.Sdk.Primitives;
 
@@ -25,20 +21,17 @@ namespace Indexer.Worker.Jobs
         private readonly TimeSpan _delayOnBlockNotFound;
         private readonly IBlockchainSchemaBuilder _blockchainSchemaBuilder;
         private readonly IOngoingIndexersRepository _indexersRepository;
-        private readonly PrimaryBlockProcessor _primaryBlockProcessor;
-        private readonly CoinsPrimaryBlockProcessor _coinsPrimaryBlockProcessor;
-        private readonly CoinsSecondaryBlockProcessor _coinsSecondaryBlockProcessor;
+        private readonly CoinsBlockApplier _coinsBlockApplier;
         private readonly CoinsBlockCanceler _coinsBlockCanceler;
-        private readonly IObservedOperationsRepository _observedOperationsRepository;
         private readonly IBlocksReader _blocksReader;
         private readonly ChainWalker _chainWalker;
-        private readonly IPublishEndpoint _publisher;
         private readonly IAppInsight _appInsight;
         private readonly Timer _timer;
         private readonly ManualResetEventSlim _done;
         private readonly CancellationTokenSource _cts;
         private OngoingIndexer _indexer;
         
+
 
         public OngoingIndexingJob(ILogger<OngoingIndexingJob> logger,
             ILoggerFactory loggerFactory,
@@ -47,14 +40,10 @@ namespace Indexer.Worker.Jobs
             TimeSpan delayOnBlockNotFound,
             IBlockchainSchemaBuilder blockchainSchemaBuilder,
             IOngoingIndexersRepository indexersRepository,
-            PrimaryBlockProcessor primaryBlockProcessor,
-            CoinsPrimaryBlockProcessor coinsPrimaryBlockProcessor,
-            CoinsSecondaryBlockProcessor coinsSecondaryBlockProcessor,
+            CoinsBlockApplier coinsBlockApplier,
             CoinsBlockCanceler coinsBlockCanceler,
-            IObservedOperationsRepository observedOperationsRepository,
             IBlocksReader blocksReader,
             ChainWalker chainWalker,
-            IPublishEndpoint publisher,
             IAppInsight appInsight)
         {
             _logger = logger;
@@ -64,17 +53,12 @@ namespace Indexer.Worker.Jobs
             _delayOnBlockNotFound = delayOnBlockNotFound;
             _blockchainSchemaBuilder = blockchainSchemaBuilder;
             _indexersRepository = indexersRepository;
-            _primaryBlockProcessor = primaryBlockProcessor;
-            _coinsPrimaryBlockProcessor = coinsPrimaryBlockProcessor;
-            _coinsSecondaryBlockProcessor = coinsSecondaryBlockProcessor;
+            _coinsBlockApplier = coinsBlockApplier;
             _coinsBlockCanceler = coinsBlockCanceler;
-            _observedOperationsRepository = observedOperationsRepository;
             _blocksReader = blocksReader;
             _chainWalker = chainWalker;
-            _publisher = publisher;
             _appInsight = appInsight;
             
-
             _timer = new Timer(TimerCallback, null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
             _done = new ManualResetEventSlim(false);
             _cts = new CancellationTokenSource();
@@ -192,12 +176,8 @@ namespace Indexer.Worker.Jobs
                             _loggerFactory.CreateLogger<OngoingIndexer>(),
                             _blocksReader,
                             _chainWalker,
-                            _primaryBlockProcessor,
-                            _coinsPrimaryBlockProcessor,
-                            _coinsSecondaryBlockProcessor,
-                            _coinsBlockCanceler,
-                            _observedOperationsRepository,
-                            _publisher);
+                            _coinsBlockApplier,
+                            _coinsBlockCanceler);
 
                         telemetry.ResponseCode = indexingResult.ToString();
 

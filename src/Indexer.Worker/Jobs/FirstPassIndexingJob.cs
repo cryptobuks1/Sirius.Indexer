@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Indexer.Common.Domain.Blocks;
-using Indexer.Common.Domain.Indexing.Common;
-using Indexer.Common.Domain.Indexing.Common.CoinBlocks;
 using Indexer.Common.Domain.Indexing.FirstPass;
+using Indexer.Common.Domain.Transactions.Transfers;
 using Indexer.Common.Messaging.InMemoryBus;
+using Indexer.Common.Persistence;
 using Indexer.Common.Persistence.Entities.FirstPassIndexers;
 using Indexer.Common.Telemetry;
 using Microsoft.Extensions.Logging;
@@ -21,14 +21,15 @@ namespace Indexer.Worker.Jobs
         private readonly long _stopBlock;
         private readonly IFirstPassIndexersRepository _indexersRepository;
         private readonly IBlocksReader _blocksReader;
-        private readonly PrimaryBlockProcessor _primaryBlockProcessor;
-        private readonly CoinsPrimaryBlockProcessor _coinsPrimaryBlockProcessor;
+        private readonly IBlockchainDbUnitOfWorkFactory _blockchainDbUnitOfWorkFactory;
+        private readonly UnspentCoinsFactory _unspentCoinsFactory;
         private readonly IInMemoryBus _inMemoryBus;
         private readonly SecondPassIndexingJobsManager _secondPassIndexingJobsManager;
         private readonly IAppInsight _appInsight;
         private readonly BackgroundJob _job;
         private FirstPassIndexer _indexer;
         
+
 
         public FirstPassIndexingJob(ILogger<FirstPassIndexingJob> logger,
             ILoggerFactory loggerFactory,
@@ -37,10 +38,10 @@ namespace Indexer.Worker.Jobs
             IFirstPassIndexersRepository indexersRepository,
             IBlocksReader blocksReader,
             IInMemoryBus inMemoryBus,
+            IBlockchainDbUnitOfWorkFactory blockchainDbUnitOfWorkFactory,
+            UnspentCoinsFactory unspentCoinsFactory,
             SecondPassIndexingJobsManager secondPassIndexingJobsManager,
-            IAppInsight appInsight,
-            PrimaryBlockProcessor primaryBlockProcessor,
-            CoinsPrimaryBlockProcessor coinsPrimaryBlockProcessor)
+            IAppInsight appInsight)
         {
             _logger = logger;
             _loggerFactory = loggerFactory;
@@ -48,12 +49,12 @@ namespace Indexer.Worker.Jobs
             _stopBlock = stopBlock;
             _indexersRepository = indexersRepository;
             _blocksReader = blocksReader;
+            _blockchainDbUnitOfWorkFactory = blockchainDbUnitOfWorkFactory;
+            _unspentCoinsFactory = unspentCoinsFactory;
             _inMemoryBus = inMemoryBus;
             _secondPassIndexingJobsManager = secondPassIndexingJobsManager;
             _appInsight = appInsight;
-            _primaryBlockProcessor = primaryBlockProcessor;
-            _coinsPrimaryBlockProcessor = coinsPrimaryBlockProcessor;
-
+            
             _job = new BackgroundJob(
                 _logger,
                 "First-pass indexing",
@@ -158,8 +159,8 @@ namespace Indexer.Worker.Jobs
                 var result = await _indexer.IndexNextBlock(
                     _loggerFactory.CreateLogger<FirstPassIndexer>(),
                     _blocksReader,
-                    _primaryBlockProcessor,
-                    _coinsPrimaryBlockProcessor,
+                    _blockchainDbUnitOfWorkFactory,
+                    _unspentCoinsFactory,
                     _inMemoryBus);
 
                 telemetry.ResponseCode = result.ToString();

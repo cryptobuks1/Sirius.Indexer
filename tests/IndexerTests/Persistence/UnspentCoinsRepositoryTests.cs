@@ -5,10 +5,6 @@ using Indexer.Common.Domain.Blocks;
 using Indexer.Common.Domain.Transactions;
 using Indexer.Common.Domain.Transactions.Transfers;
 using Indexer.Common.Persistence;
-using Indexer.Common.Persistence.Entities.BlockHeaders;
-using Indexer.Common.Persistence.Entities.TransactionHeaders;
-using Indexer.Common.Persistence.Entities.UnspentCoins;
-using Indexer.Common.Telemetry;
 using IndexerTests.Sdk;
 using IndexerTests.Sdk.Fixtures;
 using Shouldly;
@@ -29,7 +25,7 @@ namespace IndexerTests.Persistence
         {
             await Fixture.SchemaBuilder.ProvisionForIndexing("test", DoubleSpendingProtectionType.Coins);
 
-            var repo = new UnspentCoinsRepository(Fixture.BlockchainDbConnectionFactory);
+            await using var dbUnitOfWork = await Fixture.BlockchainDbUnitOfWorkFactory.Start("test");
 
             var generatedCoins = Enumerable
                 .Range(0, NpgSqlConnectionQueryExtensions.BatchSize + 50)
@@ -41,14 +37,14 @@ namespace IndexerTests.Persistence
                     default))
                 .ToArray();
 
-            await repo.InsertOrIgnore("test", generatedCoins);
+            await dbUnitOfWork.UnspentCoins.InsertOrIgnore(generatedCoins);
             var ids = generatedCoins.Select(x => x.Id).ToArray();
 
-            var readCoins = await repo.GetAnyOf("test", ids);
+            var readCoins = await dbUnitOfWork.UnspentCoins.GetAnyOf(ids);
 
-            await repo.Remove("test", ids);
+            await dbUnitOfWork.UnspentCoins.Remove(ids);
 
-            var readCoins2 = await repo.GetAnyOf("test", ids);
+            var readCoins2 = await dbUnitOfWork.UnspentCoins.GetAnyOf(ids);
 
             readCoins.ShouldBe(generatedCoins, ignoreOrder: true);
             readCoins2.ShouldBeEmpty();
@@ -60,7 +56,7 @@ namespace IndexerTests.Persistence
             await Fixture.SchemaBuilder.ProvisionForIndexing("test", DoubleSpendingProtectionType.Coins);
             await Fixture.SchemaBuilder.UpgradeToOngoingIndexing("test", DoubleSpendingProtectionType.Coins);
 
-            var repo = new UnspentCoinsRepository(Fixture.BlockchainDbConnectionFactory);
+            await using var dbUnitOfWork = await Fixture.BlockchainDbUnitOfWorkFactory.Start("test");
 
             var generatedCoins = Enumerable
                 .Range(0, 100)
@@ -72,9 +68,9 @@ namespace IndexerTests.Persistence
                     default))
                 .ToArray();
 
-            await repo.InsertOrIgnore("test", generatedCoins);
+            await dbUnitOfWork.UnspentCoins.InsertOrIgnore(generatedCoins);
             
-            var readCoins = await repo.GetByAddress("test", "address1", null);
+            var readCoins = await dbUnitOfWork.UnspentCoins.GetByAddress("address1", null);
 
             readCoins.ShouldBe(generatedCoins.Where(x => x.Address == "address1"), ignoreOrder: true);
             readCoins.ShouldNotBeEmpty();
@@ -86,9 +82,7 @@ namespace IndexerTests.Persistence
             await Fixture.SchemaBuilder.ProvisionForIndexing("test-1", DoubleSpendingProtectionType.Coins);
             await Fixture.SchemaBuilder.UpgradeToOngoingIndexing("test-1", DoubleSpendingProtectionType.Coins);
 
-            var repo = new UnspentCoinsRepository(Fixture.BlockchainDbConnectionFactory);
-            var transactionHeadersRepo = new TransactionHeadersRepository(Fixture.BlockchainDbConnectionFactory, new TurnedOffAppInsight());
-            var blockHeadersRepo = new BlockHeadersRepository(Fixture.BlockchainDbConnectionFactory, new TurnedOffAppInsight());
+            await using var dbUnitOfWork = await Fixture.BlockchainDbUnitOfWorkFactory.Start("test-1");
 
             var generatedBlocks = Enumerable
                 .Range(0, 5)
@@ -122,13 +116,13 @@ namespace IndexerTests.Persistence
 
             foreach (var block in generatedBlocks)
             {
-                await blockHeadersRepo.InsertOrIgnore(block);
+                await dbUnitOfWork.BlockHeaders.InsertOrIgnore(block);
             }
 
-            await transactionHeadersRepo.InsertOrIgnore(generatedTransactions);
-            await repo.InsertOrIgnore("test-1", generatedCoins);
+            await dbUnitOfWork.TransactionHeaders.InsertOrIgnore(generatedTransactions);
+            await dbUnitOfWork.UnspentCoins.InsertOrIgnore(generatedCoins);
             
-            var readCoins = await repo.GetByAddress("test-1", "address1", 2);
+            var readCoins = await dbUnitOfWork.UnspentCoins.GetByAddress("address1", 2);
 
             var expectedCoins = generatedCoins
                 .Where(c =>

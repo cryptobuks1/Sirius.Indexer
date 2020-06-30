@@ -13,24 +13,23 @@ namespace Indexer.Common.Persistence.Entities.SpentCoins
 {
     internal sealed class SpentCoinsRepository : ISpentCoinsRepository
     {
-        private readonly IBlockchainDbConnectionFactory _connectionFactory;
+        private readonly NpgsqlConnection _connection;
+        private readonly string _schema;
 
-        public SpentCoinsRepository(IBlockchainDbConnectionFactory connectionFactory)
+        public SpentCoinsRepository(NpgsqlConnection connection, string schema)
         {
-            _connectionFactory = connectionFactory;
+            _connection = connection;
+            _schema = schema;
         }
 
-        public async Task InsertOrIgnore(string blockchainId, IReadOnlyCollection<SpentCoin> coins)
+        public async Task InsertOrIgnore(IReadOnlyCollection<SpentCoin> coins)
         {
             if (!coins.Any())
             {
                 return;
             }
             
-            await using var connection = await _connectionFactory.Create(blockchainId);
-            
-            var schema = DbSchema.GetName(blockchainId);
-            var copyHelper = new PostgreSQLCopyHelper<SpentCoin>(schema, TableNames.SpentCoins)
+            var copyHelper = new PostgreSQLCopyHelper<SpentCoin>(_schema, TableNames.SpentCoins)
                 .UsePostgresQuoting()
                 .MapVarchar(nameof(SpentCoinEntity.transaction_id), p => p.Id.TransactionId)
                 .MapInteger(nameof(SpentCoinEntity.number), p => p.Id.Number)
@@ -44,32 +43,28 @@ namespace Indexer.Common.Persistence.Entities.SpentCoins
 
             try
             {
-                await copyHelper.SaveAllAsync(connection, coins);
+                await copyHelper.SaveAllAsync(_connection, coins);
             }
             catch (PostgresException e) when (e.IsPrimaryKeyViolationException())
             {
-                var notExisted = await ExcludeExistingInDb(schema, connection, coins);
+                var notExisted = await ExcludeExistingInDb(coins);
 
                 if (notExisted.Any())
                 {
-                    await copyHelper.SaveAllAsync(connection, notExisted);
+                    await copyHelper.SaveAllAsync(_connection, notExisted);
                 }
             }
         }
 
-        public async Task<IReadOnlyCollection<SpentCoin>> GetSpentByBlock(string blockchainId, string blockId)
+        public async Task<IReadOnlyCollection<SpentCoin>> GetSpentByBlock(string blockId)
         {
-            await using var connection = await _connectionFactory.Create(blockchainId);
-            
-            var schema = DbSchema.GetName(blockchainId);
-
             var query = $@"
                 select c.* 
-                from {schema}.{TableNames.SpentCoins} c
-                join {schema}.{TableNames.TransactionHeaders} t on t.id = c.spent_by_transaction_id
+                from {_schema}.{TableNames.SpentCoins} c
+                join {_schema}.{TableNames.TransactionHeaders} t on t.id = c.spent_by_transaction_id
                 where t.block_id = @blockId";
 
-            var entities = await connection.QueryAsync<SpentCoinEntity>(query, new {blockId});
+            var entities = await _connection.QueryAsync<SpentCoinEntity>(query, new {blockId});
 
             return entities
                 .Select(x => new SpentCoin(
@@ -82,34 +77,28 @@ namespace Indexer.Common.Persistence.Entities.SpentCoins
                 .ToArray();
         }
 
-        public async Task RemoveSpentByBlock(string blockchainId, string blockId)
+        public async Task RemoveSpentByBlock(string blockId)
         {
-            await using var connection = await _connectionFactory.Create(blockchainId);
-
-            var schema = DbSchema.GetName(blockchainId);
             var query = $@"
                 delete 
-                from {schema}.{TableNames.SpentCoins} c
-                using {schema}.{TableNames.TransactionHeaders} t
+                from {_schema}.{TableNames.SpentCoins} c
+                using {_schema}.{TableNames.TransactionHeaders} t
                 where 
                     t.id = c.spent_by_transaction_id and
                     t.block_id = @blockId";
 
-            await connection.ExecuteAsync(query, new {blockId});
+            await _connection.ExecuteAsync(query, new {blockId});
         }
 
-        private static async Task<IReadOnlyCollection<SpentCoin>> ExcludeExistingInDb(
-            string schema,
-            NpgsqlConnection connection,
-            IReadOnlyCollection<SpentCoin> coins)
+        private async Task<IReadOnlyCollection<SpentCoin>> ExcludeExistingInDb(IReadOnlyCollection<SpentCoin> coins)
         {
             if (!coins.Any())
             {
                 return Array.Empty<SpentCoin>();
             }
 
-            var existingEntities = await connection.QueryInList<SpentCoinEntity, SpentCoin>(
-                schema,
+            var existingEntities = await _connection.QueryInList<SpentCoinEntity, SpentCoin>(
+                _schema,
                 TableNames.SpentCoins,
                 coins,
                 columnsToSelect: "transaction_id, number ",

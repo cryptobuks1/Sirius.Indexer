@@ -4,31 +4,33 @@ using System.Threading.Tasks;
 using Dapper;
 using Indexer.Common.Domain.ObservedOperations;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 namespace Indexer.Common.Persistence.Entities.ObservedOperations
 {
     public class ObservedOperationsRepository : IObservedOperationsRepository
     {
-        private readonly IBlockchainDbConnectionFactory _connectionFactory;
+        private readonly NpgsqlConnection _connection;
+        private readonly string _schema;
+        private readonly string _blockchainId;
 
-        public ObservedOperationsRepository(IBlockchainDbConnectionFactory connectionFactory)
+        public ObservedOperationsRepository(NpgsqlConnection connection, string schema, string blockchainId)
         {
-            _connectionFactory = connectionFactory;
+            _connection = connection;
+            _schema = schema;
+            _blockchainId = blockchainId;
         }
 
         public async Task AddOrIgnore(ObservedOperation observedOperation)
         {
-            await using var connection = await _connectionFactory.Create(observedOperation.BlockchainId);
-
-            var schema = DbSchema.GetName(observedOperation.BlockchainId);
             var query = $@"
-                insert into {schema}.{TableNames.ObserverOperations}
+                insert into {_schema}.{TableNames.ObserverOperations}
                 (id, transaction_id, added_at)
                 values (@id, @transactionId, @addedAt)";
 
             try
             {
-                await connection.ExecuteAsync(query, new
+                await _connection.ExecuteAsync(query, new
                     {
                         id = observedOperation.Id,
                         transaction_id = observedOperation.TransactionId,
@@ -40,22 +42,19 @@ namespace Indexer.Common.Persistence.Entities.ObservedOperations
             }
         }
 
-        public async Task<IReadOnlyCollection<ObservedOperation>> GetInvolvedInBlock(string blockchainId, string blockId)
+        public async Task<IReadOnlyCollection<ObservedOperation>> GetInvolvedInBlock(string blockId)
         {
-            await using var connection = await _connectionFactory.Create(blockchainId);
-
-            var schema = DbSchema.GetName(blockchainId);
             var query = $@"
-                select o.* from {schema}.{TableNames.ObserverOperations} o
-                join {schema}.{TableNames.TransactionHeaders} t on t.id = o.transaction_id
+                select o.* from {_schema}.{TableNames.ObserverOperations} o
+                join {_schema}.{TableNames.TransactionHeaders} t on t.id = o.transaction_id
                 where t.block_id = @blockId";
 
-            var entities = await connection.QueryAsync<ObservedOperationEntity>(query, new {blockId});
+            var entities = await _connection.QueryAsync<ObservedOperationEntity>(query, new {blockId});
 
             return entities
                 .Select(x => ObservedOperation.Restore(
                     x.id,
-                    blockchainId,
+                    _blockchainId,
                     x.transaction_id,
                     x.added_at))
                 .ToArray();

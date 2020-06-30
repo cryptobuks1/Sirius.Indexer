@@ -47,9 +47,7 @@ namespace Indexer.GrpcServices
 
             try
             {
-                var unspentCoins = await _unspentCoinsRepository.GetByAddress(
-                    request.BlockchainId,
-                    request.Address,
+                var unspentCoins = await _unspentCoinsRepository.GetByAddress(request.Address,
                     request.AsAtBlockNumber);
 
 

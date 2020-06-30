@@ -5,12 +5,12 @@ using System.Threading;
 using System.Threading.Tasks;
 using Indexer.Common.Configuration;
 using Indexer.Common.Domain.Blocks;
-using Indexer.Common.Domain.Indexing.Common;
-using Indexer.Common.Domain.Indexing.Common.CoinBlocks;
 using Indexer.Common.Domain.Indexing.FirstPass;
 using Indexer.Common.Domain.Indexing.Ongoing;
 using Indexer.Common.Domain.Indexing.SecondPass;
+using Indexer.Common.Domain.Transactions.Transfers;
 using Indexer.Common.Messaging.InMemoryBus;
+using Indexer.Common.Persistence;
 using Indexer.Common.Persistence.Entities.Blockchains;
 using Indexer.Common.Persistence.Entities.FirstPassIndexers;
 using Indexer.Common.Persistence.Entities.OngoingIndexers;
@@ -33,15 +33,15 @@ namespace Indexer.Worker.HostedServices
         private readonly IFirstPassIndexersRepository _firstPassIndexersRepository;
         private readonly ISecondPassIndexersRepository _secondPassIndexersRepository;
         private readonly IOngoingIndexersRepository _ongoingIndexersRepository;
+        private readonly IBlockchainDbUnitOfWorkFactory _blockchainDbUnitOfWorkFactory;
+        private readonly UnspentCoinsFactory _unspentCoinsFactory;
         private readonly IInMemoryBus _inMemoryBus;
         private readonly SecondPassIndexingJobsManager _secondPassIndexingJobsManager;
         private readonly OngoingIndexingJobsManager _ongoingIndexingJobsManager;
         private readonly IBlockReadersProvider _blockReadersProvider;
         private readonly IAppInsight _appInsight;
         private readonly List<FirstPassIndexingJob> _firstPassIndexingJobs;
-        private readonly PrimaryBlockProcessor _primaryBlockProcessor;
-        private readonly CoinsPrimaryBlockProcessor _coinsPrimaryBlockProcessor;
-
+        
         public IndexingHost(ILogger<IndexingHost> logger,
             ILoggerFactory loggerFactory,
             AppConfig config,
@@ -50,13 +50,13 @@ namespace Indexer.Worker.HostedServices
             IFirstPassIndexersRepository firstPassIndexersRepository,
             ISecondPassIndexersRepository secondPassIndexersRepository,
             IOngoingIndexersRepository ongoingIndexersRepository,
+            IBlockchainDbUnitOfWorkFactory blockchainDbUnitOfWorkFactory,
+            UnspentCoinsFactory unspentCoinsFactory,
             IInMemoryBus inMemoryBus,
             SecondPassIndexingJobsManager secondPassIndexingJobsManager,
             OngoingIndexingJobsManager ongoingIndexingJobsManager,
             IBlockReadersProvider blockReadersProvider,
-            IAppInsight appInsight,
-            PrimaryBlockProcessor primaryBlockProcessor,
-            CoinsPrimaryBlockProcessor coinsPrimaryBlockProcessor)
+            IAppInsight appInsight)
         {
             _logger = logger;
             _loggerFactory = loggerFactory;
@@ -66,13 +66,13 @@ namespace Indexer.Worker.HostedServices
             _firstPassIndexersRepository = firstPassIndexersRepository;
             _secondPassIndexersRepository = secondPassIndexersRepository;
             _ongoingIndexersRepository = ongoingIndexersRepository;
+            _blockchainDbUnitOfWorkFactory = blockchainDbUnitOfWorkFactory;
+            _unspentCoinsFactory = unspentCoinsFactory;
             _inMemoryBus = inMemoryBus;
             _secondPassIndexingJobsManager = secondPassIndexingJobsManager;
             _ongoingIndexingJobsManager = ongoingIndexingJobsManager;
             _blockReadersProvider = blockReadersProvider;
             _appInsight = appInsight;
-            _primaryBlockProcessor = primaryBlockProcessor;
-            _coinsPrimaryBlockProcessor = coinsPrimaryBlockProcessor;
 
             _firstPassIndexingJobs = new List<FirstPassIndexingJob>();
         }
@@ -321,10 +321,10 @@ namespace Indexer.Worker.HostedServices
                         _firstPassIndexersRepository,
                         blocksReader,
                         _inMemoryBus,
-                        _secondPassIndexingJobsManager,
-                        _appInsight,
-                        _primaryBlockProcessor,
-                        _coinsPrimaryBlockProcessor);
+                        _blockchainDbUnitOfWorkFactory,
+                        _unspentCoinsFactory,
+                        _secondPassIndexingJobsManager, 
+                        _appInsight);
 
                     await job.Start();
                     

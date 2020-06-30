@@ -1,14 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Indexer.Common.Domain.Blocks;
-using Indexer.Common.Domain.Indexing.Common;
-using Indexer.Common.Domain.Indexing.Common.CoinBlocks;
-using Indexer.Common.Persistence.Entities.ObservedOperations;
-using MassTransit;
 using Microsoft.Extensions.Logging;
-using Swisschain.Sirius.Indexer.MessagingContract;
 
 namespace Indexer.Common.Domain.Indexing.Ongoing
 {
@@ -74,12 +67,8 @@ namespace Indexer.Common.Domain.Indexing.Ongoing
         public async Task<OngoingBlockIndexingResult> IndexNextBlock(ILogger<OngoingIndexer> logger,
             IBlocksReader reader,
             ChainWalker chainWalker,
-            PrimaryBlockProcessor primaryBlockProcessor,
-            CoinsPrimaryBlockProcessor coinsPrimaryBlockProcessor,
-            CoinsSecondaryBlockProcessor coinsSecondaryBlockProcessor,
-            CoinsBlockCanceler coinsBlockCanceler,
-            IObservedOperationsRepository observedOperationsRepository,
-            IPublishEndpoint publisher)
+            CoinsBlockApplier coinsBlockApplier,
+            CoinsBlockCanceler coinsBlockCanceler)
         {
             var newBlock = await reader.ReadCoinsBlockOrDefault(NextBlock);
 
@@ -95,21 +84,12 @@ namespace Indexer.Common.Domain.Indexing.Ongoing
             switch (chainWalkerMovement.Direction)
             {
                 case MovementDirection.Forward:
-                    await MoveForward(logger,
-                        primaryBlockProcessor, 
-                        coinsPrimaryBlockProcessor,
-                        coinsSecondaryBlockProcessor,
-                        observedOperationsRepository,
-                        publisher,
-                        newBlock);
+                    await MoveForward(coinsBlockApplier, newBlock);
 
                     break;
 
                 case MovementDirection.Backward:
-                    await MoveBackward(logger, 
-                        coinsBlockCanceler, 
-                        publisher,
-                        chainWalkerMovement.EvictedBlockHeader);
+                    await MoveBackward(coinsBlockCanceler, chainWalkerMovement.EvictedBlockHeader);
 
                     break;
 
@@ -120,135 +100,20 @@ namespace Indexer.Common.Domain.Indexing.Ongoing
             return OngoingBlockIndexingResult.BlockIndexed;
         }
 
-        private async Task MoveForward(ILogger<OngoingIndexer> logger,
-            PrimaryBlockProcessor primaryBlockProcessor,
-            CoinsPrimaryBlockProcessor coinsPrimaryBlockProcessor,
-            CoinsSecondaryBlockProcessor coinsSecondaryBlockProcessor,
-            IObservedOperationsRepository observedOperationsRepository,
-            IPublishEndpoint publisher,
-            CoinsBlock newBlock)
+        private async Task MoveForward(CoinsBlockApplier coinsBlockApplier, CoinsBlock newBlock)
         {
-            await primaryBlockProcessor.Process(newBlock.Header, newBlock.Transfers.Select(x => x.Header).ToArray());
-
-            var primaryBlockProcessingResult = await coinsPrimaryBlockProcessor.Process(newBlock);
-            var secondaryBlockGeneratingPhaseProcessingResult = await coinsSecondaryBlockProcessor.ProcessGenerationPhase(
-                newBlock.Header, 
-                primaryBlockProcessingResult.UnspentCoins);
-            
-            await PublishBlockEvents(
-                observedOperationsRepository, 
-                publisher, 
-                newBlock,
-                primaryBlockProcessingResult,
-                secondaryBlockGeneratingPhaseProcessingResult);
-
-            await coinsSecondaryBlockProcessor.ProcessRemovingPhase(
-                newBlock.Header,
-                secondaryBlockGeneratingPhaseProcessingResult);
+            await coinsBlockApplier.Apply(this, newBlock);
 
             NextBlock++;
             Sequence++;
-
-            logger.LogInformation("Ongoing indexer has indexed the block {@context}",
-                new
-                {
-                    BlockchainId = BlockchainId,
-                    BlockNumber = newBlock.Header.Number,
-                    BlockId = newBlock.Header.Id,
-                    TransfersCount = newBlock.Transfers.Count
-                });
         }
 
-        private async Task PublishBlockEvents(IObservedOperationsRepository observedOperationsRepository,
-            IPublishEndpoint publisher,
-            CoinsBlock newBlock,
-            CoinsPrimaryBlockProcessingResult primaryBlockProcessingResult,
-            CoinsSecondaryBlockGenerationPhaseProcessingResult secondaryBlockGeneratingPhaseProcessingResult)
+        private async Task MoveBackward(CoinsBlockCanceler coinsBlockCanceler, BlockHeader evictedBlockHeader)
         {
-            var observedOperations = (await observedOperationsRepository.GetInvolvedInBlock(BlockchainId, newBlock.Header.Id))
-                .ToDictionary(x => x.TransactionId);
-
-            // This is needed to mitigate events publishing latency
-            var tasks = new List<Task>(1 + newBlock.Transfers.Count)
-            {
-                publisher.Publish(new BlockDetected
-                {
-                    BlockchainId = BlockchainId,
-                    BlockId = newBlock.Header.Id,
-                    BlockNumber = newBlock.Header.Number,
-                    MinedAt = newBlock.Header.MinedAt,
-                    PreviousBlockId = newBlock.Header.PreviousId,
-                    ChainSequence = Sequence
-                })
-            };
+            await coinsBlockCanceler.Cancel(this, evictedBlockHeader);
             
-            var spentCoinsByTransaction = secondaryBlockGeneratingPhaseProcessingResult.SpentCoins.ToLookup(x => x.SpentByCoinId.TransactionId);
-            var unspentCoinsByTransaction = primaryBlockProcessingResult.UnspentCoins.ToLookup(x => x.Id.TransactionId);
-            var feesByTransaction = secondaryBlockGeneratingPhaseProcessingResult.Fees.ToLookup(x => x.TransactionId);
-
-            foreach (var transfer in newBlock.Transfers)
-            {
-                tasks.Add(
-                    publisher.Publish(new TransactionDetected
-                    {
-                        BlockchainId = BlockchainId,
-                        BlockId = newBlock.Header.Id,
-                        BlockNumber = newBlock.Header.Number,
-                        BlockMinedAt = newBlock.Header.MinedAt,
-                        TransactionId = transfer.Header.Id,
-                        TransactionNumber = transfer.Header.Number,
-                        Error = transfer.Header.Error,
-                        OperationId = observedOperations.TryGetValue(transfer.Header.Id, out var operation)
-                            ? operation.Id
-                            : default(long?),
-                        Fees = feesByTransaction[transfer.Header.Id].Select(x => x.Unit).ToArray(),
-                        Sources = spentCoinsByTransaction[transfer.Header.Id]
-                            .Select(x => new TransferSource
-                            {
-                                Address = x.Address,
-                                Unit = x.Unit
-                            })
-                            .ToArray(),
-                        Destinations = unspentCoinsByTransaction[transfer.Header.Id]
-                            .Select(x => new TransferDestination
-                            {
-                                Address = x.Address,
-                                Unit = x.Unit,
-                                TagType = x.TagType,
-                                Tag = x.Tag
-                            })
-                            .ToArray()
-                    }));
-            }
-
-            await Task.WhenAll(tasks);
-        }
-
-        private async Task MoveBackward(ILogger<OngoingIndexer> logger,
-            CoinsBlockCanceler coinsBlockCanceler,
-            IPublishEndpoint publisher,
-            BlockHeader evictedBlockHeader)
-        {
-            await coinsBlockCanceler.Cancel(evictedBlockHeader);
-
-            await publisher.Publish(new BlockCancelled
-            {
-                BlockchainId = BlockchainId,
-                BlockId = evictedBlockHeader.Id,
-                BlockNumber = evictedBlockHeader.Number,
-                ChainSequence = Sequence
-            });
-
             NextBlock--;
             Sequence++;
-
-            logger.LogWarning("Ongoing indexer has reverted the block {@context}",
-                new
-                {
-                    BlockchainId = BlockchainId,
-                    BlockNumber = evictedBlockHeader.Number,
-                    BlockId = evictedBlockHeader.Id
-                });
         }
     }
 }

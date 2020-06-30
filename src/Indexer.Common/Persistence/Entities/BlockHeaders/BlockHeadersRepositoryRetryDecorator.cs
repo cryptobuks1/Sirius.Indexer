@@ -23,24 +23,24 @@ namespace Indexer.Common.Persistence.Entities.BlockHeaders
             return _retryPolicy.ExecuteAsync(() => _impl.InsertOrIgnore(blockHeader));
         }
 
-        public Task<BlockHeader> GetOrDefault(string blockchainId, long blockNumber)
+        public Task<BlockHeader> GetOrDefault(long blockNumber)
         {
-            return _retryPolicy.ExecuteAsync(() => _impl.GetOrDefault(blockchainId, blockNumber));
+            return _retryPolicy.ExecuteAsync(() => _impl.GetOrDefault(blockNumber));
         }
 
-        public Task Remove(string blockchainId, string id)
+        public Task Remove(string id)
         {
-            return _retryPolicy.ExecuteAsync(() => _impl.Remove(blockchainId, id));
+            return _retryPolicy.ExecuteAsync(() => _impl.Remove(id));
         }
 
-        public Task<IEnumerable<BlockHeader>> GetBatch(string blockchainId, long startBlockNumber, int limit)
+        public Task<IEnumerable<BlockHeader>> GetBatch(long startBlockNumber, int limit)
         {
-            return _retryPolicy.ExecuteAsync(() => _impl.GetBatch(blockchainId, startBlockNumber, limit));
+            return _retryPolicy.ExecuteAsync(() => _impl.GetBatch(startBlockNumber, limit));
         }
 
-        public Task<BlockHeader> GetLast(string blockchainId)
+        public Task<BlockHeader> GetLast()
         {
-            return _impl.GetLast(blockchainId);
+            return _impl.GetLast();
         }
     }
 }

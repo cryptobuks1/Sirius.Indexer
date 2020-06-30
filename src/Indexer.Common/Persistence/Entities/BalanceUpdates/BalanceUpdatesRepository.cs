@@ -11,11 +11,13 @@ namespace Indexer.Common.Persistence.Entities.BalanceUpdates
 {
     internal sealed class BalanceUpdatesRepository : IBalanceUpdatesRepository
     {
-        private readonly IBlockchainDbConnectionFactory _connectionFactory;
+        private readonly NpgsqlConnection _connection;
+        private readonly string _schema;
 
-        public BalanceUpdatesRepository(IBlockchainDbConnectionFactory connectionFactory)
+        public BalanceUpdatesRepository(NpgsqlConnection connection, string schema)
         {
-            _connectionFactory = connectionFactory;
+            _connection = connection;
+            _schema = schema;
         }
 
         /// <summary>
@@ -23,17 +25,14 @@ namespace Indexer.Common.Persistence.Entities.BalanceUpdates
         /// Only balance updates from the same block should be in the list.
         /// It's not checked due to performance reason
         /// </summary>
-        public async Task InsertOrIgnore(string blockchainId, IReadOnlyCollection<BalanceUpdate> balanceUpdates)
+        public async Task InsertOrIgnore(IReadOnlyCollection<BalanceUpdate> balanceUpdates)
         {
             if (!balanceUpdates.Any())
             {
                 return;
             }
             
-            await using var connection = await _connectionFactory.Create(blockchainId);
-            
-            var schema = DbSchema.GetName(blockchainId);
-            var copyHelper = new PostgreSQLCopyHelper<BalanceUpdate>(schema, TableNames.BalanceUpdates)
+            var copyHelper = new PostgreSQLCopyHelper<BalanceUpdate>(_schema, TableNames.BalanceUpdates)
                 .UsePostgresQuoting()
                 .MapVarchar(nameof(BalanceUpdateEntity.address), x => x.Address)
                 .MapBigInt(nameof(BalanceUpdateEntity.asset_id), x => x.AssetId)
@@ -44,44 +43,38 @@ namespace Indexer.Common.Persistence.Entities.BalanceUpdates
 
             try
             {
-                await copyHelper.SaveAllAsync(connection, balanceUpdates);
+                await copyHelper.SaveAllAsync(_connection, balanceUpdates);
             }
             catch (PostgresException e) when (e.IsPrimaryKeyViolationException())
             {
-                var notExisted = await ExcludeExistingInDb(schema, connection, balanceUpdates);
+                var notExisted = await ExcludeExistingInDb(balanceUpdates);
 
                 if (notExisted.Any())
                 {
-                    await copyHelper.SaveAllAsync(connection, notExisted);
+                    await copyHelper.SaveAllAsync(_connection, notExisted);
                 }
             }
         }
 
-        public async Task RemoveByBlock(string blockchainId, string blockId)
+        public async Task RemoveByBlock(string blockId)
         {
-            await using var connection = await _connectionFactory.Create(blockchainId);
+            var query = $@"delete from {_schema}.{TableNames.BalanceUpdates} where block_id = @blockId";
 
-            var schema = DbSchema.GetName(blockchainId);
-            var query = $@"delete from {schema}.{TableNames.BalanceUpdates} where block_id = @blockId";
-
-            await connection.ExecuteAsync(query, new {blockId});
+            await _connection.ExecuteAsync(query, new {blockId});
         }
 
         // TODO: to get a balance at a specified block number
         // select sum(amount) from bitcoin.balance_updates where address='1VayNert3x1KzbpzMGt2qdqrAThiRovi8' and block_number<=232985
 
-        private static async Task<IReadOnlyCollection<BalanceUpdate>> ExcludeExistingInDb(
-            string schema,
-            NpgsqlConnection connection,
-            IReadOnlyCollection<BalanceUpdate> balanceUpdates)
+        private async Task<IReadOnlyCollection<BalanceUpdate>> ExcludeExistingInDb(IReadOnlyCollection<BalanceUpdate> balanceUpdates)
         {
             if (!balanceUpdates.Any())
             {
                 return Array.Empty<BalanceUpdate>();
             }
 
-            var existingEntities = await connection.QueryInList<BalanceUpdateEntity, BalanceUpdate>(
-                schema,
+            var existingEntities = await _connection.QueryInList<BalanceUpdateEntity, BalanceUpdate>(
+                _schema,
                 TableNames.BalanceUpdates,
                 balanceUpdates,
                 columnsToSelect: "address, asset_id, block_number",

@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Dapper;
 using Indexer.Common.Domain.Transactions;
-using Indexer.Common.Telemetry;
 using Npgsql;
 using NpgsqlTypes;
 using PostgreSQLCopyHelper;
@@ -13,14 +12,13 @@ namespace Indexer.Common.Persistence.Entities.TransactionHeaders
 {
     internal class TransactionHeadersRepository : ITransactionHeadersRepository
     {
-        private readonly IBlockchainDbConnectionFactory _connectionFactory;
-        private readonly IAppInsight _appInsight;
+        private readonly NpgsqlConnection _connection;
+        private readonly string _schema;
 
-        public TransactionHeadersRepository(IBlockchainDbConnectionFactory connectionFactory,
-            IAppInsight appInsight)
+        public TransactionHeadersRepository(NpgsqlConnection connection, string schema)
         {
-            _connectionFactory = connectionFactory;
-            _appInsight = appInsight;
+            _connection = connection;
+            _schema = schema;
         }
 
         public async Task InsertOrIgnore(IReadOnlyCollection<TransactionHeader> transactionHeaders)
@@ -30,14 +28,7 @@ namespace Indexer.Common.Persistence.Entities.TransactionHeaders
                 return;
             }
 
-            var blockchainId = transactionHeaders.First().BlockchainId;
-            
-            await using var connection = await _connectionFactory.Create(blockchainId);
-            
-            var schema = DbSchema.GetName(blockchainId);
-            var telemetry = _appInsight.StartSqlCopyCommand<TransactionHeader>();
-            
-            var copyHelper = new PostgreSQLCopyHelper<TransactionHeader>(schema, TableNames.TransactionHeaders)
+            var copyHelper = new PostgreSQLCopyHelper<TransactionHeader>(_schema, TableNames.TransactionHeaders)
                 .UsePostgresQuoting()
                 .MapVarchar(nameof(TransactionHeaderEntity.block_id), p => p.BlockId)
                 .MapVarchar(nameof(TransactionHeaderEntity.id), p => p.Id)
@@ -47,52 +38,35 @@ namespace Indexer.Common.Persistence.Entities.TransactionHeaders
 
             try
             {
-                try
-                {
-                    await copyHelper.SaveAllAsync(connection, transactionHeaders);
-                }
-                catch (PostgresException e) when (e.IsPrimaryKeyViolationException())
-                {
-                    var notExisted = await ExcludeExistingInDb(connection, schema, transactionHeaders);
-
-                    if (notExisted.Any())
-                    {
-                        await copyHelper.SaveAllAsync(connection, notExisted);
-                    }
-                }
-
-                telemetry.Complete();
+                await copyHelper.SaveAllAsync(_connection, transactionHeaders);
             }
-            catch (Exception ex)
+            catch (PostgresException e) when (e.IsPrimaryKeyViolationException())
             {
-                telemetry.Fail(ex);
+                var notExisted = await ExcludeExistingInDb(transactionHeaders);
 
-                throw;
+                if (notExisted.Any())
+                {
+                    await copyHelper.SaveAllAsync(_connection, notExisted);
+                }
             }
         }
 
-        public async Task RemoveByBlock(string blockchainId, string blockId)
+        public async Task RemoveByBlock(string blockId)
         {
-            await using var connection = await _connectionFactory.Create(blockchainId);
+            var query = $"delete from {_schema}.{TableNames.TransactionHeaders} where block_id = @blockId";
 
-            var schema = DbSchema.GetName(blockchainId);
-            var query = $"delete from {schema}.{TableNames.TransactionHeaders} where block_id = @blockId";
-
-            await connection.ExecuteAsync(query, new {blockId});
+            await _connection.ExecuteAsync(query, new {blockId});
         }
 
-        private static async Task<IReadOnlyCollection<TransactionHeader>> ExcludeExistingInDb(
-            NpgsqlConnection connection,
-            string schema,
-            IReadOnlyCollection<TransactionHeader> transactionHeaders)
+        private async Task<IReadOnlyCollection<TransactionHeader>> ExcludeExistingInDb(IReadOnlyCollection<TransactionHeader> transactionHeaders)
         {
             if (!transactionHeaders.Any())
             {
                 return Array.Empty<TransactionHeader>();
             }
 
-            var existingEntities = await connection.QueryInList<TransactionHeaderEntity, TransactionHeader>(
-                schema,
+            var existingEntities = await _connection.QueryInList<TransactionHeaderEntity, TransactionHeader>(
+                _schema,
                 TableNames.TransactionHeaders,
                 transactionHeaders,
                 columnsToSelect: "id",

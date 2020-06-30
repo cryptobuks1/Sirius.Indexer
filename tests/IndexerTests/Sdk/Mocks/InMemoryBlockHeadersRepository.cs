@@ -8,47 +8,46 @@ namespace IndexerTests.Sdk.Mocks
 {
     public class InMemoryBlockHeadersRepository : IBlockHeadersRepository
     {
-        private readonly Dictionary<(string blockchainId, string id), BlockHeader> _store = new Dictionary<(string blockchainId, string id), BlockHeader>();
+        private readonly Dictionary<string, BlockHeader> _store = new Dictionary<string, BlockHeader>();
 
         public Task InsertOrIgnore(BlockHeader blockHeader)
         {
             lock (_store)
             {
-                if (!_store.ContainsKey((blockHeader.BlockchainId, blockHeader.Id)))
+                if (!_store.ContainsKey(blockHeader.Id))
                 {
-                    _store[(blockHeader.BlockchainId, blockHeader.Id)] = blockHeader;
+                    _store[blockHeader.Id] = blockHeader;
                 }
             }
 
             return Task.CompletedTask;
         }
 
-        public Task<BlockHeader> GetOrDefault(string blockchainId, long blockNumber)
+        public Task<BlockHeader> GetOrDefault(long blockNumber)
         {
             lock (_store)
             {
-                var block = _store.Values.SingleOrDefault(x => x.BlockchainId == blockchainId && x.Number == blockNumber);
+                var block = _store.Values.SingleOrDefault(x => x.Number == blockNumber);
 
                 return Task.FromResult(block);
             }
         }
 
-        public Task Remove(string blockchainId, string id)
+        public Task Remove(string id)
         {
             lock (_store)
             {
-                _store.Remove((blockchainId, id));
+                _store.Remove(id);
             }
 
             return Task.CompletedTask;
         }
 
-        public Task<IEnumerable<BlockHeader>> GetBatch(string blockchainId, long startBlockNumber, int limit)
+        public Task<IEnumerable<BlockHeader>> GetBatch(long startBlockNumber, int limit)
         {
             lock (_store)
             {
                 var blocks = _store.Values
-                    .Where(x => x.BlockchainId == blockchainId)
                     .OrderBy(x => x.Number)
                     .SkipWhile(x => x.Number < startBlockNumber)
                     .Take(limit)
@@ -58,7 +57,7 @@ namespace IndexerTests.Sdk.Mocks
             }
         }
 
-        public Task<BlockHeader> GetLast(string blockchainId)
+        public Task<BlockHeader> GetLast()
         {
             lock (_store)
             {
