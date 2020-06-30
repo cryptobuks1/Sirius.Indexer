@@ -112,6 +112,11 @@ namespace Indexer.Common.Domain.Indexing.SecondPass
         
         private async Task IndexBlock(BlockHeader blockHeader, IBlockchainDbUnitOfWork unitOfWork)
         {
+            if (blockHeader.Number == 2)
+            {
+
+            }
+
             var inputCoins = await unitOfWork.InputCoins.GetByBlock(blockHeader.Id);
             var inputsToSpend = inputCoins
                 .Where(x => x.Type == InputCoinType.Regular)
@@ -124,32 +129,29 @@ namespace Indexer.Common.Domain.Indexing.SecondPass
                 throw new InvalidOperationException($"Not all unspent coins found ({coinsToSpend.Count}) for the given inputs to spend ({inputsToSpend.Count})");
             }
 
-            if (coinsToSpend.Any())
-            {
-                var spentByBlockCoins = coinsToSpend.Select(x => x.Spend(inputsToSpend[x.Id])).ToArray();
+            var spentByBlockCoins = coinsToSpend.Select(x => x.Spend(inputsToSpend[x.Id])).ToArray();
 
-                //TODO: insert into xx from select u.* from unspent_coins, input_coins, transaction_headers...
-                await unitOfWork.SpentCoins.InsertOrIgnore(spentByBlockCoins);
+            //TODO: insert into xx from select u.* from unspent_coins, input_coins, transaction_headers...
+            await unitOfWork.SpentCoins.InsertOrIgnore(spentByBlockCoins);
 
-                var blockOutputCoins = await unitOfWork.UnspentCoins.GetByBlock(blockHeader.Id);
+            var blockOutputCoins = await unitOfWork.UnspentCoins.GetByBlock(blockHeader.Id);
 
-                var balanceUpdates = BalanceUpdatesCalculator.Calculate(
-                    blockHeader,
-                    blockOutputCoins,
-                    spentByBlockCoins);
+            var balanceUpdates = BalanceUpdatesCalculator.Calculate(
+                blockHeader,
+                blockOutputCoins,
+                spentByBlockCoins);
 
-                await unitOfWork.BalanceUpdates.InsertOrIgnore(balanceUpdates);
+            await unitOfWork.BalanceUpdates.InsertOrIgnore(balanceUpdates);
 
-                var fees = FeesCalculator.Calculate(
-                    blockHeader,
-                    blockOutputCoins,
-                    spentByBlockCoins);
+            var fees = FeesCalculator.Calculate(
+                blockHeader,
+                blockOutputCoins,
+                spentByBlockCoins);
 
-                await unitOfWork.Fees.InsertOrIgnore(fees);
+            await unitOfWork.Fees.InsertOrIgnore(fees);
 
-                // TODO: delete from xx (select u.* from unspent_coins, input_coins, transaction_headers...
-                await unitOfWork.UnspentCoins.Remove(spentByBlockCoins.Select(x => x.Id).ToArray());
-            }
+            // TODO: delete from xx (select u.* from unspent_coins, input_coins, transaction_headers...
+            await unitOfWork.UnspentCoins.Remove(spentByBlockCoins.Select(x => x.Id).ToArray());
 
             NextBlock = blockHeader.Number + 1;
             UpdatedAt = DateTime.UtcNow;
