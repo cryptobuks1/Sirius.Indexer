@@ -96,6 +96,11 @@ namespace Indexer.Common.Domain.Indexing.SecondPass
                         return SecondPassIndexingResult.IndexingCompleted;
                     }
                 }
+
+                if (processedBlocksCount == 0)
+                {
+                    return SecondPassIndexingResult.NextBlockNotReady;
+                }
             }
             finally
             {

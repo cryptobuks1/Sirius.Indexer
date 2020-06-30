@@ -79,6 +79,19 @@ namespace Indexer.Worker.Jobs
                     maxBlocksCount: 100,
                     _blockchainDbUnitOfWorkFactory);
 
+                if (indexingResult == SecondPassIndexingResult.NextBlockNotReady)
+                {
+                    _logger.LogInformation("Second-pass indexing job has not found block ready to index {@context}",
+                        new
+                        {
+                            BlockchainId = _blockchainId,
+                            StopBlock = _stopBlock
+                        });
+
+                    await Task.Delay(TimeSpan.FromSeconds(10));
+
+                    return;
+                }
                 if (indexingResult == SecondPassIndexingResult.IndexingCompleted)
                 {
                     _logger.LogInformation("Second-pass indexing job is completed {@context}",

@@ -9,7 +9,6 @@ using Indexer.Common.Domain.Indexing.FirstPass;
 using Indexer.Common.Domain.Indexing.Ongoing;
 using Indexer.Common.Domain.Indexing.SecondPass;
 using Indexer.Common.Domain.Transactions.Transfers;
-using Indexer.Common.Messaging.InMemoryBus;
 using Indexer.Common.Persistence;
 using Indexer.Common.Persistence.Entities.Blockchains;
 using Indexer.Common.Persistence.Entities.FirstPassIndexers;
@@ -35,7 +34,6 @@ namespace Indexer.Worker.HostedServices
         private readonly IOngoingIndexersRepository _ongoingIndexersRepository;
         private readonly IBlockchainDbUnitOfWorkFactory _blockchainDbUnitOfWorkFactory;
         private readonly UnspentCoinsFactory _unspentCoinsFactory;
-        private readonly IInMemoryBus _inMemoryBus;
         private readonly SecondPassIndexingJobsManager _secondPassIndexingJobsManager;
         private readonly OngoingIndexingJobsManager _ongoingIndexingJobsManager;
         private readonly IBlockReadersProvider _blockReadersProvider;
@@ -52,7 +50,6 @@ namespace Indexer.Worker.HostedServices
             IOngoingIndexersRepository ongoingIndexersRepository,
             IBlockchainDbUnitOfWorkFactory blockchainDbUnitOfWorkFactory,
             UnspentCoinsFactory unspentCoinsFactory,
-            IInMemoryBus inMemoryBus,
             SecondPassIndexingJobsManager secondPassIndexingJobsManager,
             OngoingIndexingJobsManager ongoingIndexingJobsManager,
             IBlockReadersProvider blockReadersProvider,
@@ -68,7 +65,6 @@ namespace Indexer.Worker.HostedServices
             _ongoingIndexersRepository = ongoingIndexersRepository;
             _blockchainDbUnitOfWorkFactory = blockchainDbUnitOfWorkFactory;
             _unspentCoinsFactory = unspentCoinsFactory;
-            _inMemoryBus = inMemoryBus;
             _secondPassIndexingJobsManager = secondPassIndexingJobsManager;
             _ongoingIndexingJobsManager = ongoingIndexingJobsManager;
             _blockReadersProvider = blockReadersProvider;
@@ -320,10 +316,8 @@ namespace Indexer.Worker.HostedServices
                         indexer.StopBlock,
                         _firstPassIndexersRepository,
                         blocksReader,
-                        _inMemoryBus,
                         _blockchainDbUnitOfWorkFactory,
                         _unspentCoinsFactory,
-                        _secondPassIndexingJobsManager, 
                         _appInsight);
 
                     await job.Start();
@@ -336,25 +330,17 @@ namespace Indexer.Worker.HostedServices
         private async Task StartSecondPassIndexingJob(IReadOnlyCollection<FirstPassIndexer> firstPassIndexers, 
             SecondPassIndexer secondPassIndexer)
         {
-            if (firstPassIndexers.All(x => x.IsCompleted))
+            if (secondPassIndexer.IsCompleted)
             {
-                _logger.LogInformation("All first-pass indexers are already completed, starting second-pass indexer {@context}", new
+                _logger.LogInformation("Second-pass indexer is already completed {@context}", new
                 {
-                    BlockchainId = secondPassIndexer.BlockchainId
+                    BlockchainId = secondPassIndexer.BlockchainId,
+                    StopBlock = secondPassIndexer.StopBlock
                 });
-
-                if (secondPassIndexer.IsCompleted)
-                {
-                    _logger.LogInformation("Second-pass indexer is already completed {@context}", new
-                    {
-                        BlockchainId = secondPassIndexer.BlockchainId,
-                        StopBlock = secondPassIndexer.StopBlock
-                    });
-                }
-                else
-                {
-                    await _secondPassIndexingJobsManager.EnsureStarted(secondPassIndexer.BlockchainId);
-                }
+            }
+            else
+            {
+                await _secondPassIndexingJobsManager.EnsureStarted(secondPassIndexer.BlockchainId);
             }
         }
 

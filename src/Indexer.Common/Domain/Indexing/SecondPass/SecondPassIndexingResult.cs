@@ -3,6 +3,7 @@
     public enum SecondPassIndexingResult
     {
         IndexingInProgress,
+        NextBlockNotReady,
         IndexingCompleted
     }
 }

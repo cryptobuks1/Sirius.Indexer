@@ -4,7 +4,6 @@ using System.Threading.Tasks;
 using Indexer.Common.Configuration;
 using Indexer.Common.Domain.Blocks;
 using Indexer.Common.Domain.Transactions.Transfers;
-using Indexer.Common.Messaging.InMemoryBus;
 using Indexer.Common.Persistence;
 using Microsoft.Extensions.Logging;
 
@@ -76,8 +75,7 @@ namespace Indexer.Common.Domain.Indexing.FirstPass
         public async Task<FirstPassIndexingResult> IndexNextBlock(ILogger<FirstPassIndexer> logger,
             IBlocksReader blocksReader,
             IBlockchainDbUnitOfWorkFactory blockchainDbUnitOfWorkFactory,
-            UnspentCoinsFactory unspentCoinsFactory,
-            IInMemoryBus inMemoryBus)
+            UnspentCoinsFactory unspentCoinsFactory)
         {
             if (IsCompleted)
             {
@@ -113,11 +111,6 @@ namespace Indexer.Common.Domain.Indexing.FirstPass
 
             NextBlock += StepSize;
             UpdatedAt = DateTime.UtcNow;
-
-            await inMemoryBus.Publish(new FirstPassBlockDetected
-            {
-                BlockchainId = BlockchainId
-            });
             
             return IsCompleted ? FirstPassIndexingResult.IndexingCompleted : FirstPassIndexingResult.BlockIndexed;
         }

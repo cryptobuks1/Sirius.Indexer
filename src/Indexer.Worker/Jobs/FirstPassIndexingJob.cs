@@ -1,11 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Indexer.Common.Domain.Blocks;
 using Indexer.Common.Domain.Indexing.FirstPass;
 using Indexer.Common.Domain.Transactions.Transfers;
-using Indexer.Common.Messaging.InMemoryBus;
 using Indexer.Common.Persistence;
 using Indexer.Common.Persistence.Entities.FirstPassIndexers;
 using Indexer.Common.Telemetry;
@@ -23,8 +21,6 @@ namespace Indexer.Worker.Jobs
         private readonly IBlocksReader _blocksReader;
         private readonly IBlockchainDbUnitOfWorkFactory _blockchainDbUnitOfWorkFactory;
         private readonly UnspentCoinsFactory _unspentCoinsFactory;
-        private readonly IInMemoryBus _inMemoryBus;
-        private readonly SecondPassIndexingJobsManager _secondPassIndexingJobsManager;
         private readonly IAppInsight _appInsight;
         private readonly BackgroundJob _job;
         private FirstPassIndexer _indexer;
@@ -37,10 +33,8 @@ namespace Indexer.Worker.Jobs
             long stopBlock,
             IFirstPassIndexersRepository indexersRepository,
             IBlocksReader blocksReader,
-            IInMemoryBus inMemoryBus,
             IBlockchainDbUnitOfWorkFactory blockchainDbUnitOfWorkFactory,
             UnspentCoinsFactory unspentCoinsFactory,
-            SecondPassIndexingJobsManager secondPassIndexingJobsManager,
             IAppInsight appInsight)
         {
             _logger = logger;
@@ -51,8 +45,6 @@ namespace Indexer.Worker.Jobs
             _blocksReader = blocksReader;
             _blockchainDbUnitOfWorkFactory = blockchainDbUnitOfWorkFactory;
             _unspentCoinsFactory = unspentCoinsFactory;
-            _inMemoryBus = inMemoryBus;
-            _secondPassIndexingJobsManager = secondPassIndexingJobsManager;
             _appInsight = appInsight;
             
             _job = new BackgroundJob(
@@ -117,8 +109,6 @@ namespace Indexer.Worker.Jobs
 
                         _indexer = await _indexersRepository.Update(_indexer);
 
-                        await StartSecondPassIndexerJobIfFirstPassDone();
-
                         Stop();
 
                         return;
@@ -160,8 +150,7 @@ namespace Indexer.Worker.Jobs
                     _loggerFactory.CreateLogger<FirstPassIndexer>(),
                     _blocksReader,
                     _blockchainDbUnitOfWorkFactory,
-                    _unspentCoinsFactory,
-                    _inMemoryBus);
+                    _unspentCoinsFactory);
 
                 telemetry.ResponseCode = result.ToString();
 
@@ -176,16 +165,6 @@ namespace Indexer.Worker.Jobs
             finally
             {
                 telemetry.Stop();
-            }
-        }
-
-        private async Task StartSecondPassIndexerJobIfFirstPassDone()
-        {
-            var indexers = await _indexersRepository.GetByBlockchain(_indexerId.BlockchainId);
-
-            if (indexers.All(x => x.IsCompleted))
-            {
-                await _secondPassIndexingJobsManager.EnsureStarted(_indexerId.BlockchainId);
             }
         }
     }
