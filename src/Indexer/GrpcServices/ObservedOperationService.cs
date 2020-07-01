@@ -2,7 +2,7 @@
 using System.Threading.Tasks;
 using Grpc.Core;
 using Indexer.Common.Domain.ObservedOperations;
-using Indexer.Common.Persistence.Entities.ObservedOperations;
+using Indexer.Common.Persistence;
 using Microsoft.Extensions.Logging;
 using Swisschain.Sirius.Indexer.ApiContract.ObservedOperations;
 
@@ -11,13 +11,13 @@ namespace Indexer.GrpcServices
     public class ObservedOperationService : ObservedOperations.ObservedOperationsBase
     {
         private readonly ILogger<ObservedOperationService> _logger;
-        private readonly IObservedOperationsRepository _observedOperationsRepository;
+        private readonly IBlockchainDbUnitOfWorkFactory _blockchainDbUnitOfWorkFactory;
 
         public ObservedOperationService(ILogger<ObservedOperationService> logger,
-            IObservedOperationsRepository observedOperationsRepository)
+            IBlockchainDbUnitOfWorkFactory blockchainDbUnitOfWorkFactory)
         {
             _logger = logger;
-            _observedOperationsRepository = observedOperationsRepository;
+            _blockchainDbUnitOfWorkFactory = blockchainDbUnitOfWorkFactory;
         }
 
         public override async Task<AddObservedOperationResponse> AddObservedOperation(AddObservedOperationRequest request, ServerCallContext context)
@@ -62,7 +62,9 @@ namespace Indexer.GrpcServices
 
             try
             {
-                await _observedOperationsRepository.AddOrIgnore(observedOperation);
+                await using var unitOfWork = await _blockchainDbUnitOfWorkFactory.Start(request.BlockchainId);
+
+                await unitOfWork.ObservedOperations.AddOrIgnore(observedOperation);
 
                 return new AddObservedOperationResponse {Response = new AddObservedOperationResponseBody()};
             }

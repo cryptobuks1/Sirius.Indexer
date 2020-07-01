@@ -2,7 +2,7 @@
 using System.Linq;
 using System.Threading.Tasks;
 using Grpc.Core;
-using Indexer.Common.Persistence.Entities.UnspentCoins;
+using Indexer.Common.Persistence;
 using Microsoft.Extensions.Logging;
 using Swisschain.Sirius.Indexer.ApiContract.UnspentCoins;
 
@@ -11,12 +11,13 @@ namespace Indexer.GrpcServices
     public class UnspentCoinsService : UnspentCoins.UnspentCoinsBase
     {
         private readonly ILogger<UnspentCoinsService> _logger;
-        private readonly IUnspentCoinsRepository _unspentCoinsRepository;
+        private readonly IBlockchainDbUnitOfWorkFactory _blockchainDbUnitOfWorkFactory;
 
-        public UnspentCoinsService(ILogger<UnspentCoinsService> logger, IUnspentCoinsRepository unspentCoinsRepository)
+        public UnspentCoinsService(ILogger<UnspentCoinsService> logger, 
+            IBlockchainDbUnitOfWorkFactory blockchainDbUnitOfWorkFactory)
         {
             _logger = logger;
-            _unspentCoinsRepository = unspentCoinsRepository;
+            _blockchainDbUnitOfWorkFactory = blockchainDbUnitOfWorkFactory;
         }
 
         public override async Task<GetUnspentCoinsResponse> GetUnspentCoins(GetUnspentCoinsRequest request, ServerCallContext context)
@@ -47,11 +48,10 @@ namespace Indexer.GrpcServices
 
             try
             {
-                var unspentCoins = await _unspentCoinsRepository.GetByAddress(request.Address,
-                    request.AsAtBlockNumber);
+                await using var unitOfWork = await _blockchainDbUnitOfWorkFactory.Start(request.BlockchainId);
 
-
-
+                var unspentCoins = await unitOfWork.UnspentCoins.GetByAddress(request.Address, request.AsAtBlockNumber);
+                
                 return new GetUnspentCoinsResponse
                 {
                     Response = new GetUnspentCoinsResponseBody
