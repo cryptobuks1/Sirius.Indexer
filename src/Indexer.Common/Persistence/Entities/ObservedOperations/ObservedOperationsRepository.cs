@@ -33,8 +33,8 @@ namespace Indexer.Common.Persistence.Entities.ObservedOperations
                 await _connection.ExecuteAsync(query, new
                     {
                         id = observedOperation.Id,
-                        transaction_id = observedOperation.TransactionId,
-                        added_at = observedOperation.AddedAt
+                        transactionId = observedOperation.TransactionId,
+                        addedAt = observedOperation.AddedAt
                     });
             }
             catch (DbUpdateException e) when (e.IsPrimaryKeyViolationException())
