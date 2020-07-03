@@ -79,6 +79,7 @@ namespace Indexer.Common.Domain.Blocks
                         x.Number,
                         x.Unit,
                         x.Address,
+                        x.ScriptPubKey,
                         x.Tag,
                         DestinationTagTypeMapper.ToDomain(x.TagType)))
                     .ToArray();

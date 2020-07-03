@@ -36,6 +36,7 @@ namespace Indexer.Common.Persistence.Entities.SpentCoins
                 .MapBigInt(nameof(SpentCoinEntity.asset_id), p => p.Unit.AssetId)
                 .MapNumeric(nameof(SpentCoinEntity.amount), p => p.Unit.Amount)
                 .MapVarchar(nameof(SpentCoinEntity.address), p => p.Address)
+                .MapVarchar(nameof(SpentCoinEntity.script_pub_key), p => p.ScriptPubKey)
                 .MapVarchar(nameof(SpentCoinEntity.tag), p => p.Tag)
                 .MapNullable(nameof(SpentCoinEntity.tag_type), p => p.TagType, NpgsqlDbType.Integer)
                 .MapVarchar(nameof(SpentCoinEntity.spent_by_transaction_id), p => p.SpentByCoinId.TransactionId)
@@ -71,6 +72,7 @@ namespace Indexer.Common.Persistence.Entities.SpentCoins
                     new CoinId(x.transaction_id, x.number),
                     new Unit(x.asset_id, x.amount),
                     x.address,
+                    x.script_pub_key,
                     x.tag,
                     (DestinationTagType?) x.tag_type,
                     new CoinId(x.spent_by_transaction_id, x.spent_by_input_coin_number)))

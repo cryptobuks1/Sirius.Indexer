@@ -47,6 +47,7 @@ create unlogged table unspent_coins
     asset_id            bigint not null,
     amount              numeric not null,
     address             varchar(256),
+    script_pub_key      varchar(1024),
     tag                 varchar(1024),
     tag_type            int,
 
@@ -83,6 +84,7 @@ create unlogged table spent_coins
     asset_id                    bigint not null,
     amount                      numeric not null,
     address                     varchar(256),
+    script_pub_key              varchar(1024),
     tag                         varchar(1024),
     tag_type                    int,
     spent_by_transaction_id     varchar(256) not null,

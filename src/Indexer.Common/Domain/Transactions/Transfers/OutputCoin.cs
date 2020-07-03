@@ -6,13 +6,15 @@ namespace Indexer.Common.Domain.Transactions.Transfers
     {
         public OutputCoin(int number, 
             BlockchainUnit unit, 
-            string address = null,
-            string tag = null, 
-            DestinationTagType? tagType = null)
+            string address,
+            string scriptPubKey,
+            string tag, 
+            DestinationTagType? tagType)
         {
             Number = number;
             Unit = unit;
             Address = address;
+            ScriptPubKey = scriptPubKey;
             Tag = tag;
             TagType = tagType;
         }
@@ -20,6 +22,7 @@ namespace Indexer.Common.Domain.Transactions.Transfers
         public int Number { get; }
         public BlockchainUnit Unit { get; }
         public string Address { get; }
+        public string ScriptPubKey { get; }
         public string Tag { get; }
         public DestinationTagType? TagType { get; }
     }

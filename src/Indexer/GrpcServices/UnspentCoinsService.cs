@@ -62,6 +62,7 @@ namespace Indexer.GrpcServices
                             {
                                 Id = x.Id,
                                 Address = x.Address,
+                                ScriptPubKey = x.ScriptPubKey,
                                 Unit = x.Unit
                             })
                         }

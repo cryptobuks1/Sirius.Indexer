@@ -8,12 +8,14 @@ namespace Indexer.Common.Domain.Transactions.Transfers
         public UnspentCoin(CoinId id,
             Unit unit,
             string address,
+            string scriptPubKey,
             string tag,
             DestinationTagType? tagType)
         {
             Id = id;
             Unit = unit;
             Address = address;
+            ScriptPubKey = scriptPubKey;
             Tag = tag;
             TagType = tagType;
         }
@@ -21,6 +23,7 @@ namespace Indexer.Common.Domain.Transactions.Transfers
         public CoinId Id { get; }
         public Unit Unit { get; }
         public string Address { get; }
+        public string ScriptPubKey { get; }
         public string Tag { get; }
         public DestinationTagType? TagType { get; }
 
@@ -35,6 +38,7 @@ namespace Indexer.Common.Domain.Transactions.Transfers
                 Id,
                 Unit,
                 Address,
+                ScriptPubKey,
                 Tag,
                 TagType,
                 byInputCoin.Id);
@@ -44,7 +48,7 @@ namespace Indexer.Common.Domain.Transactions.Transfers
         {
             if (ReferenceEquals(null, other)) return false;
             if (ReferenceEquals(this, other)) return true;
-            return Equals(Id, other.Id) && Equals(Unit, other.Unit) && Address == other.Address && Tag == other.Tag && TagType == other.TagType;
+            return Equals(Id, other.Id) && Equals(Unit, other.Unit) && Address == other.Address && ScriptPubKey == other.ScriptPubKey && Tag == other.Tag && TagType == other.TagType;
         }
 
         public override bool Equals(object obj)
@@ -57,6 +61,7 @@ namespace Indexer.Common.Domain.Transactions.Transfers
             return HashCode.Combine(Id,
                 Unit,
                 Address,
+                ScriptPubKey,
                 Tag,
                 TagType);
         }

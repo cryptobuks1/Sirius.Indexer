@@ -36,6 +36,7 @@ namespace Indexer.Common.Persistence.Entities.UnspentCoins
                 .MapBigInt(nameof(UnspentCoinEntity.asset_id), p => p.Unit.AssetId)
                 .MapNumeric(nameof(UnspentCoinEntity.amount), p => p.Unit.Amount)
                 .MapVarchar(nameof(UnspentCoinEntity.address), p => p.Address)
+                .MapVarchar(nameof(UnspentCoinEntity.script_pub_key), p => p.ScriptPubKey)
                 .MapVarchar(nameof(UnspentCoinEntity.tag), p => p.Tag)
                 .MapNullable(nameof(UnspentCoinEntity.tag_type), p => p.TagType, NpgsqlDbType.Integer);
 
@@ -178,6 +179,7 @@ namespace Indexer.Common.Persistence.Entities.UnspentCoins
                 new CoinId(entity.transaction_id, entity.number),
                 new Unit(entity.asset_id, entity.amount),
                 entity.address,
+                entity.script_pub_key,
                 entity.tag,
                 (DestinationTagType?) entity.tag_type);
         }

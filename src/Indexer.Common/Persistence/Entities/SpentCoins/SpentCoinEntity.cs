@@ -8,6 +8,7 @@
         public long asset_id { get; set; }
         public decimal amount { get; set; }
         public string address { get; set; }
+        public string script_pub_key { get; set; }
         public string tag { get; set; }
         public int? tag_type { get; set; }
         public string spent_by_transaction_id { get; set; }

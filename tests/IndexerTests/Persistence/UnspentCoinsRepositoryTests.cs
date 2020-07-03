@@ -33,6 +33,7 @@ namespace IndexerTests.Persistence
                     new CoinId("test-tx", i),
                     new Unit(1, 1),
                     "address",
+                    "script-pub-key",
                     default,
                     default))
                 .ToArray();
@@ -64,6 +65,7 @@ namespace IndexerTests.Persistence
                     new CoinId("test-tx", i),
                     new Unit(1, 1),
                     i % 2 == 0 ? "address1" : "address2",
+                    i % 2 == 0 ? "script-pub-key1" : "script-pub-key2",
                     default,
                     default))
                 .ToArray();
@@ -110,6 +112,7 @@ namespace IndexerTests.Persistence
                     new CoinId($"test-tx-{i % 10}", i),
                     new Unit(1, 1),
                     i % 2 == 0 ? "address1" : "address2",
+                    i % 2 == 0 ? "script-pub-key1" : "script-pub-key2",
                     default,
                     default))
                 .ToArray();
@@ -127,6 +130,7 @@ namespace IndexerTests.Persistence
             var expectedCoins = generatedCoins
                 .Where(c =>
                     c.Address == "address1" &&
+                    c.ScriptPubKey == "script-pub-key1" &&
                     generatedTransactions.Any(t =>
                         t.Id == c.Id.TransactionId &&
                         generatedBlocks.Any(b => b.Id == t.BlockId && b.Number <= 2)))
