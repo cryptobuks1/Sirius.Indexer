@@ -112,11 +112,6 @@ namespace Indexer.Common.Domain.Indexing.SecondPass
         
         private async Task IndexBlock(BlockHeader blockHeader, IBlockchainDbUnitOfWork unitOfWork)
         {
-            if (blockHeader.Number == 2)
-            {
-
-            }
-
             var inputCoins = await unitOfWork.InputCoins.GetByBlock(blockHeader.Id);
             var inputsToSpend = inputCoins
                 .Where(x => x.Type == InputCoinType.Regular)

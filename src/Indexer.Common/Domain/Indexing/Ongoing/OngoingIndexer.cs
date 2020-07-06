@@ -28,7 +28,7 @@ namespace Indexer.Common.Domain.Indexing.Ongoing
         public long StartBlock { get; }
         public long NextBlock { get; private set; }
         public long Sequence { get; private set; }
-        public DateTime StartedAt { get; }
+        public DateTime StartedAt { get; private set; }
         public DateTime UpdatedAt { get; private set; }
         public int Version { get; }
         
@@ -77,7 +77,17 @@ namespace Indexer.Common.Domain.Indexing.Ongoing
                 return OngoingBlockIndexingResult.BlockNotFound;
             }
 
-            var chainWalkerMovement = await chainWalker.MoveTo(newBlock.Header);
+            ChainWalkerMovement chainWalkerMovement;
+            
+            if (NextBlock == StartBlock)
+            {
+                StartedAt = UpdatedAt;
+                chainWalkerMovement = ChainWalkerMovement.CreateForward();
+            }
+            else
+            {
+                chainWalkerMovement = await chainWalker.MoveTo(newBlock.Header);
+            }
 
             UpdatedAt = DateTime.UtcNow;
 

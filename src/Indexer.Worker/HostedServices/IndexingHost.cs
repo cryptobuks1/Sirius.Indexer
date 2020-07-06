@@ -109,7 +109,7 @@ namespace Indexer.Worker.HostedServices
                 
                 await StartFirstPassIndexingJobs(firstPassIndexers, blocksReader);
                 await StartSecondPassIndexingJob(firstPassIndexers, secondPassIndexer);
-                await StartOngoingIndexingJob(secondPassIndexer, ongoingIndexer);
+                await StartOngoingIndexingJob(firstPassIndexers, secondPassIndexer, ongoingIndexer);
             }
 
             _logger.LogInformation("Indexing has been started.");
@@ -330,6 +330,17 @@ namespace Indexer.Worker.HostedServices
         private async Task StartSecondPassIndexingJob(IReadOnlyCollection<FirstPassIndexer> firstPassIndexers, 
             SecondPassIndexer secondPassIndexer)
         {
+            if (!firstPassIndexers.Any())
+            {
+                _logger.LogInformation("Second-pass indexer couldn't be started since there are not first-pass indexers configured {@context}", new
+                {
+                    BlockchainId = secondPassIndexer.BlockchainId,
+                    StopBlock = secondPassIndexer.StopBlock
+                });
+
+                return;
+            }
+
             if (secondPassIndexer.IsCompleted)
             {
                 _logger.LogInformation("Second-pass indexer is already completed {@context}", new
@@ -344,15 +355,22 @@ namespace Indexer.Worker.HostedServices
             }
         }
 
-        private async Task StartOngoingIndexingJob(SecondPassIndexer secondPassIndexer,
+        private async Task StartOngoingIndexingJob(IReadOnlyCollection<FirstPassIndexer> firstPassIndexers, 
+            SecondPassIndexer secondPassIndexer,
             OngoingIndexer ongoingIndexer)
         {
-            if (secondPassIndexer.IsCompleted)
+            if (secondPassIndexer.IsCompleted || !firstPassIndexers.Any())
             {
-                _logger.LogInformation("Second-pass indexer is already completed, starting ongoing indexer {@context}", new
+                if (secondPassIndexer.IsCompleted)
                 {
-                    BlockchainId = secondPassIndexer.BlockchainId
-                });
+                    _logger.LogInformation("Second-pass indexer is already completed, starting ongoing indexer {@context}",
+                        new {BlockchainId = secondPassIndexer.BlockchainId});
+                }
+                else if(!firstPassIndexers.Any())
+                {
+                    _logger.LogInformation("There are no first-pass indexer configured, starting ongoing indexer immediately {@context}",
+                        new {BlockchainId = secondPassIndexer.BlockchainId});
+                }
 
                 await _ongoingIndexingJobsManager.EnsureStarted(ongoingIndexer.BlockchainId);
             }
