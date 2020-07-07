@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Indexer.Common.Domain.Blocks;
@@ -45,6 +44,7 @@ namespace Indexer.Common.Domain.Indexing.Ongoing
             catch
             {
                 await unitOfWork.Rollback();
+                throw;
             }
         }
 
@@ -70,7 +70,14 @@ namespace Indexer.Common.Domain.Indexing.Ongoing
 
             if (inputsToSpend.Count != coinsToSpend.Count && coinsToSpend.Count != 0)
             {
-                throw new InvalidOperationException($"Not all unspent coins found ({coinsToSpend.Count}) for the given inputs to spend ({inputsToSpend.Count})");
+                _logger.LogWarning("Not all unspent coins found for the given inputs to spend. History is missed for this inputs. Fees and balances can be incorrect for this block {@context}", new
+                {
+                    BlockchainId = indexer.BlockchainId,
+                    BlockId = block.Header.Id,
+                    BlockNumber = block.Header.Number,
+                    InputsCount = inputsToSpend.Count,
+                    UnspentCoinsCount = coinsToSpend.Count
+                });
             }
 
             var spentByBlockCoins = coinsToSpend.Select(x => x.Spend(inputsToSpend[x.Id])).ToArray();
