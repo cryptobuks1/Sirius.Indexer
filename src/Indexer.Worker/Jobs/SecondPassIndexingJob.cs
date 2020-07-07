@@ -81,7 +81,7 @@ namespace Indexer.Worker.Jobs
 
                 if (indexingResult == SecondPassIndexingResult.NextBlockNotReady)
                 {
-                    _logger.LogInformation("Second-pass indexing job has not found block ready to index {@context}",
+                    _logger.LogInformation("Second-pass indexing job has not found a block ready to index {@context}",
                         new
                         {
                             BlockchainId = _blockchainId,

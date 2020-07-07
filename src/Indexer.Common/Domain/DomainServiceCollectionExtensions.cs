@@ -1,5 +1,6 @@
 ﻿using Indexer.Common.Domain.Assets;
 using Indexer.Common.Domain.Blocks;
+using Indexer.Common.Domain.Indexing.FirstPass;
 using Indexer.Common.Domain.Indexing.Ongoing;
 using Indexer.Common.Domain.Transactions.Transfers;
 using Microsoft.Extensions.DependencyInjection;
@@ -16,6 +17,7 @@ namespace Indexer.Common.Domain
             services.AddTransient<UnspentCoinsFactory>();
             services.AddTransient<CoinsBlockApplier>();
             services.AddTransient<CoinsBlockCanceler>();
+            services.AddSingleton<FirstPassIndexingStrategyFactory>();
 
             return services;
         }

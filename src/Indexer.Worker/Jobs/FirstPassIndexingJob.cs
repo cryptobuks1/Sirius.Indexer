@@ -1,10 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Indexer.Common.Domain.Blocks;
 using Indexer.Common.Domain.Indexing.FirstPass;
-using Indexer.Common.Domain.Transactions.Transfers;
-using Indexer.Common.Persistence;
 using Indexer.Common.Persistence.Entities.FirstPassIndexers;
 using Indexer.Common.Telemetry;
 using Microsoft.Extensions.Logging;
@@ -14,39 +11,28 @@ namespace Indexer.Worker.Jobs
     internal sealed class FirstPassIndexingJob : IDisposable
     {
         private readonly ILogger<FirstPassIndexingJob> _logger;
-        private readonly ILoggerFactory _loggerFactory;
         private readonly FirstPassIndexerId _indexerId;
         private readonly long _stopBlock;
         private readonly IFirstPassIndexersRepository _indexersRepository;
-        private readonly IBlocksReader _blocksReader;
-        private readonly IBlockchainDbUnitOfWorkFactory _blockchainDbUnitOfWorkFactory;
-        private readonly UnspentCoinsFactory _unspentCoinsFactory;
         private readonly IAppInsight _appInsight;
         private readonly BackgroundJob _job;
         private FirstPassIndexer _indexer;
+        private readonly FirstPassIndexingStrategyFactory _firstPassIndexingStrategyFactory;
         
-
-
         public FirstPassIndexingJob(ILogger<FirstPassIndexingJob> logger,
-            ILoggerFactory loggerFactory,
             FirstPassIndexerId indexerId,
             long stopBlock,
             IFirstPassIndexersRepository indexersRepository,
-            IBlocksReader blocksReader,
-            IBlockchainDbUnitOfWorkFactory blockchainDbUnitOfWorkFactory,
-            UnspentCoinsFactory unspentCoinsFactory,
-            IAppInsight appInsight)
+            IAppInsight appInsight,
+            FirstPassIndexingStrategyFactory firstPassIndexingStrategyFactory)
         {
             _logger = logger;
-            _loggerFactory = loggerFactory;
             _indexerId = indexerId;
             _stopBlock = stopBlock;
             _indexersRepository = indexersRepository;
-            _blocksReader = blocksReader;
-            _blockchainDbUnitOfWorkFactory = blockchainDbUnitOfWorkFactory;
-            _unspentCoinsFactory = unspentCoinsFactory;
             _appInsight = appInsight;
-            
+            _firstPassIndexingStrategyFactory = firstPassIndexingStrategyFactory;
+
             _job = new BackgroundJob(
                 _logger,
                 "First-pass indexing",
@@ -93,8 +79,6 @@ namespace Indexer.Worker.Jobs
                 while (!_job.IsCancellationRequested &&
                        _indexer.NextBlock - batchInitialBlock < 100)
                 {
-                    // TODO: Add some delay in case of an error to reduce workload on the integration and DB
-
                     var indexingResult = await IndexNextBlock();
 
                     if (indexingResult == FirstPassIndexingResult.IndexingCompleted)
@@ -146,11 +130,7 @@ namespace Indexer.Worker.Jobs
 
             try
             {
-                var result = await _indexer.IndexNextBlock(
-                    _loggerFactory.CreateLogger<FirstPassIndexer>(),
-                    _blocksReader,
-                    _blockchainDbUnitOfWorkFactory,
-                    _unspentCoinsFactory);
+                var result = await _indexer.IndexNextBlock(_firstPassIndexingStrategyFactory);
 
                 telemetry.ResponseCode = result.ToString();
 
