@@ -3,7 +3,7 @@ using System.Collections.Concurrent;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Indexer.Common.Persistence.Entities.Blockchains;
+using Indexer.Common.Domain.Blockchains;
 using Microsoft.Extensions.Logging;
 using Swisschain.Sirius.Sdk.Integrations.Client;
 
@@ -12,15 +12,15 @@ namespace Indexer.Common.Domain.Blocks
     internal sealed class BlockReadersProvider : IBlockReadersProvider, IDisposable
     {
         private readonly ILoggerFactory _loggerFactory;
-        private readonly IBlockchainsRepository _blockchainsRepository;
+        private readonly IBlockchainMetamodelProvider _blockchainMetamodelProvider;
         private readonly SemaphoreSlim _lock;
         private readonly ConcurrentDictionary<string, IBlocksReader> _blockReaders;
         private readonly ConcurrentBag<ISiriusIntegrationClient> _integrationClients;
 
-        public BlockReadersProvider(ILoggerFactory loggerFactory, IBlockchainsRepository blockchainsRepository)
+        public BlockReadersProvider(ILoggerFactory loggerFactory, IBlockchainMetamodelProvider blockchainMetamodelProvider)
         {
             _loggerFactory = loggerFactory;
-            _blockchainsRepository = blockchainsRepository;
+            _blockchainMetamodelProvider = blockchainMetamodelProvider;
 
             _lock = new SemaphoreSlim(1, 1);
             _blockReaders = new ConcurrentDictionary<string, IBlocksReader>();
@@ -29,7 +29,7 @@ namespace Indexer.Common.Domain.Blocks
 
         public async Task<IBlocksReader> Get(string blockchainId)
         {
-            var blockchainMetamodel = await _blockchainsRepository.GetAsync(blockchainId);
+            var blockchainMetamodel = await _blockchainMetamodelProvider.Get(blockchainId);
 
             await _lock.WaitAsync();
 

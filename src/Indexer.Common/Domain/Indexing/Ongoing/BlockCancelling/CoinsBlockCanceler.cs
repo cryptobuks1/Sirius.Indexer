@@ -7,9 +7,9 @@ using MassTransit;
 using Microsoft.Extensions.Logging;
 using Swisschain.Sirius.Indexer.MessagingContract;
 
-namespace Indexer.Common.Domain.Indexing.Ongoing
+namespace Indexer.Common.Domain.Indexing.Ongoing.BlockCancelling
 {
-    public sealed class CoinsBlockCanceler
+    internal sealed class CoinsBlockCanceler : IBlockCanceler
     {
         private readonly ILogger<CoinsBlockCanceler> _logger;
         private readonly IBlockchainDbUnitOfWorkFactory _blockchainDbUnitOfWorkFactory;

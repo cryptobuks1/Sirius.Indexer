@@ -4,33 +4,37 @@ using Indexer.Common.Domain.Blockchains;
 using Indexer.Common.Domain.Blocks;
 using Indexer.Common.Domain.Transactions.Transfers;
 using Indexer.Common.Persistence;
+using MassTransit;
 using Microsoft.Extensions.Logging;
 using Swisschain.Sirius.Sdk.Primitives;
 
-namespace Indexer.Common.Domain.Indexing.FirstPass
+namespace Indexer.Common.Domain.Indexing.Ongoing.BlockIndexing
 {
-    public class FirstPassIndexingStrategyFactory
+    public sealed class OngoingIndexingStrategyFactory
     {
         private readonly ILoggerFactory _loggerFactory;
+        private readonly IBlockchainMetamodelProvider _blockchainMetamodelProvider;
         private readonly IBlockReadersProvider _blockReadersProvider;
         private readonly IBlockchainDbUnitOfWorkFactory _blockchainDbUnitOfWorkFactory;
-        private readonly UnspentCoinsFactory _unspentCoinsFactor;
-        private readonly IBlockchainMetamodelProvider _blockchainMetamodelProvider;
+        private readonly UnspentCoinsFactory _unspentCoinsFactory;
+        private readonly IPublishEndpoint _publisher;
 
-        public FirstPassIndexingStrategyFactory(ILoggerFactory loggerFactory,
+        public OngoingIndexingStrategyFactory(ILoggerFactory loggerFactory,
+            IBlockchainMetamodelProvider blockchainMetamodelProvider,
             IBlockReadersProvider blockReadersProvider,
             IBlockchainDbUnitOfWorkFactory blockchainDbUnitOfWorkFactory,
-            UnspentCoinsFactory unspentCoinsFactor,
-            IBlockchainMetamodelProvider blockchainMetamodelProvider)
+            UnspentCoinsFactory unspentCoinsFactory,
+            IPublishEndpoint publisher)
         {
             _loggerFactory = loggerFactory;
+            _blockchainMetamodelProvider = blockchainMetamodelProvider;
             _blockReadersProvider = blockReadersProvider;
             _blockchainDbUnitOfWorkFactory = blockchainDbUnitOfWorkFactory;
-            _unspentCoinsFactor = unspentCoinsFactor;
-            _blockchainMetamodelProvider = blockchainMetamodelProvider;
+            _unspentCoinsFactory = unspentCoinsFactory;
+            _publisher = publisher;
         }
 
-        public async Task<IFirstPasseIndexingStrategy> Create(string blockchainId)
+        public async Task<IOngoingIndexingStrategy> Create(string blockchainId)
         {
             var blockchainMetamodel = await _blockchainMetamodelProvider.Get(blockchainId);
             var blocksReader = await _blockReadersProvider.Get(blockchainId);
@@ -38,14 +42,15 @@ namespace Indexer.Common.Domain.Indexing.FirstPass
             switch (blockchainMetamodel.Protocol.DoubleSpendingProtectionType)
             {
                 case DoubleSpendingProtectionType.Coins:
-                    return new CoinsFirstPassIndexingStrategy(
-                        _loggerFactory.CreateLogger<CoinsFirstPassIndexingStrategy>(),
+                    return new CoinsOngoingIndexingStrategy(
+                        _loggerFactory,
                         blocksReader,
                         _blockchainDbUnitOfWorkFactory,
-                        _unspentCoinsFactor);
+                        _unspentCoinsFactory,
+                        _publisher);
 
                 case DoubleSpendingProtectionType.Nonce:
-                    return new NonceFirstPassIndexingStrategy();
+                    return new NonceOngoingIndexingStrategy();
 
                 default:
                     throw new ArgumentOutOfRangeException(nameof(blockchainMetamodel.Protocol.DoubleSpendingProtectionType), blockchainMetamodel.Protocol.DoubleSpendingProtectionType, null);

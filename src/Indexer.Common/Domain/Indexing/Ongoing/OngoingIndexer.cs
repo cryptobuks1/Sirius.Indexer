@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Indexer.Common.Domain.Blocks;
-using Microsoft.Extensions.Logging;
+using Indexer.Common.Domain.Indexing.Ongoing.BlockCancelling;
+using Indexer.Common.Domain.Indexing.Ongoing.BlockIndexing;
 
 namespace Indexer.Common.Domain.Indexing.Ongoing
 {
@@ -64,15 +65,14 @@ namespace Indexer.Common.Domain.Indexing.Ongoing
                 version);
         }
 
-        public async Task<OngoingBlockIndexingResult> IndexNextBlock(ILogger<OngoingIndexer> logger,
-            IBlocksReader reader,
-            ChainWalker chainWalker,
-            CoinsBlockApplier coinsBlockApplier,
-            CoinsBlockCanceler coinsBlockCanceler)
+        public async Task<OngoingBlockIndexingResult> IndexNextBlock(ChainWalker chainWalker,
+            OngoingIndexingStrategyFactory indexingStrategyFactory,
+            BlockCancelerFactory blockCancelerFactory)
         {
-            var newBlock = await reader.ReadCoinsBlockOrDefault(NextBlock);
-
-            if (newBlock == null)
+            var indexingStrategy = await indexingStrategyFactory.Create(BlockchainId);
+            var blockIndexingStrategy = await indexingStrategy.StartBlockIndexing(NextBlock);
+            
+            if (!blockIndexingStrategy.IsBlockFound)
             {
                 return OngoingBlockIndexingResult.BlockNotFound;
             }
@@ -86,7 +86,7 @@ namespace Indexer.Common.Domain.Indexing.Ongoing
             }
             else
             {
-                chainWalkerMovement = await chainWalker.MoveTo(newBlock.Header);
+                chainWalkerMovement = await chainWalker.MoveTo(blockIndexingStrategy.BlockHeader);
             }
 
             UpdatedAt = DateTime.UtcNow;
@@ -94,12 +94,12 @@ namespace Indexer.Common.Domain.Indexing.Ongoing
             switch (chainWalkerMovement.Direction)
             {
                 case MovementDirection.Forward:
-                    await MoveForward(coinsBlockApplier, newBlock);
+                    await MoveForward(blockIndexingStrategy);
 
                     break;
 
                 case MovementDirection.Backward:
-                    await MoveBackward(coinsBlockCanceler, chainWalkerMovement.EvictedBlockHeader);
+                    await MoveBackward(blockCancelerFactory, chainWalkerMovement.EvictedBlockHeader);
 
                     break;
 
@@ -110,17 +110,19 @@ namespace Indexer.Common.Domain.Indexing.Ongoing
             return OngoingBlockIndexingResult.BlockIndexed;
         }
 
-        private async Task MoveForward(CoinsBlockApplier coinsBlockApplier, CoinsBlock newBlock)
+        private async Task MoveForward(IOngoingBlockIndexingStrategy blockIndexingStrategy)
         {
-            await coinsBlockApplier.Apply(this, newBlock);
+            await blockIndexingStrategy.ApplyBlock(this);
 
             NextBlock++;
             Sequence++;
         }
 
-        private async Task MoveBackward(CoinsBlockCanceler coinsBlockCanceler, BlockHeader evictedBlockHeader)
+        private async Task MoveBackward(BlockCancelerFactory blockCancelerFactory, BlockHeader evictedBlockHeader)
         {
-            await coinsBlockCanceler.Cancel(this, evictedBlockHeader);
+            var blockCanceler = await blockCancelerFactory.Create(BlockchainId);
+
+            await blockCanceler.Cancel(this, evictedBlockHeader);
             
             NextBlock--;
             Sequence++;

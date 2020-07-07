@@ -2,8 +2,9 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using Indexer.Common.Domain.Blocks;
 using Indexer.Common.Domain.Indexing.Ongoing;
+using Indexer.Common.Domain.Indexing.Ongoing.BlockCancelling;
+using Indexer.Common.Domain.Indexing.Ongoing.BlockIndexing;
 using Indexer.Common.Persistence.Entities.Blockchains;
 using Indexer.Common.Persistence.Entities.OngoingIndexers;
 using Indexer.Common.Telemetry;
@@ -15,50 +16,42 @@ namespace Indexer.Worker.Jobs
     internal sealed class OngoingIndexingJob : IDisposable
     {
         private readonly ILogger<OngoingIndexingJob> _logger;
-        private readonly ILoggerFactory _loggerFactory;
         private readonly string _blockchainId;
         private readonly DoubleSpendingProtectionType _blockchainDoubleSpendingProtectionType;
         private readonly TimeSpan _delayOnBlockNotFound;
         private readonly IBlockchainSchemaBuilder _blockchainSchemaBuilder;
         private readonly IOngoingIndexersRepository _indexersRepository;
-        private readonly CoinsBlockApplier _coinsBlockApplier;
-        private readonly CoinsBlockCanceler _coinsBlockCanceler;
-        private readonly IBlocksReader _blocksReader;
         private readonly ChainWalker _chainWalker;
         private readonly IAppInsight _appInsight;
         private readonly Timer _timer;
         private readonly ManualResetEventSlim _done;
         private readonly CancellationTokenSource _cts;
         private OngoingIndexer _indexer;
+        private readonly OngoingIndexingStrategyFactory _ongoingIndexingStrategyFactory;
+        private readonly BlockCancelerFactory _blockCancelerFactory;
         
-
-
         public OngoingIndexingJob(ILogger<OngoingIndexingJob> logger,
-            ILoggerFactory loggerFactory,
             string blockchainId,
             DoubleSpendingProtectionType blockchainDoubleSpendingProtectionType,
             TimeSpan delayOnBlockNotFound,
             IBlockchainSchemaBuilder blockchainSchemaBuilder,
             IOngoingIndexersRepository indexersRepository,
-            CoinsBlockApplier coinsBlockApplier,
-            CoinsBlockCanceler coinsBlockCanceler,
-            IBlocksReader blocksReader,
             ChainWalker chainWalker,
-            IAppInsight appInsight)
+            IAppInsight appInsight,
+            OngoingIndexingStrategyFactory ongoingIndexingStrategyFactory,
+            BlockCancelerFactory blockCancelerFactory)
         {
             _logger = logger;
-            _loggerFactory = loggerFactory;
             _blockchainId = blockchainId;
             _blockchainDoubleSpendingProtectionType = blockchainDoubleSpendingProtectionType;
             _delayOnBlockNotFound = delayOnBlockNotFound;
             _blockchainSchemaBuilder = blockchainSchemaBuilder;
             _indexersRepository = indexersRepository;
-            _coinsBlockApplier = coinsBlockApplier;
-            _coinsBlockCanceler = coinsBlockCanceler;
-            _blocksReader = blocksReader;
             _chainWalker = chainWalker;
             _appInsight = appInsight;
-            
+            _ongoingIndexingStrategyFactory = ongoingIndexingStrategyFactory;
+            _blockCancelerFactory = blockCancelerFactory;
+
             _timer = new Timer(TimerCallback, null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
             _done = new ManualResetEventSlim(false);
             _cts = new CancellationTokenSource();
@@ -173,11 +166,9 @@ namespace Indexer.Worker.Jobs
                     try
                     {
                         var indexingResult = await _indexer.IndexNextBlock(
-                            _loggerFactory.CreateLogger<OngoingIndexer>(),
-                            _blocksReader,
                             _chainWalker,
-                            _coinsBlockApplier,
-                            _coinsBlockCanceler);
+                            _ongoingIndexingStrategyFactory, 
+                            _blockCancelerFactory);
 
                         telemetry.ResponseCode = indexingResult.ToString();
 

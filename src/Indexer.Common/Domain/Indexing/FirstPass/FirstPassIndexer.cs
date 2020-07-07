@@ -66,14 +66,14 @@ namespace Indexer.Common.Domain.Indexing.FirstPass
                 version);
         }
 
-        public async Task<FirstPassIndexingResult> IndexNextBlock(FirstPassIndexingStrategyFactory firstPassIndexingStrategyFactory)
+        public async Task<FirstPassIndexingResult> IndexNextBlock(FirstPassIndexingStrategyFactory indexingStrategyFactory)
         {
             if (IsCompleted)
             {
                 return FirstPassIndexingResult.IndexingCompleted;
             }
 
-            var indexingStrategy = await firstPassIndexingStrategyFactory.Create(BlockchainId);
+            var indexingStrategy = await indexingStrategyFactory.Create(BlockchainId);
 
             await indexingStrategy.IndexNextBlock(this);
 

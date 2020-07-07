@@ -12,33 +12,39 @@ using Microsoft.Extensions.Logging;
 using Swisschain.Sirius.Indexer.MessagingContract;
 using Swisschain.Sirius.Sdk.Primitives;
 
-namespace Indexer.Common.Domain.Indexing.Ongoing
+namespace Indexer.Common.Domain.Indexing.Ongoing.BlockIndexing
 {
-    public sealed class CoinsBlockApplier
+    internal sealed class CoinsOngoingBlockIndexingStrategy : IOngoingBlockIndexingStrategy
     {
-        private readonly ILogger<CoinsBlockApplier> _logger;
+        private readonly ILogger<CoinsOngoingBlockIndexingStrategy> _logger;
+        private readonly CoinsBlock _block;
         private readonly IBlockchainDbUnitOfWorkFactory _blockchainDbUnitOfWorkFactory;
         private readonly UnspentCoinsFactory _unspentCoinsFactory;
         private readonly IPublishEndpoint _publisher;
 
-        public CoinsBlockApplier(ILogger<CoinsBlockApplier> logger, 
+        public CoinsOngoingBlockIndexingStrategy(ILogger<CoinsOngoingBlockIndexingStrategy> logger,
+            CoinsBlock block, 
             IBlockchainDbUnitOfWorkFactory blockchainDbUnitOfWorkFactory,
             UnspentCoinsFactory unspentCoinsFactory,
             IPublishEndpoint publisher)
         {
             _logger = logger;
+            _block = block;
             _blockchainDbUnitOfWorkFactory = blockchainDbUnitOfWorkFactory;
             _unspentCoinsFactory = unspentCoinsFactory;
             _publisher = publisher;
         }
 
-        public async Task Apply(OngoingIndexer indexer, CoinsBlock block)
+        public bool IsBlockFound => _block != null;
+        public BlockHeader BlockHeader => _block.Header;
+        
+        public async Task ApplyBlock(OngoingIndexer indexer)
         {
-            await using var unitOfWork = await _blockchainDbUnitOfWorkFactory.StartTransactional(block.Header.BlockchainId);
+            await using var unitOfWork = await _blockchainDbUnitOfWorkFactory.StartTransactional(_block.Header.BlockchainId);
 
             try
             {
-                await ApplyBlock(indexer, block, unitOfWork);
+                await ApplyBlock(indexer, unitOfWork);
                 await unitOfWork.Commit();
             }
             catch
@@ -47,20 +53,19 @@ namespace Indexer.Common.Domain.Indexing.Ongoing
                 throw;
             }
         }
-
+        
         private async Task ApplyBlock(OngoingIndexer indexer, 
-            CoinsBlock block, 
             ITransactionalBlockchainDbUnitOfWork unitOfWork)
         {
-            var inputCoins = block.Transfers.SelectMany(x => x.InputCoins).ToArray();
+            var inputCoins = _block.Transfers.SelectMany(x => x.InputCoins).ToArray();
 
             await unitOfWork.InputCoins.InsertOrIgnore(inputCoins);
 
-            var outputCoins = await _unspentCoinsFactory.Create(block.Transfers);
+            var outputCoins = await _unspentCoinsFactory.Create(_block.Transfers);
 
             await unitOfWork.UnspentCoins.InsertOrIgnore(outputCoins);
-            await unitOfWork.TransactionHeaders.InsertOrIgnore(block.Transfers.Select(x => x.Header).ToArray());
-            await unitOfWork.BlockHeaders.InsertOrIgnore(block.Header);
+            await unitOfWork.TransactionHeaders.InsertOrIgnore(_block.Transfers.Select(x => x.Header).ToArray());
+            await unitOfWork.BlockHeaders.InsertOrIgnore(_block.Header);
 
             var inputsToSpend = inputCoins
                 .Where(x => x.Type == InputCoinType.Regular)
@@ -73,8 +78,8 @@ namespace Indexer.Common.Domain.Indexing.Ongoing
                 _logger.LogWarning("Not all unspent coins found for the given inputs to spend. History is missed for this inputs. Fees and balances can be incorrect for this block {@context}", new
                 {
                     BlockchainId = indexer.BlockchainId,
-                    BlockId = block.Header.Id,
-                    BlockNumber = block.Header.Number,
+                    BlockId = _block.Header.Id,
+                    BlockNumber = _block.Header.Number,
                     InputsCount = inputsToSpend.Count,
                     UnspentCoinsCount = coinsToSpend.Count
                 });
@@ -86,14 +91,14 @@ namespace Indexer.Common.Domain.Indexing.Ongoing
             await unitOfWork.SpentCoins.InsertOrIgnore(spentByBlockCoins);
 
             var balanceUpdates = BalanceUpdatesCalculator.Calculate(
-                block.Header,
+                _block.Header,
                 outputCoins,
                 spentByBlockCoins);
 
             await unitOfWork.BalanceUpdates.InsertOrIgnore(balanceUpdates);
 
             var fees = FeesCalculator.Calculate(
-                block.Header,
+                _block.Header,
                 outputCoins,
                 spentByBlockCoins);
 
@@ -102,7 +107,7 @@ namespace Indexer.Common.Domain.Indexing.Ongoing
             await PublishBlockEvents(
                 unitOfWork.ObservedOperations,
                 indexer,
-                block,
+                _block,
                 spentByBlockCoins,
                 outputCoins,
                 fees);
@@ -186,5 +191,6 @@ namespace Indexer.Common.Domain.Indexing.Ongoing
                     ChainSequence = indexer.Sequence
                 });
         }
+
     }
 }
