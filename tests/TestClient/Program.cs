@@ -14,7 +14,7 @@ namespace TestClient
         {
             Console.WriteLine("Press enter to start");
             Console.ReadLine();
-            var client = new IndexerClient("http://localhost:5001");
+            var client = new IndexerClient("http://localhost:5101");
 
             while (true)
             {
@@ -26,13 +26,14 @@ namespace TestClient
 
                     var guidv1 = Guid.NewGuid();
                     var guid = Guid.NewGuid().ToString();
-                    await client.ObservedOperations.AddObservedOperationAsync(new AddObservedOperationRequest()
+                    var request = new AddObservedOperationRequest
                     {
-                        BlockchainId = "bitcoin-regtest",
+                        BlockchainId = "bitcoin-private",
                         OperationId = 1,
-                        RequestId = "Fake-"+ guid,
-                        TransactionId = guid,
-                    });
+                        TransactionId = guid
+                    };
+                    var r1 = await client.ObservedOperations.AddObservedOperationAsync(request);
+                    var r2 = await client.ObservedOperations.AddObservedOperationAsync(request);
 
                     sw.Stop();
                     Console.WriteLine($"{result.Name}  {sw.ElapsedMilliseconds} ms");

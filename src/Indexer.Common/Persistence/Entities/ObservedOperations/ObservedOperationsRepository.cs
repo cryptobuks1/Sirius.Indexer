@@ -37,7 +37,7 @@ namespace Indexer.Common.Persistence.Entities.ObservedOperations
                         addedAt = observedOperation.AddedAt
                     });
             }
-            catch (DbUpdateException e) when (e.IsPrimaryKeyViolationException())
+            catch (PostgresException e) when (e.IsPrimaryKeyViolationException())
             {
             }
         }
