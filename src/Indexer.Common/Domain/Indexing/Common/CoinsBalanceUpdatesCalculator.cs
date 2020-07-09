@@ -2,10 +2,11 @@
 using System.Linq;
 using Indexer.Common.Domain.Blocks;
 using Indexer.Common.Domain.Transactions.Transfers;
+using Indexer.Common.Domain.Transactions.Transfers.Coins;
 
 namespace Indexer.Common.Domain.Indexing.Common
 {
-    public static class BalanceUpdatesCalculator
+    public static class CoinsBalanceUpdatesCalculator
     {
         public static IReadOnlyCollection<BalanceUpdate> Calculate(BlockHeader blockHeader,
             IEnumerable<UnspentCoin> blockOutputCoins,

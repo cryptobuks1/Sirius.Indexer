@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace Indexer.Common.Domain.Transactions.Transfers
+namespace Indexer.Common.Domain.Transactions.Transfers.Coins
 {
     public sealed class CoinsTransferTransaction
     {

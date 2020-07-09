@@ -131,14 +131,14 @@ namespace Indexer.Common.Domain.Indexing.SecondPass
 
             var blockOutputCoins = await unitOfWork.UnspentCoins.GetByBlock(blockHeader.Id);
 
-            var balanceUpdates = BalanceUpdatesCalculator.Calculate(
+            var balanceUpdates = CoinsBalanceUpdatesCalculator.Calculate(
                 blockHeader,
                 blockOutputCoins,
                 spentByBlockCoins);
 
             await unitOfWork.BalanceUpdates.InsertOrIgnore(balanceUpdates);
 
-            var fees = FeesCalculator.Calculate(
+            var fees = CoinsFeesCalculator.Calculate(
                 blockHeader,
                 blockOutputCoins,
                 spentByBlockCoins);

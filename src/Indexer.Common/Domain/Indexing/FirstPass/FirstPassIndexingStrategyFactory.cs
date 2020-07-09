@@ -2,7 +2,7 @@
 using System.Threading.Tasks;
 using Indexer.Common.Domain.Blockchains;
 using Indexer.Common.Domain.Blocks;
-using Indexer.Common.Domain.Transactions.Transfers;
+using Indexer.Common.Domain.Transactions.Transfers.Coins;
 using Indexer.Common.Persistence;
 using Microsoft.Extensions.Logging;
 using Swisschain.Sirius.Sdk.Primitives;
@@ -45,7 +45,8 @@ namespace Indexer.Common.Domain.Indexing.FirstPass
                         _unspentCoinsFactor);
 
                 case DoubleSpendingProtectionType.Nonce:
-                    return new NonceFirstPassIndexingStrategy();
+                    throw new NotImplementedException();
+                    //return new NonceFirstPassIndexingStrategy();
 
                 default:
                     throw new ArgumentOutOfRangeException(nameof(blockchainMetamodel.Protocol.DoubleSpendingProtectionType), blockchainMetamodel.Protocol.DoubleSpendingProtectionType, null);

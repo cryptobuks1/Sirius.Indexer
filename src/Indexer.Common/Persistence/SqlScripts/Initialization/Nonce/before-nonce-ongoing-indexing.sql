@@ -2,4 +2,4 @@
 
 -- Turns 'logged' on
 
-alter table nonces set logged;
+alter table nonce_updates set logged;

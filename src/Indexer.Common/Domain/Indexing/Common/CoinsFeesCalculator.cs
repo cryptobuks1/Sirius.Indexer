@@ -2,12 +2,12 @@
 using System.Linq;
 using Indexer.Common.Domain.Blocks;
 using Indexer.Common.Domain.Transactions;
-using Indexer.Common.Domain.Transactions.Transfers;
+using Indexer.Common.Domain.Transactions.Transfers.Coins;
 using Swisschain.Sirius.Sdk.Primitives;
 
 namespace Indexer.Common.Domain.Indexing.Common
 {
-    public static class FeesCalculator
+    public static class CoinsFeesCalculator
     {
         public static IReadOnlyCollection<Fee> Calculate(BlockHeader blockHeader,
             IEnumerable<UnspentCoin> blockOutputCoins,

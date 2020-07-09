@@ -5,7 +5,7 @@ using Indexer.Common.Domain.Indexing.FirstPass;
 using Indexer.Common.Domain.Indexing.Ongoing;
 using Indexer.Common.Domain.Indexing.Ongoing.BlockCancelling;
 using Indexer.Common.Domain.Indexing.Ongoing.BlockIndexing;
-using Indexer.Common.Domain.Transactions.Transfers;
+using Indexer.Common.Domain.Transactions.Transfers.Coins;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Indexer.Common.Domain

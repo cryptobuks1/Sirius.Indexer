@@ -4,6 +4,7 @@ using Indexer.Common.Persistence.Entities.BalanceUpdates;
 using Indexer.Common.Persistence.Entities.BlockHeaders;
 using Indexer.Common.Persistence.Entities.Fees;
 using Indexer.Common.Persistence.Entities.InputCoins;
+using Indexer.Common.Persistence.Entities.Nonces;
 using Indexer.Common.Persistence.Entities.ObservedOperations;
 using Indexer.Common.Persistence.Entities.SpentCoins;
 using Indexer.Common.Persistence.Entities.TransactionHeaders;
@@ -19,6 +20,7 @@ namespace IndexerTests.Sdk.Mocks
         public IUnspentCoinsRepository UnspentCoins { get; set; }
         public ISpentCoinsRepository SpentCoins { get; set; }
         public IInputCoinsRepository InputCoins { get; set; }
+        public INonceUpdatesRepository NonceUpdates { get; set; }
         public IBalanceUpdatesRepository BalanceUpdates { get; set; }
         public IFeesRepository Fees { get; set; }
 

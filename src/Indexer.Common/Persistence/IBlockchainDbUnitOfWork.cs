@@ -3,6 +3,7 @@ using Indexer.Common.Persistence.Entities.BalanceUpdates;
 using Indexer.Common.Persistence.Entities.BlockHeaders;
 using Indexer.Common.Persistence.Entities.Fees;
 using Indexer.Common.Persistence.Entities.InputCoins;
+using Indexer.Common.Persistence.Entities.Nonces;
 using Indexer.Common.Persistence.Entities.ObservedOperations;
 using Indexer.Common.Persistence.Entities.SpentCoins;
 using Indexer.Common.Persistence.Entities.TransactionHeaders;
@@ -15,10 +16,13 @@ namespace Indexer.Common.Persistence
         IObservedOperationsRepository ObservedOperations { get; }
         IBlockHeadersRepository BlockHeaders { get; }
         ITransactionHeadersRepository TransactionHeaders { get; }
+        IBalanceUpdatesRepository BalanceUpdates { get; }
+        IFeesRepository Fees { get; }
+
         IUnspentCoinsRepository UnspentCoins { get; }
         ISpentCoinsRepository SpentCoins { get; }
         IInputCoinsRepository InputCoins { get; }
-        IBalanceUpdatesRepository BalanceUpdates { get; }
-        IFeesRepository Fees { get; }
+
+        INonceUpdatesRepository NonceUpdates { get; }
     }
 }

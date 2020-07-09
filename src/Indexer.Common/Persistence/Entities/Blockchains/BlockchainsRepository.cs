@@ -46,7 +46,7 @@ namespace Indexer.Common.Persistence.Entities.Blockchains
 
                 await context.SaveChangesAsync();
             }
-            catch (DbUpdateException e) when (e.InnerException is PostgresException pgEx && pgEx.SqlState == "23505")
+            catch (DbUpdateException e) when (e.IsPrimaryKeyViolationException())
             {
                 context.Blockchains.Update(blockchainMetamodel);
 

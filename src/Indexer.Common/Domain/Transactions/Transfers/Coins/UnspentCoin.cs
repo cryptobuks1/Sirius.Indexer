@@ -1,7 +1,7 @@
 ﻿using System;
 using Swisschain.Sirius.Sdk.Primitives;
 
-namespace Indexer.Common.Domain.Transactions.Transfers
+namespace Indexer.Common.Domain.Transactions.Transfers.Coins
 {
     public sealed class UnspentCoin : IEquatable<UnspentCoin>
     {

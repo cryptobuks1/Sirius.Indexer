@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using Indexer.Common.Domain.Blocks;
 using Indexer.Common.Domain.Indexing.Common;
 using Indexer.Common.Domain.Transactions;
-using Indexer.Common.Domain.Transactions.Transfers;
+using Indexer.Common.Domain.Transactions.Transfers.Coins;
 using Indexer.Common.Persistence;
 using Indexer.Common.Persistence.Entities.ObservedOperations;
 using MassTransit;
@@ -90,14 +90,14 @@ namespace Indexer.Common.Domain.Indexing.Ongoing.BlockIndexing
             //TODO: insert into xx from select u.* from unspent_coins, input_coins, transaction_headers...
             await unitOfWork.SpentCoins.InsertOrIgnore(spentByBlockCoins);
 
-            var balanceUpdates = BalanceUpdatesCalculator.Calculate(
+            var balanceUpdates = CoinsBalanceUpdatesCalculator.Calculate(
                 _block.Header,
                 outputCoins,
                 spentByBlockCoins);
 
             await unitOfWork.BalanceUpdates.InsertOrIgnore(balanceUpdates);
 
-            var fees = FeesCalculator.Calculate(
+            var fees = CoinsFeesCalculator.Calculate(
                 _block.Header,
                 outputCoins,
                 spentByBlockCoins);

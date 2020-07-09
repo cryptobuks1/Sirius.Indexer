@@ -4,6 +4,7 @@ using Indexer.Common.Persistence.Entities.BalanceUpdates;
 using Indexer.Common.Persistence.Entities.BlockHeaders;
 using Indexer.Common.Persistence.Entities.Fees;
 using Indexer.Common.Persistence.Entities.InputCoins;
+using Indexer.Common.Persistence.Entities.Nonces;
 using Indexer.Common.Persistence.Entities.ObservedOperations;
 using Indexer.Common.Persistence.Entities.SpentCoins;
 using Indexer.Common.Persistence.Entities.TransactionHeaders;
@@ -19,12 +20,15 @@ namespace Indexer.Common.Persistence
         private readonly Lazy<IObservedOperationsRepository> _observedOperations;
         private readonly Lazy<IBlockHeadersRepository> _blockHeaders;
         private readonly Lazy<ITransactionHeadersRepository> _transactionHeaders;
-        private readonly Lazy<IUnspentCoinsRepository> _unspentCoins;
-        private readonly Lazy<ISpentCoinsRepository> _spentCoins;
-        private readonly Lazy<IInputCoinsRepository> _inputCoins;
         private readonly Lazy<IBalanceUpdatesRepository> _balanceUpdates;
         private readonly Lazy<IFeesRepository> _fees;
         
+        private readonly Lazy<IUnspentCoinsRepository> _unspentCoins;
+        private readonly Lazy<ISpentCoinsRepository> _spentCoins;
+        private readonly Lazy<IInputCoinsRepository> _inputCoins;
+        
+        private readonly Lazy<INonceUpdatesRepository> _nonces;
+
         public BlockchainDbUnitOfWork(NpgsqlConnection connection, string blockchainId)
         {
             _connection = connection;
@@ -40,6 +44,13 @@ namespace Indexer.Common.Persistence
             _transactionHeaders = new Lazy<ITransactionHeadersRepository>(() =>
                 new TransactionHeadersRepositoryRetryDecorator(
                     new TransactionHeadersRepository(connection, schema)));
+            _balanceUpdates = new Lazy<IBalanceUpdatesRepository>(() =>
+                new BalanceUpdatesRepositoryRetryDecorator(
+                    new BalanceUpdatesRepository(connection, schema)));
+            _fees = new Lazy<IFeesRepository>(() =>
+                new FeesRepositoryRetryDecorator(
+                    new FeesRepository(connection, schema)));
+
             _unspentCoins = new Lazy<IUnspentCoinsRepository>(() =>
                 new UnspentCoinsRepositoryRetryDecorator(
                     new UnspentCoinsRepository(connection, schema)));
@@ -49,22 +60,22 @@ namespace Indexer.Common.Persistence
             _inputCoins = new Lazy<IInputCoinsRepository>(() =>
                 new InputCoinsRepositoryRetryDecorator(
                     new InputCoinsRepository(connection, schema)));
-            _balanceUpdates = new Lazy<IBalanceUpdatesRepository>(() =>
-                new BalanceUpdatesRepositoryRetryDecorator(
-                    new BalanceUpdatesRepository(connection, schema)));
-            _fees = new Lazy<IFeesRepository>(() =>
-                new FeesRepositoryRetryDecorator(
-                    new FeesRepository(connection, schema)));
+
+            _nonces = new Lazy<INonceUpdatesRepository>(() =>
+                new NonceUpdatesRepository(connection, schema));
         }
 
         public IObservedOperationsRepository ObservedOperations => _observedOperations.Value;
         public IBlockHeadersRepository BlockHeaders => _blockHeaders.Value;
         public ITransactionHeadersRepository TransactionHeaders => _transactionHeaders.Value;
+        public IBalanceUpdatesRepository BalanceUpdates => _balanceUpdates.Value;
+        public IFeesRepository Fees => _fees.Value;
+
         public IUnspentCoinsRepository UnspentCoins => _unspentCoins.Value;
         public ISpentCoinsRepository SpentCoins => _spentCoins.Value;
         public IInputCoinsRepository InputCoins => _inputCoins.Value;
-        public IBalanceUpdatesRepository BalanceUpdates => _balanceUpdates.Value;
-        public IFeesRepository Fees => _fees.Value;
+
+        public INonceUpdatesRepository NonceUpdates => _nonces.Value;
 
         public virtual async ValueTask DisposeAsync()
         {

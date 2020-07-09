@@ -10,7 +10,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="unspent.coins.proto" />
+    <None Remove="nonces.proto" />
+    <None Remove="unspent-coins.proto" />
   </ItemGroup>
 
   <ItemGroup>
@@ -20,12 +21,13 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Swisschain.Sirius.Sdk" Version="5.0.0-beta.8" />
+    <PackageReference Include="Swisschain.Sirius.Sdk" Version="5.0.0-beta.12" />
   </ItemGroup>
 
   <ItemGroup>
-    <Protobuf Include="unspent.coins.proto" />
-    <Protobuf Include="observed.operations.proto" />
+    <Protobuf Include="nonces.proto" />
+    <Protobuf Include="unspent-coins.proto" />
+    <Protobuf Include="observed-operations.proto" />
     <Protobuf Include="monitoring.proto" />
     <Protobuf Include="common.proto" />
   </ItemGroup>

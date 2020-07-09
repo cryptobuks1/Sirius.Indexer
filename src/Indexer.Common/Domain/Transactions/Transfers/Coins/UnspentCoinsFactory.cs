@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using Indexer.Common.Domain.Assets;
 using Swisschain.Sirius.Sdk.Primitives;
 
-namespace Indexer.Common.Domain.Transactions.Transfers
+namespace Indexer.Common.Domain.Transactions.Transfers.Coins
 {
     public class UnspentCoinsFactory
     {
