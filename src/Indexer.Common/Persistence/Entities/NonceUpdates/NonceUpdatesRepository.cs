@@ -74,6 +74,18 @@ namespace Indexer.Common.Persistence.Entities.NonceUpdates
             return entity != null ? MapToDomain(entity) : null;
         }
 
+        public async Task RemoveByBlock(string blockId)
+        {
+            var query = $@"
+                delete from {_schema}.{TableNames.NonceUpdates} n
+                using {_schema}.{TableNames.TransactionHeaders} t
+                where 
+	                t.id = n.transaction_id and
+	                t.block_id = @blockId";
+
+            await _connection.ExecuteAsync(query, new {blockId});
+        }
+
         private static NonceUpdate MapToDomain(NonceUpdateEntity entity)
         {
             return new NonceUpdate(entity.address, entity.transaction_id, entity.nonce);

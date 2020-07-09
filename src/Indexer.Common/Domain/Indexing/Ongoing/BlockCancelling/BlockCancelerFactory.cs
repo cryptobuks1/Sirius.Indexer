@@ -39,7 +39,10 @@ namespace Indexer.Common.Domain.Indexing.Ongoing.BlockCancelling
                         _publisher);
 
                 case DoubleSpendingProtectionType.Nonce:
-                    return new NonceBlockCanceler();
+                    return new NonceBlockCanceler(
+                        _loggerFactory.CreateLogger<NonceBlockCanceler>(),
+                        _blockchainDbUnitOfWorkFactory,
+                        _publisher);
 
                 default:
                     throw new ArgumentOutOfRangeException(nameof(blockchainMetamodel.Protocol.DoubleSpendingProtectionType), blockchainMetamodel.Protocol.DoubleSpendingProtectionType, null);

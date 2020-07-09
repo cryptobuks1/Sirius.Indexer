@@ -8,5 +8,6 @@ namespace Indexer.Common.Persistence.Entities.NonceUpdates
     {
         Task InsertOrIgnore(IReadOnlyCollection<NonceUpdate> nonceUpdates);
         Task<NonceUpdate> GetLatestOrDefault(string address, long? asAtBlockNumber);
+        Task RemoveByBlock(string blockId);
     }
 }
