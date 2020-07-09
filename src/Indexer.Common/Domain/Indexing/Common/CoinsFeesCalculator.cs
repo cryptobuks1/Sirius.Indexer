@@ -43,15 +43,8 @@ namespace Indexer.Common.Domain.Indexing.Common
                 }
             }
 
-            foreach (var (feeKey, fee) in fees.ToArray())
-            {
-                if (fee <= 0)
-                {
-                    fees.Remove(feeKey);
-                }
-            }
-
             return fees
+                .Where(x => x.Value > 0)
                 .Select(x => new Fee(
                     x.Key.TransactionId,
                     blockHeader.Id,

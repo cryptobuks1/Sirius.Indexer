@@ -34,7 +34,7 @@ namespace Indexer.Common.Persistence.Entities.TransactionHeaders
                 .MapVarchar(nameof(TransactionHeaderEntity.id), p => p.Id)
                 .MapInteger(nameof(TransactionHeaderEntity.number), p => p.Number)
                 .MapVarchar(nameof(TransactionHeaderEntity.error_message), p => p.Error?.Message)
-                .MapNullable(nameof(TransactionHeaderEntity.error_code), p => p.Error?.Code, NpgsqlDbType.Integer);
+                .MapNullable(nameof(TransactionHeaderEntity.error_code), p => (int?)p.Error?.Code, NpgsqlDbType.Integer);
 
             try
             {

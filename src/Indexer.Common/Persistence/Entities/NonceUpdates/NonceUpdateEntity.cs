@@ -5,6 +5,6 @@
         // ReSharper disable InconsistentNaming
         public string address { get; set; }
         public string transaction_id { get; set; }
-        public long value { get; set; }
+        public long nonce { get; set; }
     }
 }

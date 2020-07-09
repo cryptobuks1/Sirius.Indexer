@@ -97,9 +97,13 @@ namespace Indexer.Worker.HostedServices
                 var secondPassIndexer = await ProvisionSecondPassIndexerOrDefault(blockchainId, blockchainConfig.Indexing, blockchainMetamodel);
                 var ongoingIndexer = await ProvisionOngoingIndexer(blockchainId, blockchainConfig.Indexing, blockchainMetamodel);
                 
-                await StartFirstPassIndexingJobs(firstPassIndexers);
+                await StartFirstPassIndexingJobs(firstPassIndexers, blockchainMetamodel);
                 await StartSecondPassIndexingJob(secondPassIndexer);
-                await StartOngoingIndexingJob(secondPassIndexer, ongoingIndexer);
+                await StartOngoingIndexingJob(
+                    firstPassIndexers,
+                    secondPassIndexer,
+                    ongoingIndexer,
+                    blockchainMetamodel);
             }
 
             _logger.LogInformation("Indexing has been started.");
@@ -210,22 +214,22 @@ namespace Indexer.Worker.HostedServices
             BlockchainIndexingConfig blockchainConfig,
             BlockchainMetamodel blockchainMetamodel)
         {
-            if (blockchainConfig.FirstPassIndexersCount == 0)
-            {
-                _logger.LogInformation("Second-pass indexer creation is skipped since there are no first-pass indexers configured {@context}", new
-                {
-                    BlockchainId = blockchainId
-                });
-
-                return null;
-            }
-
             if (blockchainMetamodel.Protocol.DoubleSpendingProtectionType != DoubleSpendingProtectionType.Coins)
             {
                 _logger.LogInformation($"Second-pass indexer creation is skipped since blockchain double spending protection type is not {nameof(DoubleSpendingProtectionType.Coins)} {{@context}}", new
                 {
                     BlockchainId = blockchainId,
                     DoubleSpendingProtectionType = blockchainMetamodel.Protocol.DoubleSpendingProtectionType
+                });
+
+                return null;
+            }
+
+            if (blockchainConfig.FirstPassIndexersCount == 0)
+            {
+                _logger.LogInformation("Second-pass indexer creation is skipped since there are no first-pass indexers configured {@context}", new
+                {
+                    BlockchainId = blockchainId
                 });
 
                 return null;
@@ -302,7 +306,7 @@ namespace Indexer.Worker.HostedServices
             return indexer;
         }
 
-        private async Task StartFirstPassIndexingJobs(IReadOnlyCollection<FirstPassIndexer> indexers)
+        private async Task StartFirstPassIndexingJobs(IReadOnlyCollection<FirstPassIndexer> indexers, BlockchainMetamodel blockchainMetamodel)
         {
             foreach (var indexer in indexers)
             {
@@ -322,9 +326,11 @@ namespace Indexer.Worker.HostedServices
                         _loggerFactory.CreateLogger<FirstPassIndexingJob>(),
                         indexer.Id,
                         indexer.StopBlock,
+                        blockchainMetamodel,
                         _firstPassIndexersRepository,
                         _appInsight,
-                        _firstPassIndexingStrategyFactory);
+                        _firstPassIndexingStrategyFactory,
+                        _ongoingIndexingJobsManager);
 
                     await job.Start();
                     
@@ -354,24 +360,52 @@ namespace Indexer.Worker.HostedServices
             }
         }
 
-        private async Task StartOngoingIndexingJob(SecondPassIndexer secondPassIndexer,
-            OngoingIndexer ongoingIndexer)
+        private async Task StartOngoingIndexingJob(
+            IReadOnlyCollection<FirstPassIndexer> firstPassIndexers,
+            SecondPassIndexer secondPassIndexer,
+            OngoingIndexer ongoingIndexer,
+            BlockchainMetamodel blockchainMetamodel)
         {
             var start = false;
 
-            if (secondPassIndexer == null)
+            switch (blockchainMetamodel.Protocol.DoubleSpendingProtectionType)
             {
-                _logger.LogInformation("There are no second-pass indexer found, starting ongoing indexer immediately {@context}",
-                    new {BlockchainId = ongoingIndexer.BlockchainId});
+                case DoubleSpendingProtectionType.Coins:
+                    if (secondPassIndexer == null)
+                    {
+                        _logger.LogInformation("There are no second-pass indexer found for the coins blockchain, starting ongoing indexer immediately {@context}",
+                            new {BlockchainId = ongoingIndexer.BlockchainId});
 
-                start = true;
-            } 
-            else if (secondPassIndexer.IsCompleted)
-            {
-                _logger.LogInformation("Second-pass indexer is already completed, starting ongoing indexer {@context}",
-                    new {BlockchainId = ongoingIndexer.BlockchainId});
+                        start = true;
+                    }
+                    else if (secondPassIndexer.IsCompleted)
+                    {
+                        _logger.LogInformation("Second-pass indexer is already completed, starting ongoing indexer {@context}",
+                            new {BlockchainId = ongoingIndexer.BlockchainId});
 
-                start = true;
+                        start = true;
+                    }
+                    break;
+
+                case DoubleSpendingProtectionType.Nonce:
+                    if (!firstPassIndexers.Any())
+                    {
+                        _logger.LogInformation("THere are no first-pass indexers configured, starting ongoing indexer immediately {@context}",
+                            new {BlockchainId = ongoingIndexer.BlockchainId});
+
+                        start = true;
+                    } 
+                    else if (firstPassIndexers.All(x => x.IsCompleted))
+                    {
+                        _logger.LogInformation("All first-pass indexers are already completed, starting ongoing indexer immediately {@context}",
+                            new {BlockchainId = ongoingIndexer.BlockchainId});
+
+                        start = true;
+                    }
+                    break;
+
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(blockchainMetamodel.Protocol.DoubleSpendingProtectionType), blockchainMetamodel.Protocol.DoubleSpendingProtectionType, "");
             }
 
             if (start)

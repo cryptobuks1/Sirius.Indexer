@@ -34,6 +34,7 @@ namespace Indexer.Common.Domain.Indexing.Common
 
             return transfers
                 .SelectMany(tx => tx.Fees
+                    .Where(feeSource => feeSource.BlockchainUnit.Amount > 0)
                     .Select(feeSource => new Fee(
                         tx.Header.Id,
                         tx.Header.BlockId,

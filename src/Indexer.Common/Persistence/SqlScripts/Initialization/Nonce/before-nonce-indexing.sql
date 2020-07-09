@@ -10,7 +10,7 @@ create unlogged table nonce_updates
 (
     address             varchar(256) not null,
     transaction_id      varchar(256) not null,
-    value               bigint not null,    
+    nonce               bigint not null,    
 
     constraint pk_nonce_updates primary key (address, transaction_id)
 ) partition by hash (address, transaction_id);

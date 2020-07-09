@@ -1,10 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Indexer.Common.Domain.Indexing.FirstPass;
 using Indexer.Common.Persistence.Entities.FirstPassIndexers;
+using Indexer.Common.ReadModel.Blockchains;
 using Indexer.Common.Telemetry;
 using Microsoft.Extensions.Logging;
+using Swisschain.Sirius.Sdk.Primitives;
 
 namespace Indexer.Worker.Jobs
 {
@@ -13,25 +16,31 @@ namespace Indexer.Worker.Jobs
         private readonly ILogger<FirstPassIndexingJob> _logger;
         private readonly FirstPassIndexerId _indexerId;
         private readonly long _stopBlock;
+        private readonly BlockchainMetamodel _blockchainMetamodel;
         private readonly IFirstPassIndexersRepository _indexersRepository;
         private readonly IAppInsight _appInsight;
         private readonly BackgroundJob _job;
         private FirstPassIndexer _indexer;
         private readonly FirstPassIndexingStrategyFactory _firstPassIndexingStrategyFactory;
-        
+        private readonly OngoingIndexingJobsManager _ongoingIndexingJobsManager;
+
         public FirstPassIndexingJob(ILogger<FirstPassIndexingJob> logger,
             FirstPassIndexerId indexerId,
             long stopBlock,
+            BlockchainMetamodel blockchainMetamodel,
             IFirstPassIndexersRepository indexersRepository,
             IAppInsight appInsight,
-            FirstPassIndexingStrategyFactory firstPassIndexingStrategyFactory)
+            FirstPassIndexingStrategyFactory firstPassIndexingStrategyFactory,
+            OngoingIndexingJobsManager ongoingIndexingJobsManager)
         {
             _logger = logger;
             _indexerId = indexerId;
             _stopBlock = stopBlock;
+            _blockchainMetamodel = blockchainMetamodel;
             _indexersRepository = indexersRepository;
             _appInsight = appInsight;
             _firstPassIndexingStrategyFactory = firstPassIndexingStrategyFactory;
+            _ongoingIndexingJobsManager = ongoingIndexingJobsManager;
 
             _job = new BackgroundJob(
                 _logger,
@@ -93,6 +102,8 @@ namespace Indexer.Worker.Jobs
 
                         _indexer = await _indexersRepository.Update(_indexer);
 
+                        await StartOngoingIndexingIfNeeded();
+
                         Stop();
 
                         return;
@@ -115,6 +126,28 @@ namespace Indexer.Worker.Jobs
                 _indexer = await _indexersRepository.Get(_indexerId);
 
                 await Task.Delay(TimeSpan.FromSeconds(30));
+            }
+        }
+
+        private async Task StartOngoingIndexingIfNeeded()
+        {
+            if (_blockchainMetamodel.Protocol.DoubleSpendingProtectionType != DoubleSpendingProtectionType.Nonce)
+            {
+                return;
+            }
+
+            var firstPassIndexers = await _indexersRepository.GetByBlockchain(_indexerId.BlockchainId);
+
+            if (firstPassIndexers.All(x => x.IsCompleted))
+            {
+                _logger.LogInformation("All first-pass indexing jobs are completed {@context}",
+                    new
+                    {
+                        BlockchainId = _indexerId.BlockchainId,
+                        StopBlock = _stopBlock
+                    });
+
+                await _ongoingIndexingJobsManager.EnsureStarted(_indexerId.BlockchainId);
             }
         }
 

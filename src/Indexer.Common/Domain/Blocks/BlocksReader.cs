@@ -138,7 +138,7 @@ namespace Indexer.Common.Domain.Blocks
                     .ToArray();
 
                 var nonceUpdates = tx.NonceUpdates
-                    .Select(nonceUpdate => new NonceUpdate(nonceUpdate.Address, nonceUpdate.Nonce))
+                    .Select(nonceUpdate => new NonceUpdate(nonceUpdate.Address, tx.Header.Id, nonceUpdate.Nonce))
                     .ToArray();
 
                 var fees = tx.Fees
