@@ -33,6 +33,7 @@ message ErrorResponseBody {
     enum ErrorCode {
         UNKNOWN = 0;
         INVALID_PARAMETERS = 1;
+        ADDRESS_NOT_FOUND = 2;
     }
 
     ErrorCode errorCode = 1;
