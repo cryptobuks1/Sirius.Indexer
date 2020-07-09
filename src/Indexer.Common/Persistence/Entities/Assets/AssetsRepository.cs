@@ -120,7 +120,7 @@ namespace Indexer.Common.Persistence.Entities.Assets
 
                 if (idsWithAddress.Any())
                 {
-                    queryBuilder.AppendLine($"\"Address\" is not null and (\"Symbol\", \"address\") in (values {inListWithAddress})");
+                    queryBuilder.AppendLine($"\"Address\" is not null and (\"Symbol\", \"Address\") in (values {inListWithAddress})");
 
                     if (idsWithoutAddress.Any())
                     {

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Dapper;
 using Indexer.Common.Domain.Transactions.Transfers.Nonce;
 using Npgsql;
 using PostgreSQLCopyHelper;
@@ -47,28 +48,35 @@ namespace Indexer.Common.Persistence.Entities.NonceUpdates
             }
         }
 
-        public Task<NonceUpdate> GetLatestOrDefault(string address, long? asAtBlockNumber)
+        public async Task<NonceUpdate> GetLatestOrDefault(string address, long? asAtBlockNumber)
         {
-            throw new NotImplementedException();
-            //var query = asAtBlockNumber.HasValue
-            //    ? $@"
-            //        select n.*
-            //        from {_schema}.{TableNames.NonceUpdates} n
-            //        join {_schema}.{TableNames.TransactionHeaders} t on t.id = n.transaction_id
-            //        join {_schema}.{TableNames.BlockHeaders} b on b.id = t.block_id
-            //        where 
-            //            n.address = @address and
-            //            b.number <= @asAtBlockNumber"
-            //    : $@"
-            //        select n.*
-            //        from {_schema}.{TableNames.NonceUpdates} n
-            //        where c.address = @address";
+            var query = asAtBlockNumber.HasValue
+                ? $@"
+                    select n.*
+                    from {_schema}.{TableNames.NonceUpdates} n
+                    join {_schema}.{TableNames.TransactionHeaders} t on t.id = n.transaction_id
+                    join {_schema}.{TableNames.BlockHeaders} b on b.id = t.block_id
+                    where 
+                        n.address = @address and
+                        b.number <= @asAtBlockNumber
+                    order by b.number desc limit 1"
+                : $@"
+                    select n.*
+                    from {_schema}.{TableNames.NonceUpdates} n
+                    join {_schema}.{TableNames.TransactionHeaders} t on t.id = n.transaction_id
+                    join {_schema}.{TableNames.BlockHeaders} b on b.id = t.block_id
+                    where 
+                        n.address = @address
+                    order by b.number desc limit 1";
 
-            //var entities = await _connection.QueryAsync<UnspentCoinEntity>(query, new {address, asAtBlockNumber});
+            var entity = await _connection.QuerySingleOrDefaultAsync<NonceUpdateEntity>(query, new {address, asAtBlockNumber});
 
-            //return entities
-            //    .Select(MapToDomain)
-            //    .ToArray();
+            return entity != null ? MapToDomain(entity) : null;
+        }
+
+        private static NonceUpdate MapToDomain(NonceUpdateEntity entity)
+        {
+            return new NonceUpdate(entity.address, entity.transaction_id, entity.nonce);
         }
 
         private async Task<IReadOnlyCollection<NonceUpdate>> ExcludeExistingInDb(IReadOnlyCollection<NonceUpdate> nonceUpdates)
