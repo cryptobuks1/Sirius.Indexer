@@ -3,15 +3,17 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Indexer.Common.Domain.Assets;
+using Indexer.Common.Domain.Transactions;
+using Indexer.Common.Domain.Transactions.Transfers.Nonce;
 using Swisschain.Sirius.Sdk.Primitives;
 
-namespace Indexer.Common.Domain.Transactions.Transfers.Nonces
+namespace Indexer.Common.Domain.Indexing.Common
 {
-    public class FeesFactory
+    public class NonceFeesFactory
     {
         private readonly AssetsManager _assetsManager;
 
-        public FeesFactory(AssetsManager assetsManager)
+        public NonceFeesFactory(AssetsManager assetsManager)
         {
             _assetsManager = assetsManager;
         }

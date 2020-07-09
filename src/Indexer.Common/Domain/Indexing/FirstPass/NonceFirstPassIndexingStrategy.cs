@@ -4,8 +4,6 @@ using System.Threading.Tasks;
 using Indexer.Common.Configuration;
 using Indexer.Common.Domain.Blocks;
 using Indexer.Common.Domain.Indexing.Common;
-using Indexer.Common.Domain.Transactions;
-using Indexer.Common.Domain.Transactions.Transfers.Nonces;
 using Indexer.Common.Persistence;
 using Microsoft.Extensions.Logging;
 
@@ -15,17 +13,20 @@ namespace Indexer.Common.Domain.Indexing.FirstPass
     {
         private readonly ILogger<NonceFirstPassIndexingStrategy> _logger;
         private readonly IBlocksReader _blocksReader;
-        private readonly FeesFactory _feesFactory;
+        private readonly NonceFeesFactory _feesFactory;
+        private readonly NonceBalanceUpdatesCalculator _balanceUpdatesCalculator;
         private readonly IBlockchainDbUnitOfWorkFactory _blockchainDbUnitOfWorkFactory;
 
         public NonceFirstPassIndexingStrategy(ILogger<NonceFirstPassIndexingStrategy> logger,
             IBlocksReader blocksReader,
-            FeesFactory feesFactory,
+            NonceFeesFactory feesFactory,
+            NonceBalanceUpdatesCalculator balanceUpdatesCalculator,
             IBlockchainDbUnitOfWorkFactory blockchainDbUnitOfWorkFactory)
         {
             _logger = logger;
             _blocksReader = blocksReader;
             _feesFactory = feesFactory;
+            _balanceUpdatesCalculator = balanceUpdatesCalculator;
             _blockchainDbUnitOfWorkFactory = blockchainDbUnitOfWorkFactory;
         }
 
@@ -49,21 +50,19 @@ namespace Indexer.Common.Domain.Indexing.FirstPass
 
             var nonceUpdates = block.Transfers.SelectMany(tx => tx.NonceUpdates).ToArray();
 
+            // TODO: Save operations
+
             await unitOfWork.NonceUpdates.InsertOrIgnore(nonceUpdates);
 
             var fees = await _feesFactory.Create(block.Transfers);
 
             await unitOfWork.Fees.InsertOrIgnore(fees);
 
-            throw new NotImplementedException();
-            //var balanceUpdates = await NonceBalanceUpdatesCalculator.Calculate(block);
+            var balanceUpdates = await _balanceUpdatesCalculator.Calculate(block);
 
-            //await unitOfWork.TransactionHeaders.InsertOrIgnore(block.Transfers.Select(x => x.Header).ToArray());
-            
-            //// Header should be the last persisted part of the block, since the second-pass processor check headers,
-            //// to decide if a new block is ready to process.
-            //await unitOfWork.BlockHeaders.InsertOrIgnore(block.Header);
-
+            await unitOfWork.BalanceUpdates.InsertOrIgnore(balanceUpdates);
+            await unitOfWork.TransactionHeaders.InsertOrIgnore(block.Transfers.Select(x => x.Header).ToArray());
+            await unitOfWork.BlockHeaders.InsertOrIgnore(block.Header);
         }
     }
 }

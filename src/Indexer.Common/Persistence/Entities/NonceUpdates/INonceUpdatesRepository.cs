@@ -1,8 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
-using Indexer.Common.Domain.Transactions.Transfers.Nonces;
+using Indexer.Common.Domain.Transactions.Transfers.Nonce;
 
-namespace Indexer.Common.Persistence.Entities.Nonces
+namespace Indexer.Common.Persistence.Entities.NonceUpdates
 {
     public interface INonceUpdatesRepository
     {

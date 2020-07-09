@@ -2,7 +2,7 @@
 using System.Threading.Tasks;
 using Indexer.Common.Domain.Blockchains;
 using Indexer.Common.Domain.Blocks;
-using Indexer.Common.Domain.Transactions.Transfers.Coins;
+using Indexer.Common.Domain.Indexing.Common;
 using Indexer.Common.Persistence;
 using Microsoft.Extensions.Logging;
 using Swisschain.Sirius.Sdk.Primitives;
@@ -16,18 +16,24 @@ namespace Indexer.Common.Domain.Indexing.FirstPass
         private readonly IBlockchainDbUnitOfWorkFactory _blockchainDbUnitOfWorkFactory;
         private readonly UnspentCoinsFactory _unspentCoinsFactor;
         private readonly IBlockchainMetamodelProvider _blockchainMetamodelProvider;
+        private readonly NonceFeesFactory _nonceFeesFactory;
+        private readonly NonceBalanceUpdatesCalculator _nonceBalanceUpdatesCalculator;
 
         public FirstPassIndexingStrategyFactory(ILoggerFactory loggerFactory,
             IBlockReadersProvider blockReadersProvider,
             IBlockchainDbUnitOfWorkFactory blockchainDbUnitOfWorkFactory,
             UnspentCoinsFactory unspentCoinsFactor,
-            IBlockchainMetamodelProvider blockchainMetamodelProvider)
+            IBlockchainMetamodelProvider blockchainMetamodelProvider,
+            NonceFeesFactory nonceFeesFactory,
+            NonceBalanceUpdatesCalculator nonceBalanceUpdatesCalculator)
         {
             _loggerFactory = loggerFactory;
             _blockReadersProvider = blockReadersProvider;
             _blockchainDbUnitOfWorkFactory = blockchainDbUnitOfWorkFactory;
             _unspentCoinsFactor = unspentCoinsFactor;
             _blockchainMetamodelProvider = blockchainMetamodelProvider;
+            _nonceFeesFactory = nonceFeesFactory;
+            _nonceBalanceUpdatesCalculator = nonceBalanceUpdatesCalculator;
         }
 
         public async Task<IFirstPasseIndexingStrategy> Create(string blockchainId)
@@ -45,8 +51,12 @@ namespace Indexer.Common.Domain.Indexing.FirstPass
                         _unspentCoinsFactor);
 
                 case DoubleSpendingProtectionType.Nonce:
-                    throw new NotImplementedException();
-                    //return new NonceFirstPassIndexingStrategy();
+                    return new NonceFirstPassIndexingStrategy(
+                        _loggerFactory.CreateLogger<NonceFirstPassIndexingStrategy>(),
+                        blocksReader, 
+                        _nonceFeesFactory,
+                        _nonceBalanceUpdatesCalculator,
+                        _blockchainDbUnitOfWorkFactory);
 
                 default:
                     throw new ArgumentOutOfRangeException(nameof(blockchainMetamodel.Protocol.DoubleSpendingProtectionType), blockchainMetamodel.Protocol.DoubleSpendingProtectionType, null);

@@ -13,54 +13,33 @@ namespace Indexer.Common.Domain.Indexing.Common
             IEnumerable<UnspentCoin> blockOutputCoins,
             IEnumerable<SpentCoin> spentByBlockCoins)
         {
-            var minted = blockOutputCoins
-                .Select(x => new
-                {
-                    TransactionId = x.Id.TransactionId,
-                    AssetId = x.Unit.AssetId,
-                    Amount = x.Unit.Amount
-                })
-                .GroupBy(x => (x.TransactionId, x.AssetId))
-                .Select(g => new
-                {
-                    TransactionId = g.Key.TransactionId,
-                    AssetId = g.Key.AssetId,
-                    Amount = g.Sum(x => x.Amount)
-                });
-
-            var burned = spentByBlockCoins
-                .Select(x => new
-                {
-                    TransactionId = x.SpentByCoinId.TransactionId,
-                    AssetId = x.Unit.AssetId,
-                    Amount = x.Unit.Amount
-                })
-                .GroupBy(x => (x.TransactionId, x.AssetId))
-                .Select(g => new
-                {
-                    TransactionId = g.Key.TransactionId,
-                    AssetId = g.Key.AssetId,
-                    Amount = g.Sum(x => x.Amount)
-                });
-
             var fees = new Dictionary<(string TransactionId, long AssetId), decimal>();
 
-            foreach (var item in burned)
+            foreach (var item in spentByBlockCoins)
             {
-                fees[(item.TransactionId, item.AssetId)] = item.Amount;
-            }
-
-            foreach (var item in minted)
-            {
-                var key = (item.TransactionId, item.AssetId);
+                var key = (item.SpentByCoinId.TransactionId, item.Unit.AssetId);
 
                 if (fees.TryGetValue(key, out var currentFee))
                 {
-                    fees[key] = currentFee - item.Amount;
+                    fees[key] = currentFee + item.Unit.Amount;
                 }
                 else
                 {
-                    fees.Add(key, -item.Amount);
+                    fees.Add(key, item.Unit.Amount);
+                }
+            }
+
+            foreach (var item in blockOutputCoins)
+            {
+                var key = (item.Id.TransactionId, item.Unit.AssetId);
+
+                if (fees.TryGetValue(key, out var currentFee))
+                {
+                    fees[key] = currentFee - item.Unit.Amount;
+                }
+                else
+                {
+                    fees.Add(key, -item.Unit.Amount);
                 }
             }
 

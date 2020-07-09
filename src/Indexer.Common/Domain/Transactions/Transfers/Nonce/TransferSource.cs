@@ -1,6 +1,6 @@
 ﻿using Swisschain.Sirius.Sdk.Primitives;
 
-namespace Indexer.Common.Domain.Transactions.Transfers.Nonces
+namespace Indexer.Common.Domain.Transactions.Transfers.Nonce
 {
     public sealed class TransferSource
     {

@@ -3,7 +3,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Dapper;
 using Indexer.Common.Domain.ObservedOperations;
-using Microsoft.EntityFrameworkCore;
 using Npgsql;
 
 namespace Indexer.Common.Persistence.Entities.ObservedOperations

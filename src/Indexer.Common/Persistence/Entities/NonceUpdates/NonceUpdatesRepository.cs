@@ -1,9 +1,9 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
-using Indexer.Common.Domain.Transactions.Transfers.Nonces;
+using Indexer.Common.Domain.Transactions.Transfers.Nonce;
 using Npgsql;
 
-namespace Indexer.Common.Persistence.Entities.Nonces
+namespace Indexer.Common.Persistence.Entities.NonceUpdates
 {
     internal sealed class NonceUpdatesRepository : INonceUpdatesRepository
     {

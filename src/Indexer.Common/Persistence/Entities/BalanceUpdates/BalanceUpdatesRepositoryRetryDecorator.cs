@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
-using Indexer.Common.Domain.Transactions;
 using Indexer.Common.Domain.Transactions.Transfers;
 
 namespace Indexer.Common.Persistence.Entities.BalanceUpdates

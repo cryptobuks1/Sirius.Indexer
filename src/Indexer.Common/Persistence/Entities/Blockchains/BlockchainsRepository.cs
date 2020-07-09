@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using Indexer.Common.Persistence.EntityFramework;
 using Indexer.Common.ReadModel.Blockchains;
 using Microsoft.EntityFrameworkCore;
-using Npgsql;
 
 namespace Indexer.Common.Persistence.Entities.Blockchains
 {

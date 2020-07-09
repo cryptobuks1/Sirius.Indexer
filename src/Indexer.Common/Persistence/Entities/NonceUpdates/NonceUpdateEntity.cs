@@ -1,4 +1,4 @@
-﻿namespace Indexer.Common.Persistence.Entities.Nonces
+﻿namespace Indexer.Common.Persistence.Entities.NonceUpdates
 {
     internal sealed class NonceUpdateEntity
     {

@@ -2,7 +2,7 @@
 using System.Linq;
 using System.Threading.Tasks;
 using Indexer.Common.Domain.Transactions;
-using Indexer.Common.Domain.Transactions.Transfers.Nonces;
+using Indexer.Common.Domain.Transactions.Transfers.Nonce;
 using Indexer.Common.ReadModel.Blockchains;
 using Microsoft.Extensions.Logging;
 using Swisschain.Sirius.Sdk.Integrations.Client;
@@ -12,11 +12,11 @@ using CoinId = Swisschain.Sirius.Sdk.Primitives.CoinId;
 using CoinsTransferTransaction = Indexer.Common.Domain.Transactions.Transfers.Coins.CoinsTransferTransaction;
 using OutputCoin = Indexer.Common.Domain.Transactions.Transfers.Coins.OutputCoin;
 using InputCoin = Indexer.Common.Domain.Transactions.Transfers.Coins.InputCoin;
-using NonceTransferTransaction = Indexer.Common.Domain.Transactions.Transfers.Nonces.NonceTransferTransaction;
-using NonceUpdate = Indexer.Common.Domain.Transactions.Transfers.Nonces.NonceUpdate;
-using TransferDestination = Indexer.Common.Domain.Transactions.Transfers.Nonces.TransferDestination;
-using TransferOperation = Indexer.Common.Domain.Transactions.Transfers.Nonces.TransferOperation;
-using TransferSource = Indexer.Common.Domain.Transactions.Transfers.Nonces.TransferSource;
+using NonceTransferTransaction = Indexer.Common.Domain.Transactions.Transfers.Nonce.NonceTransferTransaction;
+using NonceUpdate = Indexer.Common.Domain.Transactions.Transfers.Nonce.NonceUpdate;
+using TransferDestination = Indexer.Common.Domain.Transactions.Transfers.Nonce.TransferDestination;
+using TransferOperation = Indexer.Common.Domain.Transactions.Transfers.Nonce.TransferOperation;
+using TransferSource = Indexer.Common.Domain.Transactions.Transfers.Nonce.TransferSource;
 using FeeSource = Swisschain.Sirius.Sdk.Primitives.FeeSource;
 
 namespace Indexer.Common.Domain.Blocks

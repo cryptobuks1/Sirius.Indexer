@@ -3,9 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Indexer.Common.Domain.Assets;
+using Indexer.Common.Domain.Transactions.Transfers.Coins;
 using Swisschain.Sirius.Sdk.Primitives;
 
-namespace Indexer.Common.Domain.Transactions.Transfers.Coins
+namespace Indexer.Common.Domain.Indexing.Common
 {
     public class UnspentCoinsFactory
     {

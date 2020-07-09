@@ -2,7 +2,7 @@
 using System.Threading.Tasks;
 using Indexer.Common.Domain.Blockchains;
 using Indexer.Common.Domain.Blocks;
-using Indexer.Common.Domain.Transactions.Transfers.Coins;
+using Indexer.Common.Domain.Indexing.Common;
 using Indexer.Common.Persistence;
 using MassTransit;
 using Microsoft.Extensions.Logging;

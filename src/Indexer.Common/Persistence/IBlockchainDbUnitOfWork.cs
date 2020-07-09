@@ -3,7 +3,7 @@ using Indexer.Common.Persistence.Entities.BalanceUpdates;
 using Indexer.Common.Persistence.Entities.BlockHeaders;
 using Indexer.Common.Persistence.Entities.Fees;
 using Indexer.Common.Persistence.Entities.InputCoins;
-using Indexer.Common.Persistence.Entities.Nonces;
+using Indexer.Common.Persistence.Entities.NonceUpdates;
 using Indexer.Common.Persistence.Entities.ObservedOperations;
 using Indexer.Common.Persistence.Entities.SpentCoins;
 using Indexer.Common.Persistence.Entities.TransactionHeaders;
