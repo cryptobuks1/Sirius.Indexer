@@ -65,6 +65,7 @@ namespace Indexer.Worker.Jobs
 
                     var job = new OngoingIndexingJob(
                         _loggerFactory.CreateLogger<OngoingIndexingJob>(),
+                        _loggerFactory,
                         blockchainId,
                         blockchainMetadata.Protocol.DoubleSpendingProtectionType,
                         blockchainConfig.Indexing.DelayOnBlockNotFound,

@@ -390,7 +390,7 @@ namespace Indexer.Worker.HostedServices
                 case DoubleSpendingProtectionType.Nonce:
                     if (!firstPassIndexers.Any())
                     {
-                        _logger.LogInformation("THere are no first-pass indexers configured, starting ongoing indexer immediately {@context}",
+                        _logger.LogInformation("There are no first-pass indexers configured, starting ongoing indexer immediately {@context}",
                             new {BlockchainId = ongoingIndexer.BlockchainId});
 
                         start = true;

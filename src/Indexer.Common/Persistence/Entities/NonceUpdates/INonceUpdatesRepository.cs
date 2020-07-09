@@ -7,5 +7,6 @@ namespace Indexer.Common.Persistence.Entities.NonceUpdates
     public interface INonceUpdatesRepository
     {
         Task InsertOrIgnore(IReadOnlyCollection<NonceUpdate> nonceUpdates);
+        Task<NonceUpdate> GetLatestOrDefault(string address, long? asAtBlockNumber);
     }
 }

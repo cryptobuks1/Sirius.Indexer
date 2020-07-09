@@ -47,6 +47,30 @@ namespace Indexer.Common.Persistence.Entities.NonceUpdates
             }
         }
 
+        public Task<NonceUpdate> GetLatestOrDefault(string address, long? asAtBlockNumber)
+        {
+            throw new NotImplementedException();
+            //var query = asAtBlockNumber.HasValue
+            //    ? $@"
+            //        select n.*
+            //        from {_schema}.{TableNames.NonceUpdates} n
+            //        join {_schema}.{TableNames.TransactionHeaders} t on t.id = n.transaction_id
+            //        join {_schema}.{TableNames.BlockHeaders} b on b.id = t.block_id
+            //        where 
+            //            n.address = @address and
+            //            b.number <= @asAtBlockNumber"
+            //    : $@"
+            //        select n.*
+            //        from {_schema}.{TableNames.NonceUpdates} n
+            //        where c.address = @address";
+
+            //var entities = await _connection.QueryAsync<UnspentCoinEntity>(query, new {address, asAtBlockNumber});
+
+            //return entities
+            //    .Select(MapToDomain)
+            //    .ToArray();
+        }
+
         private async Task<IReadOnlyCollection<NonceUpdate>> ExcludeExistingInDb(IReadOnlyCollection<NonceUpdate> nonceUpdates)
         {
             if (!nonceUpdates.Any())

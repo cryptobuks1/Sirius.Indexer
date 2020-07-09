@@ -22,8 +22,7 @@ namespace Indexer.Common.Domain
             services.AddTransient<FirstPassIndexingStrategyFactory>();
             services.AddTransient<OngoingIndexingStrategyFactory>();
             services.AddTransient<BlockCancelerFactory>();
-            services.AddTransient<NonceFeesFactory>();
-            services.AddTransient<NonceBalanceUpdatesCalculator>();
+            services.AddTransient<NonceBlockAssetsProvider>();
 
             return services;
         }

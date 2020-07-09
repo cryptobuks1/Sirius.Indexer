@@ -13,20 +13,17 @@ namespace Indexer.Common.Domain.Indexing.FirstPass
     {
         private readonly ILogger<NonceFirstPassIndexingStrategy> _logger;
         private readonly IBlocksReader _blocksReader;
-        private readonly NonceFeesFactory _feesFactory;
-        private readonly NonceBalanceUpdatesCalculator _balanceUpdatesCalculator;
+        private readonly NonceBlockAssetsProvider _blockAssetsProvider;
         private readonly IBlockchainDbUnitOfWorkFactory _blockchainDbUnitOfWorkFactory;
 
         public NonceFirstPassIndexingStrategy(ILogger<NonceFirstPassIndexingStrategy> logger,
             IBlocksReader blocksReader,
-            NonceFeesFactory feesFactory,
-            NonceBalanceUpdatesCalculator balanceUpdatesCalculator,
+            NonceBlockAssetsProvider blockAssetsProvider,
             IBlockchainDbUnitOfWorkFactory blockchainDbUnitOfWorkFactory)
         {
             _logger = logger;
             _blocksReader = blocksReader;
-            _feesFactory = feesFactory;
-            _balanceUpdatesCalculator = balanceUpdatesCalculator;
+            _blockAssetsProvider = blockAssetsProvider;
             _blockchainDbUnitOfWorkFactory = blockchainDbUnitOfWorkFactory;
         }
 
@@ -54,11 +51,27 @@ namespace Indexer.Common.Domain.Indexing.FirstPass
 
             await unitOfWork.NonceUpdates.InsertOrIgnore(nonceUpdates);
 
-            var fees = await _feesFactory.Create(block.Transfers);
+            var operations = block.Transfers.SelectMany(tx => tx.Operations).ToArray();
+            var blockSources = operations.SelectMany(x => x.Sources).ToArray();
+            var blockDestinations = operations.SelectMany(x => x.Destinations).ToArray();
+            var blockFeeSources = block.Transfers.SelectMany(x => x.Fees).ToArray();
+            
+            var blockAssets = await _blockAssetsProvider.Get(
+                block.Header.BlockchainId,
+                blockSources,
+                blockDestinations,
+                blockFeeSources);
+            
+            var fees = NonceFeesFactory.Create(block.Transfers, blockAssets);
 
             await unitOfWork.Fees.InsertOrIgnore(fees);
 
-            var balanceUpdates = await _balanceUpdatesCalculator.Calculate(block);
+            var balanceUpdates = NonceBalanceUpdatesCalculator.Calculate(
+                block.Header,
+                blockSources,
+                blockDestinations,
+                blockFeeSources,
+                blockAssets);
 
             await unitOfWork.BalanceUpdates.InsertOrIgnore(balanceUpdates);
             await unitOfWork.TransactionHeaders.InsertOrIgnore(block.Transfers.Select(x => x.Header).ToArray());

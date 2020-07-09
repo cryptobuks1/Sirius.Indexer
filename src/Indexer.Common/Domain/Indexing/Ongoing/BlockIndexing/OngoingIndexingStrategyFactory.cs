@@ -18,8 +18,7 @@ namespace Indexer.Common.Domain.Indexing.Ongoing.BlockIndexing
         private readonly IBlockchainDbUnitOfWorkFactory _blockchainDbUnitOfWorkFactory;
         private readonly UnspentCoinsFactory _unspentCoinsFactory;
         private readonly IPublishEndpoint _publisher;
-        private readonly NonceFeesFactory _nonceFeesFactory;
-        private readonly NonceBalanceUpdatesCalculator _nonceBalanceUpdatesFactory;
+        private readonly NonceBlockAssetsProvider _nonceBlockAssetsProvider;
 
         public OngoingIndexingStrategyFactory(ILoggerFactory loggerFactory,
             IBlockchainMetamodelProvider blockchainMetamodelProvider,
@@ -27,8 +26,7 @@ namespace Indexer.Common.Domain.Indexing.Ongoing.BlockIndexing
             IBlockchainDbUnitOfWorkFactory blockchainDbUnitOfWorkFactory,
             UnspentCoinsFactory unspentCoinsFactory,
             IPublishEndpoint publisher,
-            NonceFeesFactory nonceFeesFactory,
-            NonceBalanceUpdatesCalculator nonceBalanceUpdatesFactory)
+            NonceBlockAssetsProvider nonceBlockAssetsProvider)
         {
             _loggerFactory = loggerFactory;
             _blockchainMetamodelProvider = blockchainMetamodelProvider;
@@ -36,8 +34,7 @@ namespace Indexer.Common.Domain.Indexing.Ongoing.BlockIndexing
             _blockchainDbUnitOfWorkFactory = blockchainDbUnitOfWorkFactory;
             _unspentCoinsFactory = unspentCoinsFactory;
             _publisher = publisher;
-            _nonceFeesFactory = nonceFeesFactory;
-            _nonceBalanceUpdatesFactory = nonceBalanceUpdatesFactory;
+            _nonceBlockAssetsProvider = nonceBlockAssetsProvider;
         }
 
         public async Task<IOngoingIndexingStrategy> Create(string blockchainId)
@@ -59,9 +56,9 @@ namespace Indexer.Common.Domain.Indexing.Ongoing.BlockIndexing
                     return new NonceOngoingIndexingStrategy(
                         blocksReader,
                         _blockchainDbUnitOfWorkFactory,
-                        _nonceFeesFactory,
-                        _nonceBalanceUpdatesFactory);
-
+                        _nonceBlockAssetsProvider,
+                        _publisher);
+                
                 default:
                     throw new ArgumentOutOfRangeException(nameof(blockchainMetamodel.Protocol.DoubleSpendingProtectionType), blockchainMetamodel.Protocol.DoubleSpendingProtectionType, null);
             }

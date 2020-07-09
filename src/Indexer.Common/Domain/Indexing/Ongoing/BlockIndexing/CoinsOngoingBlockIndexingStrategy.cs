@@ -37,7 +37,8 @@ namespace Indexer.Common.Domain.Indexing.Ongoing.BlockIndexing
 
         public bool IsBlockFound => _block != null;
         public BlockHeader BlockHeader => _block.Header;
-        
+        public int TransfersCount => _block.Transfers.Count;
+
         public async Task ApplyBlock(OngoingIndexer indexer)
         {
             await using var unitOfWork = await _blockchainDbUnitOfWorkFactory.StartTransactional(_block.Header.BlockchainId);
@@ -107,7 +108,6 @@ namespace Indexer.Common.Domain.Indexing.Ongoing.BlockIndexing
             await PublishBlockEvents(
                 unitOfWork.ObservedOperations,
                 indexer,
-                _block,
                 spentByBlockCoins,
                 outputCoins,
                 fees);
@@ -118,24 +118,23 @@ namespace Indexer.Common.Domain.Indexing.Ongoing.BlockIndexing
         
         private async Task PublishBlockEvents(IObservedOperationsRepository observedOperationsRepository,
             OngoingIndexer indexer,
-            CoinsBlock block,
             IReadOnlyCollection<SpentCoin> spentByBlockCoins,
             IReadOnlyCollection<UnspentCoin> outputCoins,
             IReadOnlyCollection<Fee> fees)
         {
-            var observedOperations = (await observedOperationsRepository.GetInvolvedInBlock(block.Header.Id))
+            var observedOperations = (await observedOperationsRepository.GetInvolvedInBlock(_block.Header.Id))
                 .ToDictionary(x => x.TransactionId);
 
             // This is needed to mitigate events publishing latency
-            var tasks = new List<Task>(1 + block.Transfers.Count)
+            var tasks = new List<Task>(1 + _block.Transfers.Count)
             {
                 _publisher.Publish(new BlockDetected
                 {
-                    BlockchainId = indexer.BlockchainId,
-                    BlockId = block.Header.Id,
-                    BlockNumber = block.Header.Number,
-                    MinedAt = block.Header.MinedAt,
-                    PreviousBlockId = block.Header.PreviousId,
+                    BlockchainId = _block.Header.BlockchainId,
+                    BlockId = _block.Header.Id,
+                    BlockNumber = _block.Header.Number,
+                    MinedAt = _block.Header.MinedAt,
+                    PreviousBlockId = _block.Header.PreviousId,
                     ChainSequence = indexer.Sequence
                 })
             };
@@ -144,15 +143,15 @@ namespace Indexer.Common.Domain.Indexing.Ongoing.BlockIndexing
             var outputCoinsByTransaction = outputCoins.ToLookup(x => x.Id.TransactionId);
             var feesByTransaction = fees.ToLookup(x => x.TransactionId);
 
-            foreach (var transfer in block.Transfers)
+            foreach (var transfer in _block.Transfers)
             {
                 tasks.Add(
                     _publisher.Publish(new TransactionDetected
                     {
-                        BlockchainId = indexer.BlockchainId,
-                        BlockId = block.Header.Id,
-                        BlockNumber = block.Header.Number,
-                        BlockMinedAt = block.Header.MinedAt,
+                        BlockchainId = _block.Header.BlockchainId,
+                        BlockId = _block.Header.Id,
+                        BlockNumber = _block.Header.Number,
+                        BlockMinedAt = _block.Header.MinedAt,
                         TransactionId = transfer.Header.Id,
                         TransactionNumber = transfer.Header.Number,
                         Error = transfer.Header.Error,
@@ -180,17 +179,6 @@ namespace Indexer.Common.Domain.Indexing.Ongoing.BlockIndexing
             }
 
             await Task.WhenAll(tasks);
-
-            _logger.LogInformation("The block has been indexed {@context}",
-                new
-                {
-                    BlockchainId = indexer.BlockchainId,
-                    BlockNumber = block.Header.Number,
-                    BlockId = block.Header.Id,
-                    TransfersCount = block.Transfers.Count,
-                    ChainSequence = indexer.Sequence
-                });
         }
-
     }
 }

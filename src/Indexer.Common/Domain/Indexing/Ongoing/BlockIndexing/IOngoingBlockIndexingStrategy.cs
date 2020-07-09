@@ -7,6 +7,7 @@ namespace Indexer.Common.Domain.Indexing.Ongoing.BlockIndexing
     {
         bool IsBlockFound { get; }
         BlockHeader BlockHeader { get; }
+        int TransfersCount { get; }
 
         Task ApplyBlock(OngoingIndexer indexer);
     }

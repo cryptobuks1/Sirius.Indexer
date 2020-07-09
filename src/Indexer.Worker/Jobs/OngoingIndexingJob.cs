@@ -16,6 +16,7 @@ namespace Indexer.Worker.Jobs
     internal sealed class OngoingIndexingJob : IDisposable
     {
         private readonly ILogger<OngoingIndexingJob> _logger;
+        private readonly ILoggerFactory _loggerFactory;
         private readonly string _blockchainId;
         private readonly DoubleSpendingProtectionType _blockchainDoubleSpendingProtectionType;
         private readonly TimeSpan _delayOnBlockNotFound;
@@ -31,6 +32,7 @@ namespace Indexer.Worker.Jobs
         private readonly BlockCancelerFactory _blockCancelerFactory;
         
         public OngoingIndexingJob(ILogger<OngoingIndexingJob> logger,
+            ILoggerFactory loggerFactory, 
             string blockchainId,
             DoubleSpendingProtectionType blockchainDoubleSpendingProtectionType,
             TimeSpan delayOnBlockNotFound,
@@ -42,6 +44,7 @@ namespace Indexer.Worker.Jobs
             BlockCancelerFactory blockCancelerFactory)
         {
             _logger = logger;
+            _loggerFactory = loggerFactory;
             _blockchainId = blockchainId;
             _blockchainDoubleSpendingProtectionType = blockchainDoubleSpendingProtectionType;
             _delayOnBlockNotFound = delayOnBlockNotFound;
@@ -166,6 +169,7 @@ namespace Indexer.Worker.Jobs
                     try
                     {
                         var indexingResult = await _indexer.IndexNextBlock(
+                            _loggerFactory.CreateLogger<OngoingIndexer>(),
                             _chainWalker,
                             _ongoingIndexingStrategyFactory, 
                             _blockCancelerFactory);

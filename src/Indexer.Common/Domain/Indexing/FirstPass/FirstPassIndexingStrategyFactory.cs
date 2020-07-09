@@ -16,24 +16,21 @@ namespace Indexer.Common.Domain.Indexing.FirstPass
         private readonly IBlockchainDbUnitOfWorkFactory _blockchainDbUnitOfWorkFactory;
         private readonly UnspentCoinsFactory _unspentCoinsFactor;
         private readonly IBlockchainMetamodelProvider _blockchainMetamodelProvider;
-        private readonly NonceFeesFactory _nonceFeesFactory;
-        private readonly NonceBalanceUpdatesCalculator _nonceBalanceUpdatesCalculator;
+        private readonly NonceBlockAssetsProvider _nonceBlockAssetsProvider;
 
         public FirstPassIndexingStrategyFactory(ILoggerFactory loggerFactory,
             IBlockReadersProvider blockReadersProvider,
             IBlockchainDbUnitOfWorkFactory blockchainDbUnitOfWorkFactory,
             UnspentCoinsFactory unspentCoinsFactor,
             IBlockchainMetamodelProvider blockchainMetamodelProvider,
-            NonceFeesFactory nonceFeesFactory,
-            NonceBalanceUpdatesCalculator nonceBalanceUpdatesCalculator)
+            NonceBlockAssetsProvider nonceBlockAssetsProvider)
         {
             _loggerFactory = loggerFactory;
             _blockReadersProvider = blockReadersProvider;
             _blockchainDbUnitOfWorkFactory = blockchainDbUnitOfWorkFactory;
             _unspentCoinsFactor = unspentCoinsFactor;
             _blockchainMetamodelProvider = blockchainMetamodelProvider;
-            _nonceFeesFactory = nonceFeesFactory;
-            _nonceBalanceUpdatesCalculator = nonceBalanceUpdatesCalculator;
+            _nonceBlockAssetsProvider = nonceBlockAssetsProvider;
         }
 
         public async Task<IFirstPasseIndexingStrategy> Create(string blockchainId)
@@ -53,9 +50,8 @@ namespace Indexer.Common.Domain.Indexing.FirstPass
                 case DoubleSpendingProtectionType.Nonce:
                     return new NonceFirstPassIndexingStrategy(
                         _loggerFactory.CreateLogger<NonceFirstPassIndexingStrategy>(),
-                        blocksReader, 
-                        _nonceFeesFactory,
-                        _nonceBalanceUpdatesCalculator,
+                        blocksReader,
+                        _nonceBlockAssetsProvider,
                         _blockchainDbUnitOfWorkFactory);
 
                 default:

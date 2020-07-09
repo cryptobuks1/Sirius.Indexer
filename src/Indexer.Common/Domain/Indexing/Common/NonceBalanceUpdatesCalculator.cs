@@ -1,40 +1,27 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using Indexer.Common.Domain.Assets;
 using Indexer.Common.Domain.Blocks;
 using Indexer.Common.Domain.Transactions.Transfers;
+using Indexer.Common.Domain.Transactions.Transfers.Nonce;
+using Swisschain.Sirius.Sdk.Primitives;
 
 namespace Indexer.Common.Domain.Indexing.Common
 {
-    public class NonceBalanceUpdatesCalculator
+    public static class NonceBalanceUpdatesCalculator
     {
-        private readonly AssetsManager _assetsManager;
-
-        public NonceBalanceUpdatesCalculator(AssetsManager assetsManager)
+        public static IReadOnlyCollection<BalanceUpdate> Calculate(
+            BlockHeader blockHeader,
+            IReadOnlyCollection<TransferSource> sources, 
+            IReadOnlyCollection<TransferDestination> destinations,
+            IReadOnlyCollection<FeeSource> feeSources,
+            IReadOnlyDictionary<BlockchainAssetId, Asset> assets)
         {
-            _assetsManager = assetsManager;
-        }
-
-        public async Task<IReadOnlyCollection<BalanceUpdate>> Calculate(NonceBlock block)
-        {
-            var operations = block.Transfers.SelectMany(tx => tx.Operations).ToArray();
-
-            var sources = operations.SelectMany(x => x.Sources).ToArray();
-            var destinations = operations.SelectMany(x => x.Destinations).ToArray();
-            var feeSources = block.Transfers.SelectMany(x => x.Fees).ToArray();
-            var blockBlockchainAssets = sources
-                .Select(x => x.Unit.Asset)
-                .Union(destinations.Select(x => x.Unit.Asset))
-                .Union(feeSources.Select(x => x.BlockchainUnit.Asset))
-                .ToArray();
-            var blockAssets = await _assetsManager.EnsureAdded(block.Header.BlockchainId, blockBlockchainAssets);
-            
             var balanceUpdates = new Dictionary<(string Address, long AssetId), decimal>();
 
             foreach (var transferSource in sources)
             {
-                var key = (transferSource.Sender.Address, blockAssets[transferSource.Unit.Asset.Id].Id);
+                var key = (transferSource.Sender.Address, assets[transferSource.Unit.Asset.Id].Id);
 
                 if (balanceUpdates.TryGetValue(key, out var currentBalanceUpdate))
                 {
@@ -48,7 +35,7 @@ namespace Indexer.Common.Domain.Indexing.Common
 
             foreach (var transferDestination in destinations)
             {
-                var key = (transferDestination.Recipient.Address, blockAssets[transferDestination.Unit.Asset.Id].Id);
+                var key = (transferDestination.Recipient.Address, assets[transferDestination.Unit.Asset.Id].Id);
 
                 if (balanceUpdates.TryGetValue(key, out var currentBalanceUpdate))
                 {
@@ -62,7 +49,7 @@ namespace Indexer.Common.Domain.Indexing.Common
 
             foreach (var feeSource in feeSources)
             {
-                var key = (feeSource.FeePayerAddress, blockAssets[feeSource.BlockchainUnit.Asset.Id].Id);
+                var key = (feeSource.FeePayerAddress, assets[feeSource.BlockchainUnit.Asset.Id].Id);
 
                 if (balanceUpdates.TryGetValue(key, out var currentBalanceUpdate))
                 {
@@ -79,11 +66,12 @@ namespace Indexer.Common.Domain.Indexing.Common
                 .Select(x => BalanceUpdate.Create(
                     x.Key.Address,
                     x.Key.AssetId,
-                    block.Header.Number,
-                    block.Header.Id,
-                    block.Header.MinedAt,
+                    blockHeader.Number,
+                    blockHeader.Id,
+                    blockHeader.MinedAt,
                     x.Value))
                 .ToArray();
+
         }
     }
 }

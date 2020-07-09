@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Indexer.Common.Domain.Blocks;
 using Indexer.Common.Domain.Indexing.Ongoing.BlockCancelling;
 using Indexer.Common.Domain.Indexing.Ongoing.BlockIndexing;
+using Microsoft.Extensions.Logging;
 
 namespace Indexer.Common.Domain.Indexing.Ongoing
 {
@@ -65,7 +66,9 @@ namespace Indexer.Common.Domain.Indexing.Ongoing
                 version);
         }
 
-        public async Task<OngoingBlockIndexingResult> IndexNextBlock(ChainWalker chainWalker,
+        public async Task<OngoingBlockIndexingResult> IndexNextBlock(
+            ILogger<OngoingIndexer> logger,
+            ChainWalker chainWalker,
             OngoingIndexingStrategyFactory indexingStrategyFactory,
             BlockCancelerFactory blockCancelerFactory)
         {
@@ -94,13 +97,11 @@ namespace Indexer.Common.Domain.Indexing.Ongoing
             switch (chainWalkerMovement.Direction)
             {
                 case MovementDirection.Forward:
-                    await MoveForward(blockIndexingStrategy);
-
+                    await MoveForward(logger, blockIndexingStrategy);
                     break;
 
                 case MovementDirection.Backward:
-                    await MoveBackward(blockCancelerFactory, chainWalkerMovement.EvictedBlockHeader);
-
+                    await MoveBackward(logger, blockCancelerFactory, chainWalkerMovement.EvictedBlockHeader);
                     break;
 
                 default:
@@ -110,15 +111,27 @@ namespace Indexer.Common.Domain.Indexing.Ongoing
             return OngoingBlockIndexingResult.BlockIndexed;
         }
 
-        private async Task MoveForward(IOngoingBlockIndexingStrategy blockIndexingStrategy)
+        private async Task MoveForward(ILogger<OngoingIndexer> logger, IOngoingBlockIndexingStrategy blockIndexingStrategy)
         {
             await blockIndexingStrategy.ApplyBlock(this);
 
             NextBlock++;
             Sequence++;
+
+            logger.LogInformation("The block has been indexed {@context}",
+                new
+                {
+                    BlockchainId = BlockchainId,
+                    BlockNumber = blockIndexingStrategy.BlockHeader.Number,
+                    BlockId = blockIndexingStrategy.BlockHeader.Id,
+                    TransfersCount = blockIndexingStrategy.TransfersCount,
+                    ChainSequence = Sequence
+                });
         }
 
-        private async Task MoveBackward(BlockCancelerFactory blockCancelerFactory, BlockHeader evictedBlockHeader)
+        private async Task MoveBackward(ILogger<OngoingIndexer> logger, 
+            BlockCancelerFactory blockCancelerFactory, 
+            BlockHeader evictedBlockHeader)
         {
             var blockCanceler = await blockCancelerFactory.Create(BlockchainId);
 
@@ -126,6 +139,15 @@ namespace Indexer.Common.Domain.Indexing.Ongoing
             
             NextBlock--;
             Sequence++;
+
+            logger.LogWarning("The block has been canceled {@context}",
+                new
+                {
+                    BlockchainId = BlockchainId,
+                    BlockNumber = evictedBlockHeader.Number,
+                    BlockId = evictedBlockHeader.Id,
+                    ChainSequence = Sequence
+                });
         }
     }
 }

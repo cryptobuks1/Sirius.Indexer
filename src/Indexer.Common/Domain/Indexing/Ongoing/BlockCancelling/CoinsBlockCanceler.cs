@@ -63,15 +63,6 @@ namespace Indexer.Common.Domain.Indexing.Ongoing.BlockCancelling
                 BlockNumber = blockHeader.Number,
                 ChainSequence = indexer.Sequence
             });
-
-            _logger.LogWarning("The block has been canceled {@context}",
-                new
-                {
-                    BlockchainId = indexer.BlockchainId,
-                    BlockNumber = blockHeader.Number,
-                    BlockId = blockHeader.Id,
-                    ChainSequence = indexer.Sequence
-                });
         }
 
         private static async Task CancelBlock(BlockHeader blockHeader, ITransactionalBlockchainDbUnitOfWork unitOfWork)
