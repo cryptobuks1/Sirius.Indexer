@@ -21,9 +21,10 @@ namespace Indexer.Common.Persistence
         public async Task<ITransactionalBlockchainDbUnitOfWork> StartTransactional(string blockchainId)
         {
             var connection = await _connectionFactory.Create(blockchainId);
-            var transaction = await connection.BeginTransactionAsync();
+            // TODO: Return it back
+            //var transaction = await connection.BeginTransactionAsync();
             
-            return new TransactionalBlockchainDbUnitOfWork(connection, transaction, blockchainId);
+            return new TransactionalBlockchainDbUnitOfWork(connection, null, blockchainId);
         }
     }
 }
