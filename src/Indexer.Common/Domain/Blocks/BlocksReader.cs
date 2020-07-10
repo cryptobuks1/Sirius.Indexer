@@ -5,6 +5,7 @@ using Indexer.Common.Domain.Transactions;
 using Indexer.Common.Domain.Transactions.Transfers.Nonce;
 using Indexer.Common.ReadModel.Blockchains;
 using Microsoft.Extensions.Logging;
+using Swisschain.Sirius.Sdk.Crypto.AddressFormatting;
 using Swisschain.Sirius.Sdk.Integrations.Client;
 using Swisschain.Sirius.Sdk.Integrations.Contract.Blocks;
 using Swisschain.Sirius.Sdk.Integrations.Contract.Transactions.Transfers;
@@ -26,15 +27,18 @@ namespace Indexer.Common.Domain.Blocks
         private readonly ILogger<BlocksReader> _logger;
         private readonly ISiriusIntegrationClient _client;
         private readonly BlockchainMetamodel _blockchainMetamodel;
+        private readonly IAddressFormatter _addressFormatter;
 
         public BlocksReader(
             ILogger<BlocksReader> logger,
             ISiriusIntegrationClient client,
-            BlockchainMetamodel blockchainMetamodel)
+            BlockchainMetamodel blockchainMetamodel,
+            IAddressFormatterFactory addressFormatterFactory)
         {
             _logger = logger;
             _client = client;
             _blockchainMetamodel = blockchainMetamodel;
+            _addressFormatter = addressFormatterFactory.Create(_blockchainMetamodel.Protocol.Code);
         }
 
         public async Task<CoinsBlock> ReadCoinsBlockOrDefault(long blockNumber)
@@ -75,7 +79,7 @@ namespace Indexer.Common.Domain.Blocks
                     .Select(x => new OutputCoin(
                         x.Number,
                         x.Unit,
-                        x.Address,
+                        _addressFormatter.GetFormats(x.Address, _blockchainMetamodel.NetworkType).First().Address,
                         x.ScriptPubKey,
                         x.Tag,
                         DestinationTagTypeMapper.ToDomain(x.TagType)))
@@ -124,13 +128,13 @@ namespace Indexer.Common.Domain.Blocks
                         operation.Type,
                         operation.Sources
                             .Select(source => new TransferSource(
-                                new Sender(source.Address),
+                                new Sender(_addressFormatter.GetFormats(source.Address, _blockchainMetamodel.NetworkType).First().Address),
                                 source.Unit))
                             .ToArray(),
                         operation.Destinations
                             .Select(destination => new TransferDestination(
                                 new Recipient(
-                                    destination.Address,
+                                    _addressFormatter.GetFormats(destination.Address, _blockchainMetamodel.NetworkType).First().Address,
                                     destination.Tag,
                                     DestinationTagTypeMapper.ToDomain(destination.TagType)),
                                 destination.Unit))
@@ -138,11 +142,11 @@ namespace Indexer.Common.Domain.Blocks
                     .ToArray();
 
                 var nonceUpdates = tx.NonceUpdates
-                    .Select(nonceUpdate => new NonceUpdate(nonceUpdate.Address, tx.Header.Id, nonceUpdate.Nonce))
+                    .Select(nonceUpdate => new NonceUpdate(_addressFormatter.GetFormats(nonceUpdate.Address, _blockchainMetamodel.NetworkType).First().Address, tx.Header.Id, nonceUpdate.Nonce))
                     .ToArray();
 
                 var fees = tx.Fees
-                    .Select(feeSource => new FeeSource(feeSource.FeePayer, feeSource.Fees))
+                    .Select(feeSource => new FeeSource(_addressFormatter.GetFormats(feeSource.FeePayer, _blockchainMetamodel.NetworkType).First().Address, feeSource.Fees))
                     .ToArray();
 
                 return new NonceTransferTransaction(

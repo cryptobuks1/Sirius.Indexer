@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Indexer.Common.Domain.Blockchains;
 using Microsoft.Extensions.Logging;
+using Swisschain.Sirius.Sdk.Crypto.AddressFormatting;
 using Swisschain.Sirius.Sdk.Integrations.Client;
 
 namespace Indexer.Common.Domain.Blocks
@@ -13,14 +14,16 @@ namespace Indexer.Common.Domain.Blocks
     {
         private readonly ILoggerFactory _loggerFactory;
         private readonly IBlockchainMetamodelProvider _blockchainMetamodelProvider;
+        private readonly IAddressFormatterFactory _addressFormatterFactory;
         private readonly SemaphoreSlim _lock;
         private readonly ConcurrentDictionary<string, IBlocksReader> _blockReaders;
         private readonly ConcurrentBag<ISiriusIntegrationClient> _integrationClients;
 
-        public BlockReadersProvider(ILoggerFactory loggerFactory, IBlockchainMetamodelProvider blockchainMetamodelProvider)
+        public BlockReadersProvider(ILoggerFactory loggerFactory, IBlockchainMetamodelProvider blockchainMetamodelProvider, IAddressFormatterFactory addressFormatterFactory)
         {
             _loggerFactory = loggerFactory;
             _blockchainMetamodelProvider = blockchainMetamodelProvider;
+            _addressFormatterFactory = addressFormatterFactory;
 
             _lock = new SemaphoreSlim(1, 1);
             _blockReaders = new ConcurrentDictionary<string, IBlocksReader>();
@@ -39,13 +42,14 @@ namespace Indexer.Common.Domain.Blocks
                 {
                     return blocksReader;
                 }
-                
+
                 var integrationClient = new SiriusIntegrationClient(blockchainMetamodel.IntegrationUrl, unencrypted: true);
 
                 var blocksReaderImpl = new BlocksReader(
                     _loggerFactory.CreateLogger<BlocksReader>(),
                     integrationClient,
-                    blockchainMetamodel);
+                    blockchainMetamodel,
+                    _addressFormatterFactory);
 
                 blocksReader = new BlocksReaderRetryDecorator(blocksReaderImpl);
 

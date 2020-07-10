@@ -7,6 +7,7 @@ using Indexer.Common.Domain.Indexing.Ongoing;
 using Indexer.Common.Domain.Indexing.Ongoing.BlockCancelling;
 using Indexer.Common.Domain.Indexing.Ongoing.BlockIndexing;
 using Microsoft.Extensions.DependencyInjection;
+using Swisschain.Sirius.Sdk.Crypto.AddressFormatting;
 
 namespace Indexer.Common.Domain
 {
@@ -23,6 +24,7 @@ namespace Indexer.Common.Domain
             services.AddTransient<OngoingIndexingStrategyFactory>();
             services.AddTransient<BlockCancelerFactory>();
             services.AddTransient<NonceBlockAssetsProvider>();
+            services.AddTransient<IAddressFormatterFactory, AddressFormatterFactory>();
 
             return services;
         }
