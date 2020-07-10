@@ -79,7 +79,9 @@ namespace Indexer.Common.Domain.Blocks
                     .Select(x => new OutputCoin(
                         x.Number,
                         x.Unit,
-                        _addressFormatter.GetFormats(x.Address, _blockchainMetamodel.NetworkType).First().Address,
+                        x.Address != null
+                            ? _addressFormatter.GetFormats(x.Address, _blockchainMetamodel.NetworkType).First().Address
+                            : null,
                         x.ScriptPubKey,
                         x.Tag,
                         DestinationTagTypeMapper.ToDomain(x.TagType)))
