@@ -80,7 +80,7 @@ namespace Indexer.Common.Domain.Blocks
                         x.Number,
                         x.Unit,
                         x.Address != null
-                            ? _addressFormatter.GetFormats(x.Address, _blockchainMetamodel.NetworkType).First().Address
+                            ? _addressFormatter.GetFormats(x.Address, _blockchainMetamodel.NetworkType).FirstOrDefault()?.Address
                             : null,
                         x.ScriptPubKey,
                         x.Tag,
@@ -129,26 +129,71 @@ namespace Indexer.Common.Domain.Blocks
                         operation.Id,
                         operation.Type,
                         operation.Sources
-                            .Select(source => new TransferSource(
-                                new Sender(_addressFormatter.GetFormats(source.Address, _blockchainMetamodel.NetworkType).First().Address),
-                                source.Unit))
+                            .Select(source =>
+                            {
+                                var address = _addressFormatter
+                                    .GetFormats(source.Address, _blockchainMetamodel.NetworkType)
+                                    .FirstOrDefault()
+                                    ?.Address;
+
+                                return address != null
+                                    ? new TransferSource(
+                                        new Sender(address),
+                                        source.Unit)
+                                    : null;
+                            })
+                            .Where(x => x != null)
                             .ToArray(),
                         operation.Destinations
-                            .Select(destination => new TransferDestination(
-                                new Recipient(
-                                    _addressFormatter.GetFormats(destination.Address, _blockchainMetamodel.NetworkType).First().Address,
-                                    destination.Tag,
-                                    DestinationTagTypeMapper.ToDomain(destination.TagType)),
-                                destination.Unit))
+                            .Select(destination =>
+                            {
+                                var address = _addressFormatter
+                                    .GetFormats(destination.Address, _blockchainMetamodel.NetworkType)
+                                    .FirstOrDefault()
+                                    ?.Address;
+
+                                return address != null
+                                    ? new TransferDestination(
+                                        new Recipient(
+                                            address,
+                                            destination.Tag,
+                                            DestinationTagTypeMapper.ToDomain(destination.TagType)),
+                                        destination.Unit)
+                                    : null;
+                            })
+                            .Where(x => x != null)
                             .ToArray()))
                     .ToArray();
 
                 var nonceUpdates = tx.NonceUpdates
-                    .Select(nonceUpdate => new NonceUpdate(_addressFormatter.GetFormats(nonceUpdate.Address, _blockchainMetamodel.NetworkType).First().Address, tx.Header.Id, nonceUpdate.Nonce))
+                    .Select(nonceUpdate =>
+                    {
+                        var address = _addressFormatter
+                            .GetFormats(nonceUpdate.Address, _blockchainMetamodel.NetworkType)
+                            .FirstOrDefault()
+                            ?.Address;
+
+                        return address != null 
+                            ? new NonceUpdate(address, tx.Header.Id, nonceUpdate.Nonce)
+                            : null;
+                    })
+                    .Where(x => x != null)
                     .ToArray();
 
                 var fees = tx.Fees
-                    .Select(feeSource => new FeeSource(_addressFormatter.GetFormats(feeSource.FeePayer, _blockchainMetamodel.NetworkType).First().Address, feeSource.Fees))
+                    .Select(feeSource =>
+                    {
+                        var address = _addressFormatter
+                            .GetFormats(feeSource.FeePayer, _blockchainMetamodel.NetworkType)
+                            .FirstOrDefault()
+                            ?.Address;
+
+                        return address != null
+                            ? new FeeSource(address, feeSource.Fees)
+                            : null;
+
+                    })
+                    .Where(x => x != null)
                     .ToArray();
 
                 return new NonceTransferTransaction(
