@@ -4,11 +4,14 @@ using System.Threading.Tasks;
 using Indexer.Common.Domain.Assets;
 using Indexer.Common.Domain.Blocks;
 using Indexer.Common.Domain.Indexing.Common;
+using Indexer.Common.Domain.Transactions.Transfers.Nonce;
 using Indexer.Common.Persistence;
 using Indexer.Common.Persistence.Entities.ObservedOperations;
 using MassTransit;
 using Swisschain.Sirius.Indexer.MessagingContract;
 using Swisschain.Sirius.Sdk.Primitives;
+using TransferDestination = Swisschain.Sirius.Indexer.MessagingContract.TransferDestination;
+using TransferSource = Swisschain.Sirius.Indexer.MessagingContract.TransferSource;
 
 namespace Indexer.Common.Domain.Indexing.Ongoing.BlockIndexing
 {
@@ -52,9 +55,21 @@ namespace Indexer.Common.Domain.Indexing.Ongoing.BlockIndexing
 
         public async Task ApplyBlock(OngoingIndexer indexer, IBlockchainDbUnitOfWork unitOfWork)
         {
-            var nonceUpdates = _block.Transfers.SelectMany(tx => tx.NonceUpdates).ToArray();
+            var nonceUpdates = _block.Transfers
+                .SelectMany(tx => tx.NonceUpdates)
+                .GroupBy(x => new
+                {
+                    x.Address,
+                    x.TransactionId
+                })
+                .Select(g => new NonceUpdate(
+                    g.Key.Address,
+                    g.Key.TransactionId,
+                    g.Max(x => x.Nonce)))
+                .ToArray();
 
             // TODO: Save operations
+            // TODO: Nonce update PK should be (address, block_id)
 
             await unitOfWork.NonceUpdates.InsertOrIgnore(nonceUpdates);
 
