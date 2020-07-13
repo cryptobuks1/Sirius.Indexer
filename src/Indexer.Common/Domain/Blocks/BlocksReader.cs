@@ -79,9 +79,7 @@ namespace Indexer.Common.Domain.Blocks
                     .Select(x => new OutputCoin(
                         x.Number,
                         x.Unit,
-                        x.Address != null
-                            ? _addressFormatter.GetFormats(x.Address, _blockchainMetamodel.NetworkType).FirstOrDefault()?.Address
-                            : null,
+                        _addressFormatter.NormalizeOrPassThrough(x.Address, _blockchainMetamodel.NetworkType),
                         x.ScriptPubKey,
                         x.Tag,
                         DestinationTagTypeMapper.ToDomain(x.TagType)))
@@ -131,10 +129,7 @@ namespace Indexer.Common.Domain.Blocks
                         operation.Sources
                             .Select(source =>
                             {
-                                var address = _addressFormatter
-                                    .GetFormats(source.Address, _blockchainMetamodel.NetworkType)
-                                    .FirstOrDefault()
-                                    ?.Address;
+                                var address = _addressFormatter.NormalizeOrPassThrough(source.Address, _blockchainMetamodel.NetworkType);
 
                                 return address != null
                                     ? new TransferSource(
@@ -147,10 +142,7 @@ namespace Indexer.Common.Domain.Blocks
                         operation.Destinations
                             .Select(destination =>
                             {
-                                var address = _addressFormatter
-                                    .GetFormats(destination.Address, _blockchainMetamodel.NetworkType)
-                                    .FirstOrDefault()
-                                    ?.Address;
+                                var address = _addressFormatter.NormalizeOrPassThrough(destination.Address, _blockchainMetamodel.NetworkType);
 
                                 return address != null
                                     ? new TransferDestination(
@@ -168,10 +160,7 @@ namespace Indexer.Common.Domain.Blocks
                 var nonceUpdates = tx.NonceUpdates
                     .Select(nonceUpdate =>
                     {
-                        var address = _addressFormatter
-                            .GetFormats(nonceUpdate.Address, _blockchainMetamodel.NetworkType)
-                            .FirstOrDefault()
-                            ?.Address;
+                        var address = _addressFormatter.NormalizeOrPassThrough(nonceUpdate.Address, _blockchainMetamodel.NetworkType);
 
                         return address != null 
                             ? new NonceUpdate(address, tx.Header.Id, nonceUpdate.Nonce)
@@ -183,10 +172,7 @@ namespace Indexer.Common.Domain.Blocks
                 var fees = tx.Fees
                     .Select(feeSource =>
                     {
-                        var address = _addressFormatter
-                            .GetFormats(feeSource.FeePayer, _blockchainMetamodel.NetworkType)
-                            .FirstOrDefault()
-                            ?.Address;
+                        var address = _addressFormatter.NormalizeOrPassThrough(feeSource.FeePayer, _blockchainMetamodel.NetworkType);
 
                         return address != null
                             ? new FeeSource(address, feeSource.Fees)
