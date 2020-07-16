@@ -11,7 +11,7 @@ namespace Indexer.Common.Persistence.Entities.BalanceUpdates
         /// Only balance updates from the same block should be in the list.
         /// It's not checked due to performance reason
         /// </summary>
-        Task InsertOrIgnore(string blockchainId, IReadOnlyCollection<BalanceUpdate> balanceUpdates);
-        Task RemoveByBlock(string blockchainId, string blockId);
+        Task InsertOrIgnore(IReadOnlyCollection<BalanceUpdate> balanceUpdates);
+        Task RemoveByBlock(string blockId);
     }
 }

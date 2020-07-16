@@ -13,14 +13,14 @@ namespace Indexer.Common.Persistence.Entities.BalanceUpdates
             _impl = impl;
         }
 
-        public Task InsertOrIgnore(string blockchainId, IReadOnlyCollection<BalanceUpdate> balanceUpdates)
+        public Task InsertOrIgnore(IReadOnlyCollection<BalanceUpdate> balanceUpdates)
         {
-            return _impl.InsertOrIgnore(blockchainId, balanceUpdates);
+            return _impl.InsertOrIgnore(balanceUpdates);
         }
 
-        public Task RemoveByBlock(string blockchainId, string blockId)
+        public Task RemoveByBlock(string blockId)
         {
-            return _impl.RemoveByBlock(blockchainId, blockId);
+            return _impl.RemoveByBlock(blockId);
         }
     }
 }

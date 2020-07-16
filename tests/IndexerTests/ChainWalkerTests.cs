@@ -4,7 +4,8 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Indexer.Common.Domain.Blocks;
 using Indexer.Common.Domain.Indexing.Ongoing;
-using IndexerTests.Mocks;
+using Indexer.Common.Persistence.Entities.BlockHeaders;
+using IndexerTests.Sdk.Mocks;
 using Microsoft.Extensions.Logging.Abstractions;
 using Shouldly;
 using Xunit;
@@ -20,10 +21,11 @@ namespace IndexerTests
         {
             // arrange
             var initialBlock = new BlockHeader(BlockchainId, number: 10, id: "B", previousBlockId: "A", minedAt: DateTime.UtcNow);
-            var blockRepository = new InMemoryBlockHeadersRepository();
-            var walker = new ChainWalker(NullLogger<ChainWalker>.Instance, blockRepository);
+            var unitOfWorkFactory = new TestBlockchainDbUnitOfWorkFactory();
+            var walker = new ChainWalker(NullLogger<ChainWalker>.Instance, unitOfWorkFactory);
+            var blocksRepository = unitOfWorkFactory.UnitOfWork.BlockHeaders;
 
-            await blockRepository.InsertOrIgnore(new BlockHeader(BlockchainId, number: 9, id: "A", previousBlockId: "C", minedAt: DateTime.UtcNow));
+            await blocksRepository.InsertOrIgnore(new BlockHeader(BlockchainId, number: 9, id: "A", previousBlockId: "C", minedAt: DateTime.UtcNow));
 
             // act
             var output = await walker.MoveTo(initialBlock);
@@ -37,8 +39,8 @@ namespace IndexerTests
         {
             // arrange
             var block = new BlockHeader(BlockchainId, number: 10, id: "B", previousBlockId: "A", minedAt: DateTime.UtcNow);
-            var blockRepository = new InMemoryBlockHeadersRepository();
-            var walker = new ChainWalker(NullLogger<ChainWalker>.Instance, blockRepository);
+            var unitOfWorkFactory = new TestBlockchainDbUnitOfWorkFactory();
+            var walker = new ChainWalker(NullLogger<ChainWalker>.Instance, unitOfWorkFactory);
 
             // assert
             await walker.MoveTo(block).ShouldThrowAsync<NotSupportedException>();
@@ -48,8 +50,9 @@ namespace IndexerTests
         public async Task ProcessBlocksInOrder()
         {
             // arrange
-            var blockRepository = new InMemoryBlockHeadersRepository();
-            var walker = new ChainWalker(NullLogger<ChainWalker>.Instance, blockRepository);
+            var unitOfWorkFactory = new TestBlockchainDbUnitOfWorkFactory();
+            var walker = new ChainWalker(NullLogger<ChainWalker>.Instance, unitOfWorkFactory);
+            var blocksRepository = unitOfWorkFactory.UnitOfWork.BlockHeaders;
             var results = new List<ChainWalkerMovement>();
 
             // i: 1(A)-2(B)-3(C)-4(D)
@@ -70,19 +73,19 @@ namespace IndexerTests
                 ChainWalkerMovement.CreateForward(),
             };
 
-            await blockRepository.InsertOrIgnore(new BlockHeader(BlockchainId, number: 9, id: "Z", previousBlockId: "X", minedAt: DateTime.UtcNow));
+            await blocksRepository.InsertOrIgnore(new BlockHeader(BlockchainId, number: 9, id: "Z", previousBlockId: "X", minedAt: DateTime.UtcNow));
 
             // act
             foreach (var id in order)
             {
-                await IndexNextBlock(blockRepository, results, walker, blocks, id);
+                await IndexNextBlock(blocksRepository, results, walker, blocks, id);
             }
 
             // assert
             AssertResults(results, expectedOutputs);
         }
 
-        private static async Task IndexNextBlock(InMemoryBlockHeadersRepository blocksRepository,
+        private static async Task IndexNextBlock(IBlockHeadersRepository blocksRepository,
             List<ChainWalkerMovement> results,
             ChainWalker walker,
             BlockSet blocks,
@@ -97,9 +100,7 @@ namespace IndexerTests
             }
             else if (result.Direction == MovementDirection.Backward)
             {
-                await blocksRepository.Remove(
-                    result.EvictedBlockHeader.BlockchainId,
-                    result.EvictedBlockHeader.Id);
+                await blocksRepository.Remove(result.EvictedBlockHeader.Id);
             }
 
             results.Add(result);
@@ -110,13 +111,14 @@ namespace IndexerTests
         {
             // arrange
             var block = new BlockHeader(BlockchainId, number: 10, id: "B", previousBlockId: "A", minedAt: DateTime.UtcNow);
-            var blockRepository = new InMemoryBlockHeadersRepository();
-            var walker = new ChainWalker(NullLogger<ChainWalker>.Instance, blockRepository);
+            var unitOfWorkFactory = new TestBlockchainDbUnitOfWorkFactory();
+            var walker = new ChainWalker(NullLogger<ChainWalker>.Instance, unitOfWorkFactory);
+            var blocksRepository = unitOfWorkFactory.UnitOfWork.BlockHeaders;
 
             // assert
             await Should.ThrowAsync<NotSupportedException>(() => walker.MoveTo(block));
 
-            var readBlock = await blockRepository.GetOrDefault(BlockchainId, 10);
+            var readBlock = await blocksRepository.GetOrDefault(10);
 
             readBlock.ShouldBeNull();
         }
@@ -125,8 +127,9 @@ namespace IndexerTests
         public async Task ProcessBlocksChallengeNumber01()
         {
             // arrange
-            var blockRepository = new InMemoryBlockHeadersRepository();
-            var walker = new ChainWalker(NullLogger<ChainWalker>.Instance, blockRepository);
+            var unitOfWorkFactory = new TestBlockchainDbUnitOfWorkFactory();
+            var walker = new ChainWalker(NullLogger<ChainWalker>.Instance, unitOfWorkFactory);
+            var blocksRepository = unitOfWorkFactory.UnitOfWork.BlockHeaders;
             var results = new List<ChainWalkerMovement>();
 
             // i: 1(A)-2(B)
@@ -150,12 +153,12 @@ namespace IndexerTests
                 ChainWalkerMovement.CreateForward(),
             };
 
-            await blockRepository.InsertOrIgnore(new BlockHeader(BlockchainId, number: 0, id: "Z", previousBlockId: "X", minedAt: DateTime.UtcNow));
+            await blocksRepository.InsertOrIgnore(new BlockHeader(BlockchainId, number: 0, id: "Z", previousBlockId: "X", minedAt: DateTime.UtcNow));
 
             // act
             foreach (var id in order)
             {
-                await IndexNextBlock(blockRepository, results, walker, blocks, id);
+                await IndexNextBlock(blocksRepository, results, walker, blocks, id);
             }
 
             // assert
@@ -166,8 +169,9 @@ namespace IndexerTests
         public async Task ProcessBlocksChallengeNumber02()
         {
             // arrange
-            var blockRepository = new InMemoryBlockHeadersRepository();
-            var walker = new ChainWalker(NullLogger<ChainWalker>.Instance, blockRepository);
+            var unitOfWorkFactory = new TestBlockchainDbUnitOfWorkFactory();
+            var walker = new ChainWalker(NullLogger<ChainWalker>.Instance, unitOfWorkFactory);
+            var blocksRepository = unitOfWorkFactory.UnitOfWork.BlockHeaders;
             var results = new List<ChainWalkerMovement>();
 
             // i: 1(A)-2(B)-3(D)
@@ -196,12 +200,12 @@ namespace IndexerTests
                 ChainWalkerMovement.CreateForward(),
             };
 
-            await blockRepository.InsertOrIgnore(new BlockHeader(BlockchainId, number: 0, id: "Z", previousBlockId: "X", minedAt: DateTime.UtcNow));
+            await blocksRepository.InsertOrIgnore(new BlockHeader(BlockchainId, number: 0, id: "Z", previousBlockId: "X", minedAt: DateTime.UtcNow));
 
             // act
             foreach (var id in order)
             {
-                await IndexNextBlock(blockRepository, results, walker, blocks, id);
+                await IndexNextBlock(blocksRepository, results, walker, blocks, id);
             }
 
             // assert
@@ -212,8 +216,9 @@ namespace IndexerTests
         public async Task ProcessBlocksChallengeNumber03()
         {
             // arrange
-            var blockRepository = new InMemoryBlockHeadersRepository();
-            var walker = new ChainWalker(NullLogger<ChainWalker>.Instance, blockRepository);
+            var unitOfWorkFactory = new TestBlockchainDbUnitOfWorkFactory();
+            var walker = new ChainWalker(NullLogger<ChainWalker>.Instance, unitOfWorkFactory);
+            var blocksRepository = unitOfWorkFactory.UnitOfWork.BlockHeaders;
             var results = new List<ChainWalkerMovement>();
 
             // i: 1(A)-2(B)-3(C)-4(E)-5(H)-6(K)
@@ -270,12 +275,12 @@ namespace IndexerTests
                 ChainWalkerMovement.CreateForward(),
             };
 
-            await blockRepository.InsertOrIgnore(new BlockHeader(BlockchainId, number: 0, id: "Z", previousBlockId: "X", minedAt: DateTime.UtcNow));
+            await blocksRepository.InsertOrIgnore(new BlockHeader(BlockchainId, number: 0, id: "Z", previousBlockId: "X", minedAt: DateTime.UtcNow));
 
             // act
             foreach (var id in order)
             {
-                await IndexNextBlock(blockRepository, results, walker, blocks, id);
+                await IndexNextBlock(blocksRepository, results, walker, blocks, id);
             }
 
             // assert
@@ -286,8 +291,9 @@ namespace IndexerTests
         public async Task ProcessBlocksChallengeNumber03NastyVariant()
         {
             // arrange
-            var blockRepository = new InMemoryBlockHeadersRepository();
-            var walker = new ChainWalker(NullLogger<ChainWalker>.Instance, blockRepository);
+            var unitOfWorkFactory = new TestBlockchainDbUnitOfWorkFactory();
+            var walker = new ChainWalker(NullLogger<ChainWalker>.Instance, unitOfWorkFactory);
+            var blocksRepository = unitOfWorkFactory.UnitOfWork.BlockHeaders;
             var results = new List<ChainWalkerMovement>();
 
             // i: 1(A)-2(B)-3(C)-4(E)-5(H)-6(K)
@@ -337,12 +343,12 @@ namespace IndexerTests
                 ChainWalkerMovement.CreateForward(),
             };
 
-            await blockRepository.InsertOrIgnore(new BlockHeader(BlockchainId, number: 0, id: "Z", previousBlockId: "X", minedAt: DateTime.UtcNow));
+            await blocksRepository.InsertOrIgnore(new BlockHeader(BlockchainId, number: 0, id: "Z", previousBlockId: "X", minedAt: DateTime.UtcNow));
 
             // act
             foreach (var id in order)
             {
-                await IndexNextBlock(blockRepository, results, walker, blocks, id);
+                await IndexNextBlock(blocksRepository, results, walker, blocks, id);
             }
 
             // assert
@@ -353,8 +359,9 @@ namespace IndexerTests
         public async Task ProcessBlocksChallengeNumber04()
         {
             // arrange
-            var blockRepository = new InMemoryBlockHeadersRepository();
-            var walker = new ChainWalker(NullLogger<ChainWalker>.Instance, blockRepository);
+            var unitOfWorkFactory = new TestBlockchainDbUnitOfWorkFactory();
+            var walker = new ChainWalker(NullLogger<ChainWalker>.Instance, unitOfWorkFactory);
+            var blocksRepository = unitOfWorkFactory.UnitOfWork.BlockHeaders;
             var results = new List<ChainWalkerMovement>();
 
             // case: 3
@@ -398,12 +405,12 @@ namespace IndexerTests
                 ChainWalkerMovement.CreateForward(),
             };
 
-            await blockRepository.InsertOrIgnore(new BlockHeader(BlockchainId, number: 0, id: "Z", previousBlockId: "X", minedAt: DateTime.UtcNow));
+            await blocksRepository.InsertOrIgnore(new BlockHeader(BlockchainId, number: 0, id: "Z", previousBlockId: "X", minedAt: DateTime.UtcNow));
 
             // act
             foreach (var id in order)
             {
-                await IndexNextBlock(blockRepository, results, walker, blocks, id);
+                await IndexNextBlock(blocksRepository, results, walker, blocks, id);
             }
 
             // assert
@@ -414,8 +421,9 @@ namespace IndexerTests
         public async Task ProcessBlocksChallengeNumber05()
         {
             // arrange
-            var blockRepository = new InMemoryBlockHeadersRepository();
-            var walker = new ChainWalker(NullLogger<ChainWalker>.Instance, blockRepository);
+            var unitOfWorkFactory = new TestBlockchainDbUnitOfWorkFactory();
+            var walker = new ChainWalker(NullLogger<ChainWalker>.Instance, unitOfWorkFactory);
+            var blocksRepository = unitOfWorkFactory.UnitOfWork.BlockHeaders;
             var results = new List<ChainWalkerMovement>();
 
             // case: 4
@@ -460,12 +468,12 @@ namespace IndexerTests
                 ChainWalkerMovement.CreateForward(),
             };
 
-            await blockRepository.InsertOrIgnore(new BlockHeader(BlockchainId, number: 0, id: "Z", previousBlockId: "X", minedAt: DateTime.UtcNow));
+            await blocksRepository.InsertOrIgnore(new BlockHeader(BlockchainId, number: 0, id: "Z", previousBlockId: "X", minedAt: DateTime.UtcNow));
 
             // act
             foreach (var id in order)
             {
-                await IndexNextBlock(blockRepository, results, walker, blocks, id);
+                await IndexNextBlock(blocksRepository, results, walker, blocks, id);
             }
 
             // assert
@@ -476,8 +484,9 @@ namespace IndexerTests
         public async Task ProcessBlocksChallengeNumber06()
         {
             // arrange
-            var blockRepository = new InMemoryBlockHeadersRepository();
-            var walker = new ChainWalker(NullLogger<ChainWalker>.Instance, blockRepository);
+            var unitOfWorkFactory = new TestBlockchainDbUnitOfWorkFactory();
+            var walker = new ChainWalker(NullLogger<ChainWalker>.Instance, unitOfWorkFactory);
+            var blocksRepository = unitOfWorkFactory.UnitOfWork.BlockHeaders;
             var results = new List<ChainWalkerMovement>();
 
             // case: 6
@@ -525,12 +534,12 @@ namespace IndexerTests
                 ChainWalkerMovement.CreateForward(),
             };
 
-            await blockRepository.InsertOrIgnore(new BlockHeader(BlockchainId, number: 0, id: "Z", previousBlockId: "X", minedAt: DateTime.UtcNow));
+            await blocksRepository.InsertOrIgnore(new BlockHeader(BlockchainId, number: 0, id: "Z", previousBlockId: "X", minedAt: DateTime.UtcNow));
 
             // act
             foreach (var id in order)
             {
-                await IndexNextBlock(blockRepository, results, walker, blocks, id);
+                await IndexNextBlock(blocksRepository, results, walker, blocks, id);
             }
 
             // assert

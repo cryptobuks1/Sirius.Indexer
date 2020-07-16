@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+option csharp_namespace = "Swisschain.Sirius.Indexer.ApiContract.Monitoring";
+
+package swisschain.indexer.monitoring;
+
+service Monitoring {
+	rpc IsAlive (IsAliveRequest) returns (IsAliveResponce);
+}
+
+message IsAliveRequest {
+}
+
+message IsAliveResponce {
+	string name = 1;
+	string version = 2;
+	string startedAt = 3;
+}

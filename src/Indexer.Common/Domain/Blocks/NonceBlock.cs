@@ -1,5 +1,5 @@
 ﻿using System.Collections.Generic;
-using Indexer.Common.Domain.Transactions.Transfers;
+using Indexer.Common.Domain.Transactions.Transfers.Nonce;
 
 namespace Indexer.Common.Domain.Blocks
 {

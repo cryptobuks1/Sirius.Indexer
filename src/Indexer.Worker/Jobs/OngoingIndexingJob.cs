@@ -2,16 +2,14 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using Indexer.Common.Domain.Blocks;
-using Indexer.Common.Domain.Indexing.Common;
-using Indexer.Common.Domain.Indexing.Common.CoinBlocks;
 using Indexer.Common.Domain.Indexing.Ongoing;
+using Indexer.Common.Domain.Indexing.Ongoing.BlockCancelling;
+using Indexer.Common.Domain.Indexing.Ongoing.BlockIndexing;
 using Indexer.Common.Persistence.Entities.Blockchains;
-using Indexer.Common.Persistence.Entities.ObservedOperations;
 using Indexer.Common.Persistence.Entities.OngoingIndexers;
 using Indexer.Common.Telemetry;
-using MassTransit;
 using Microsoft.Extensions.Logging;
+using Swisschain.Sirius.Sdk.Primitives;
 
 namespace Indexer.Worker.Jobs
 {
@@ -20,56 +18,42 @@ namespace Indexer.Worker.Jobs
         private readonly ILogger<OngoingIndexingJob> _logger;
         private readonly ILoggerFactory _loggerFactory;
         private readonly string _blockchainId;
+        private readonly DoubleSpendingProtectionType _blockchainDoubleSpendingProtectionType;
         private readonly TimeSpan _delayOnBlockNotFound;
         private readonly IBlockchainSchemaBuilder _blockchainSchemaBuilder;
         private readonly IOngoingIndexersRepository _indexersRepository;
-        private readonly PrimaryBlockProcessor _primaryBlockProcessor;
-        private readonly CoinsPrimaryBlockProcessor _coinsPrimaryBlockProcessor;
-        private readonly CoinsSecondaryBlockProcessor _coinsSecondaryBlockProcessor;
-        private readonly CoinsBlockCanceler _coinsBlockCanceler;
-        private readonly IObservedOperationsRepository _observedOperationsRepository;
-        private readonly IBlocksReader _blocksReader;
         private readonly ChainWalker _chainWalker;
-        private readonly IPublishEndpoint _publisher;
         private readonly IAppInsight _appInsight;
         private readonly Timer _timer;
         private readonly ManualResetEventSlim _done;
         private readonly CancellationTokenSource _cts;
         private OngoingIndexer _indexer;
+        private readonly OngoingIndexingStrategyFactory _ongoingIndexingStrategyFactory;
+        private readonly BlockCancelerFactory _blockCancelerFactory;
         
-
         public OngoingIndexingJob(ILogger<OngoingIndexingJob> logger,
-            ILoggerFactory loggerFactory,
+            ILoggerFactory loggerFactory, 
             string blockchainId,
+            DoubleSpendingProtectionType blockchainDoubleSpendingProtectionType,
             TimeSpan delayOnBlockNotFound,
             IBlockchainSchemaBuilder blockchainSchemaBuilder,
             IOngoingIndexersRepository indexersRepository,
-            PrimaryBlockProcessor primaryBlockProcessor,
-            CoinsPrimaryBlockProcessor coinsPrimaryBlockProcessor,
-            CoinsSecondaryBlockProcessor coinsSecondaryBlockProcessor,
-            CoinsBlockCanceler coinsBlockCanceler,
-            IObservedOperationsRepository observedOperationsRepository,
-            IBlocksReader blocksReader,
             ChainWalker chainWalker,
-            IPublishEndpoint publisher,
-            IAppInsight appInsight)
+            IAppInsight appInsight,
+            OngoingIndexingStrategyFactory ongoingIndexingStrategyFactory,
+            BlockCancelerFactory blockCancelerFactory)
         {
             _logger = logger;
             _loggerFactory = loggerFactory;
             _blockchainId = blockchainId;
+            _blockchainDoubleSpendingProtectionType = blockchainDoubleSpendingProtectionType;
             _delayOnBlockNotFound = delayOnBlockNotFound;
             _blockchainSchemaBuilder = blockchainSchemaBuilder;
             _indexersRepository = indexersRepository;
-            _primaryBlockProcessor = primaryBlockProcessor;
-            _coinsPrimaryBlockProcessor = coinsPrimaryBlockProcessor;
-            _coinsSecondaryBlockProcessor = coinsSecondaryBlockProcessor;
-            _coinsBlockCanceler = coinsBlockCanceler;
-            _observedOperationsRepository = observedOperationsRepository;
-            _blocksReader = blocksReader;
             _chainWalker = chainWalker;
-            _publisher = publisher;
             _appInsight = appInsight;
-            
+            _ongoingIndexingStrategyFactory = ongoingIndexingStrategyFactory;
+            _blockCancelerFactory = blockCancelerFactory;
 
             _timer = new Timer(TimerCallback, null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
             _done = new ManualResetEventSlim(false);
@@ -94,7 +78,7 @@ namespace Indexer.Worker.Jobs
 
             if (_indexer.NextBlock == _indexer.StartBlock)
             {
-                await _blockchainSchemaBuilder.ProceedToOngoingIndexing(_blockchainId);
+                await _blockchainSchemaBuilder.UpgradeToOngoingIndexing(_blockchainId, _blockchainDoubleSpendingProtectionType);
             }
             else
             {
@@ -186,14 +170,9 @@ namespace Indexer.Worker.Jobs
                     {
                         var indexingResult = await _indexer.IndexNextBlock(
                             _loggerFactory.CreateLogger<OngoingIndexer>(),
-                            _blocksReader,
                             _chainWalker,
-                            _primaryBlockProcessor,
-                            _coinsPrimaryBlockProcessor,
-                            _coinsSecondaryBlockProcessor,
-                            _coinsBlockCanceler,
-                            _observedOperationsRepository,
-                            _publisher);
+                            _ongoingIndexingStrategyFactory, 
+                            _blockCancelerFactory);
 
                         telemetry.ResponseCode = indexingResult.ToString();
 

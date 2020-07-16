@@ -2,7 +2,7 @@
 
 option csharp_namespace = "Swisschain.Sirius.Indexer.ApiContract.Common";
 
-package common;
+package swisschain.indexer.common;
 
 message BigDecimal {
     string value = 1;
@@ -11,4 +11,9 @@ message BigDecimal {
 message Unit {
     int64 assetId = 1;
     BigDecimal amount = 2;
+}
+
+message CoinId {
+    string transactionId = 1;
+    int32 number = 2;
 }

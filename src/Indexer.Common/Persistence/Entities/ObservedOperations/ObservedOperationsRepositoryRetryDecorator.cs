@@ -22,9 +22,9 @@ namespace Indexer.Common.Persistence.Entities.ObservedOperations
             return _retryPolicy.ExecuteAsync(() => _impl.AddOrIgnore(observedOperation));
         }
 
-        public Task<IReadOnlyCollection<ObservedOperation>> GetInvolvedInBlock(string blockchainId, string blockId)
+        public Task<IReadOnlyCollection<ObservedOperation>> GetInvolvedInBlock(string blockId)
         {
-            return _retryPolicy.ExecuteAsync(() => _impl.GetInvolvedInBlock(blockchainId, blockId));
+            return _retryPolicy.ExecuteAsync(() => _impl.GetInvolvedInBlock(blockId));
         }
     }
 }

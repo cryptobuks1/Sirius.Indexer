@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
-using Indexer.Common.Domain.Transactions.Transfers;
+using Indexer.Common.Domain.Transactions.Transfers.Coins;
 using Indexer.Common.Durability;
 using Polly.Retry;
 using Swisschain.Sirius.Sdk.Primitives;
@@ -18,29 +18,34 @@ namespace Indexer.Common.Persistence.Entities.UnspentCoins
             _retryPolicy = RetryPolicies.DefaultRepositoryRetryPolicy();
         }
 
-        public Task InsertOrIgnore(string blockchainId, IReadOnlyCollection<UnspentCoin> coins)
+        public Task InsertOrIgnore(IReadOnlyCollection<UnspentCoin> coins)
         {
-            return _retryPolicy.ExecuteAsync(() => _impl.InsertOrIgnore(blockchainId, coins));
+            return _retryPolicy.ExecuteAsync(() => _impl.InsertOrIgnore(coins));
         }
 
-        public Task<IReadOnlyCollection<UnspentCoin>> GetAnyOf(string blockchainId, IReadOnlyCollection<CoinId> ids)
+        public Task<IReadOnlyCollection<UnspentCoin>> GetAnyOf(IReadOnlyCollection<CoinId> ids)
         {
-            return _impl.GetAnyOf(blockchainId, ids);
+            return _impl.GetAnyOf(ids);
         }
 
-        public Task Remove(string blockchainId, IReadOnlyCollection<CoinId> ids)
+        public Task Remove(IReadOnlyCollection<CoinId> ids)
         {
-            return _impl.Remove(blockchainId, ids);
+            return _impl.Remove(ids);
         }
 
-        public Task<IReadOnlyCollection<UnspentCoin>> GetByBlock(string blockchainId, string blockId)
+        public Task<IReadOnlyCollection<UnspentCoin>> GetByBlock(string blockId)
         {
-            return _impl.GetByBlock(blockchainId, blockId);
+            return _impl.GetByBlock(blockId);
         }
 
-        public Task RemoveByBlock(string blockchainId, string blockId)
+        public Task<IReadOnlyCollection<UnspentCoin>> GetByAddress(string address, long? asAtBlockNumber)
         {
-            return _impl.RemoveByBlock(blockchainId, blockId);
+            return _impl.GetByAddress(address, asAtBlockNumber);
+        }
+
+        public Task RemoveByBlock(string blockId)
+        {
+            return _impl.RemoveByBlock(blockId);
         }
     }
 }

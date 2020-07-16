@@ -7,9 +7,9 @@ namespace Indexer.Common.Persistence.Entities.BlockHeaders
     public interface IBlockHeadersRepository
     {
         Task InsertOrIgnore(BlockHeader blockHeader);
-        Task<BlockHeader> GetOrDefault(string blockchainId, long blockNumber);
-        Task Remove(string blockchainId, string id);
-        Task<IEnumerable<BlockHeader>> GetBatch(string blockchainId, long startBlockNumber, int limit);
-        Task<BlockHeader> GetLast(string blockchainId);
+        Task<BlockHeader> GetOrDefault(long blockNumber);
+        Task Remove(string id);
+        Task<IEnumerable<BlockHeader>> GetBatch(long startBlockNumber, int limit);
+        Task<BlockHeader> GetLast();
     }
 }

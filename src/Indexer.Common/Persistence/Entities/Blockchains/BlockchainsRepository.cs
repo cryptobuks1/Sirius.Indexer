@@ -5,15 +5,14 @@ using System.Threading.Tasks;
 using Indexer.Common.Persistence.EntityFramework;
 using Indexer.Common.ReadModel.Blockchains;
 using Microsoft.EntityFrameworkCore;
-using Npgsql;
 
 namespace Indexer.Common.Persistence.Entities.Blockchains
 {
     public class BlockchainsRepository : IBlockchainsRepository
     {
-        private readonly Func<DatabaseContext> _contextFactory;
+        private readonly Func<CommonDatabaseContext> _contextFactory;
 
-        public BlockchainsRepository(Func<DatabaseContext> contextFactory)
+        public BlockchainsRepository(Func<CommonDatabaseContext> contextFactory)
         {
             _contextFactory = contextFactory;
         }
@@ -46,7 +45,7 @@ namespace Indexer.Common.Persistence.Entities.Blockchains
 
                 await context.SaveChangesAsync();
             }
-            catch (DbUpdateException e) when (e.InnerException is PostgresException pgEx && pgEx.SqlState == "23505")
+            catch (DbUpdateException e) when (e.IsPrimaryKeyViolationException())
             {
                 context.Blockchains.Update(blockchainMetamodel);
 
@@ -58,7 +57,15 @@ namespace Indexer.Common.Persistence.Entities.Blockchains
         {
             await using var context = _contextFactory.Invoke();
 
-            var result = await context.Blockchains.FirstAsync(x => x.Id == blockchainId);
+            var result = await context.Blockchains.SingleAsync(x => x.Id == blockchainId);
+            return result;
+        }
+
+        public async Task<BlockchainMetamodel> GetOrDefaultAsync(string blockchainId)
+        {
+            await using var context = _contextFactory.Invoke();
+
+            var result = await context.Blockchains.SingleOrDefaultAsync(x => x.Id == blockchainId);
             return result;
         }
     }

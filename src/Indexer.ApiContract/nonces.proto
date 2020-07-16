@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+option csharp_namespace = "Swisschain.Sirius.Indexer.ApiContract.Nonces";
+
+import "common.proto";
+import "google/protobuf/wrappers.proto";
+
+package swisschain.indexer.nonces;
+
+service Nonces {
+    rpc GetNonce (GetNonceRequest) returns (GetNonceResponse);
+}
+
+message GetNonceRequest {
+    string blockchainId = 1;
+    string address = 2;
+    google.protobuf.Int64Value asAtBlockNumber = 3;
+}
+
+message GetNonceResponse {
+    oneof body {
+        GetNonceResponseBody response = 1;
+        ErrorResponseBody error = 2;
+    }
+}
+
+message GetNonceResponseBody {
+    int64 nonce = 1;
+}
+
+message ErrorResponseBody {
+
+    enum ErrorCode {
+        UNKNOWN = 0;
+        INVALID_PARAMETERS = 1;
+        ADDRESS_NOT_FOUND = 2;
+    }
+
+    ErrorCode errorCode = 1;
+    string errorMessage = 2;
+}

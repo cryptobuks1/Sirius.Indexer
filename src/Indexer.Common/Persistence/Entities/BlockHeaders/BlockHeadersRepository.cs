@@ -4,29 +4,27 @@ using System.Linq;
 using System.Threading.Tasks;
 using Dapper;
 using Indexer.Common.Domain.Blocks;
-using Indexer.Common.Telemetry;
 using Npgsql;
 
 namespace Indexer.Common.Persistence.Entities.BlockHeaders
 {
     internal class BlockHeadersRepository : IBlockHeadersRepository
     {
-        private readonly Func<Task<NpgsqlConnection>> _connectionFactory;
-        private readonly IAppInsight _appInsight;
+        private readonly NpgsqlConnection _connection;
+        private readonly string _schema;
+        private readonly string _blockchainId;
 
-        public BlockHeadersRepository(Func<Task<NpgsqlConnection>> connectionFactory, IAppInsight appInsight)
+        public BlockHeadersRepository(NpgsqlConnection connection, string schema, string blockchainId)
         {
-            _connectionFactory = connectionFactory;
-            _appInsight = appInsight;
+            _connection = connection;
+            _schema = schema;
+            _blockchainId = blockchainId;
         }
 
         public async Task InsertOrIgnore(BlockHeader blockHeader)
         {
-            await using var connection = await _connectionFactory.Invoke();
-
-            var schema = DbSchema.GetName(blockHeader.BlockchainId);
             var query = @$"
-                    insert into {schema}.{TableNames.BlockHeaders} 
+                    insert into {_schema}.{TableNames.BlockHeaders} 
                     (
                         id,
                         number,
@@ -42,87 +40,62 @@ namespace Indexer.Common.Persistence.Entities.BlockHeaders
                     ) 
                     on conflict (id) do nothing";
 
-            var telemetry = _appInsight.StartSqlCommand(query);
-
-            try
-            {
-                await connection.ExecuteAsync(
-                    query,
-                    new
-                    {
-                        id = blockHeader.Id,
-                        number = blockHeader.Number,
-                        previousId = blockHeader.PreviousId,
-                        minedAt = blockHeader.MinedAt
-                    });
-
-                telemetry.Complete();
-            }
-            catch (Exception ex)
-            {
-                telemetry.Fail(ex);
-
-                throw;
-            }
+            await _connection.ExecuteAsync(
+                query,
+                new
+                {
+                    id = blockHeader.Id,
+                    number = blockHeader.Number,
+                    previousId = blockHeader.PreviousId,
+                    minedAt = blockHeader.MinedAt
+                });
         }
 
-        public async Task<BlockHeader> GetOrDefault(string blockchainId, long blockNumber)
+        public async Task<BlockHeader> GetOrDefault(long blockNumber)
         {
-            await using var connection = await _connectionFactory.Invoke();
+            var query = $"select * from {_schema}.{TableNames.BlockHeaders} where number = @blockNumber";
 
-            var schema = DbSchema.GetName(blockchainId);
-            var query = $"select * from {schema}.{TableNames.BlockHeaders} where number = @blockNumber";
+            var entity = await _connection.QuerySingleOrDefaultAsync<BlockHeaderEntity>(query, new {blockNumber});
 
-            var entity = await connection.QuerySingleOrDefaultAsync<BlockHeaderEntity>(query, new {blockNumber});
-
-            return entity != null ? MapFromEntity(blockchainId, entity) : null;
+            return entity != null ? MapFromEntity(entity) : null;
         }
         
-        public async Task Remove(string blockchainId, string id)
+        public async Task Remove(string id)
         {
-            await using var connection = await _connectionFactory.Invoke();
+            var query = $"delete from {_schema}.{TableNames.BlockHeaders} where id = @id";
 
-            var schema = DbSchema.GetName(blockchainId);
-            var query = $"delete from {schema}.{TableNames.BlockHeaders} where id = @id";
-
-            await connection.ExecuteAsync(query, new {id});
+            await _connection.ExecuteAsync(query, new {id});
         }
 
-        public async Task<IEnumerable<BlockHeader>> GetBatch(string blockchainId, long startBlockNumber, int limit)
+        public async Task<IEnumerable<BlockHeader>> GetBatch(long startBlockNumber, int limit)
         {
-            await using var connection = await _connectionFactory.Invoke();
+            var query = $"select * from {_schema}.{TableNames.BlockHeaders} where number >= @startBlockNumber order by number limit @limit";
 
-            var schema = DbSchema.GetName(blockchainId);
-            var query = $"select * from {schema}.{TableNames.BlockHeaders} where number >= @startBlockNumber order by number limit @limit";
+            var entities = await _connection.QueryAsync<BlockHeaderEntity>(query, new {startBlockNumber, limit});
 
-            var entities = await connection.QueryAsync<BlockHeaderEntity>(query, new {startBlockNumber, limit});
-
-            return entities.Select(x => MapFromEntity(blockchainId, x));
+            return entities.Select(MapFromEntity);
         }
 
-        public async Task<BlockHeader> GetLast(string blockchainId)
+        public async Task<BlockHeader> GetLast()
         {
-            await using var connection = await _connectionFactory.Invoke();
-
-            var schema = DbSchema.GetName(blockchainId);
             var query = $@"
                 select * 
-                from {schema}.{TableNames.BlockHeaders} 
+                from {_schema}.{TableNames.BlockHeaders} 
                 where number = 
                     (
                         select max(number) 
-                        from {schema}.{TableNames.BlockHeaders}
+                        from {_schema}.{TableNames.BlockHeaders}
                     )";
 
-            var entity = await connection.QuerySingleAsync<BlockHeaderEntity>(query);
+            var entity = await _connection.QuerySingleAsync<BlockHeaderEntity>(query);
 
-            return MapFromEntity(blockchainId, entity);
+            return MapFromEntity(entity);
         }
 
-        private static BlockHeader MapFromEntity(string blockchainId, BlockHeaderEntity entity)
+        private BlockHeader MapFromEntity(BlockHeaderEntity entity)
         {
             return new BlockHeader(
-                blockchainId,
+                _blockchainId,
                 entity.id,
                 entity.number,
                 entity.previous_id,

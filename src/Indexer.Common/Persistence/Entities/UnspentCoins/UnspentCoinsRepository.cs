@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Dapper;
-using Indexer.Common.Domain.Transactions.Transfers;
+using Indexer.Common.Domain.Transactions.Transfers.Coins;
 using Npgsql;
 using NpgsqlTypes;
 using PostgreSQLCopyHelper;
@@ -13,65 +13,62 @@ namespace Indexer.Common.Persistence.Entities.UnspentCoins
 {
     internal sealed class UnspentCoinsRepository : IUnspentCoinsRepository
     {
-        private readonly Func<Task<NpgsqlConnection>> _connectionFactory;
+        private readonly NpgsqlConnection _connection;
+        private readonly string _schema;
 
-        public UnspentCoinsRepository(Func<Task<NpgsqlConnection>> connectionFactory)
+        public UnspentCoinsRepository(NpgsqlConnection connection, string schema)
         {
-            _connectionFactory = connectionFactory;
+            _connection = connection;
+            _schema = schema;
         }
 
-        public async Task InsertOrIgnore(string blockchainId, IReadOnlyCollection<UnspentCoin> coins)
+        public async Task InsertOrIgnore(IReadOnlyCollection<UnspentCoin> coins)
         {
             if (!coins.Any())
             {
                 return;
             }
             
-            await using var connection = await _connectionFactory.Invoke();
-            
-            var schema = DbSchema.GetName(blockchainId);
-            var copyHelper = new PostgreSQLCopyHelper<UnspentCoin>(schema, TableNames.UnspentCoins)
+            var copyHelper = new PostgreSQLCopyHelper<UnspentCoin>(_schema, TableNames.UnspentCoins)
                 .UsePostgresQuoting()
                 .MapVarchar(nameof(UnspentCoinEntity.transaction_id), p => p.Id.TransactionId)
                 .MapInteger(nameof(UnspentCoinEntity.number), p => p.Id.Number)
                 .MapBigInt(nameof(UnspentCoinEntity.asset_id), p => p.Unit.AssetId)
                 .MapNumeric(nameof(UnspentCoinEntity.amount), p => p.Unit.Amount)
                 .MapVarchar(nameof(UnspentCoinEntity.address), p => p.Address)
+                .MapVarchar(nameof(UnspentCoinEntity.script_pub_key), p => p.ScriptPubKey)
                 .MapVarchar(nameof(UnspentCoinEntity.tag), p => p.Tag)
                 .MapNullable(nameof(UnspentCoinEntity.tag_type), p => p.TagType, NpgsqlDbType.Integer);
 
             try
             {
-                await copyHelper.SaveAllAsync(connection, coins);
+                await copyHelper.SaveAllAsync(_connection, coins);
             }
             catch (PostgresException e) when (e.IsPrimaryKeyViolationException())
             {
-                var notExisted = await ExcludeExistingInDb(schema, connection, coins);
+                var notExisted = await ExcludeExistingInDb(coins);
 
                 if (notExisted.Any())
                 {
-                    await copyHelper.SaveAllAsync(connection, notExisted);
+                    await copyHelper.SaveAllAsync(_connection, notExisted);
                 }
             }
         }
 
-        public async Task<IReadOnlyCollection<UnspentCoin>> GetAnyOf(string blockchainId, IReadOnlyCollection<CoinId> ids)
+        public async Task<IReadOnlyCollection<UnspentCoin>> GetAnyOf(IReadOnlyCollection<CoinId> ids)
         {
             if (!ids.Any())
             {
                 return Array.Empty<UnspentCoin>();
             }
             
-            await using var connection = await _connectionFactory.Invoke();
-
-            var schema = DbSchema.GetName(blockchainId);
-            var entities = await connection.QueryInList<UnspentCoinEntity, CoinId>(
-                schema,
+            var entities = await _connection.QueryInList<UnspentCoinEntity, CoinId>(
+                _schema,
                 TableNames.UnspentCoins,
                 ids,
                 columnsToSelect: "*",
                 listColumns: "transaction_id, number",
-                x => $"('{x.TransactionId}', {x.Number})",
+                x => $"'{x.TransactionId}', {x.Number}",
                 knownSourceLength: ids.Count);
 
             var domainObjects = entities
@@ -81,82 +78,92 @@ namespace Indexer.Common.Persistence.Entities.UnspentCoins
             return domainObjects;
         }
 
-        public async Task Remove(string blockchainId, IReadOnlyCollection<CoinId> ids)
+        public async Task Remove(IReadOnlyCollection<CoinId> ids)
         {
             if (!ids.Any())
             {
                 return;
             }
             
-            await using var connection = await _connectionFactory.Invoke();
-
-            var schema = DbSchema.GetName(blockchainId);
-
-            async Task RemoveBatch(NpgsqlConnection conn, IEnumerable<CoinId> batch)
+            async Task RemoveBatch(IEnumerable<CoinId> batch)
             {
                 var inList = string.Join(", ", batch.Select(x => $"('{x.TransactionId}', {x.Number})"));
-                var query = $"delete from {schema}.{TableNames.UnspentCoins} where (transaction_id, number) in ({inList})";
+                var query = $"delete from {_schema}.{TableNames.UnspentCoins} where (transaction_id, number) in (values {inList})";
 
-                await conn.ExecuteAsync(query);
+                await _connection.ExecuteAsync(query);
             }
 
             foreach (var batch in MoreLinq.MoreEnumerable.Batch(ids, 1000))
             {
-                await RemoveBatch(connection, batch);
+                await RemoveBatch(batch);
             }
         }
 
-        public async Task<IReadOnlyCollection<UnspentCoin>> GetByBlock(string blockchainId, string blockId)
+        public async Task<IReadOnlyCollection<UnspentCoin>> GetByBlock(string blockId)
         {
-            await using var connection = await _connectionFactory.Invoke();
-
-            var schema = DbSchema.GetName(blockchainId);
             var query = $@"
                 select c.* 
-                from {schema}.{TableNames.UnspentCoins} c
-                join {schema}.{TableNames.TransactionHeaders} t on t.id = c.transaction_id
+                from {_schema}.{TableNames.UnspentCoins} c
+                join {_schema}.{TableNames.TransactionHeaders} t on t.id = c.transaction_id
                 where t.block_id = @blockId";
 
-            var entities = await connection.QueryAsync<UnspentCoinEntity>(query, new {blockId});
+            var entities = await _connection.QueryAsync<UnspentCoinEntity>(query, new {blockId});
 
             return entities
                 .Select(MapToDomain)
                 .ToArray();
         }
 
-        public async Task RemoveByBlock(string blockchainId, string blockId)
+        public async Task<IReadOnlyCollection<UnspentCoin>> GetByAddress(string address, long? asAtBlockNumber)
         {
-            await using var connection = await _connectionFactory.Invoke();
+            var query = asAtBlockNumber.HasValue
+                ? $@"
+                    select c.*
+                    from {_schema}.{TableNames.UnspentCoins} c
+                    join {_schema}.{TableNames.TransactionHeaders} t on t.id = c.transaction_id
+                    join {_schema}.{TableNames.BlockHeaders} b on b.id = t.block_id
+                    where 
+                        c.address = @address and
+                        b.number <= @asAtBlockNumber"
+                : $@"
+                    select c.*
+                    from {_schema}.{TableNames.UnspentCoins} c
+                    where c.address = @address";
 
-            var schema = DbSchema.GetName(blockchainId);
+            var entities = await _connection.QueryAsync<UnspentCoinEntity>(query, new {address, asAtBlockNumber});
+
+            return entities
+                .Select(MapToDomain)
+                .ToArray();
+        }
+
+        public async Task RemoveByBlock(string blockId)
+        {
             var query = $@"
                 delete 
-                from {schema}.{TableNames.UnspentCoins} c
-                using {schema}.{TableNames.TransactionHeaders} t
+                from {_schema}.{TableNames.UnspentCoins} c
+                using {_schema}.{TableNames.TransactionHeaders} t
                 where 
                     t.id = c.transaction_id and
                     t.block_id = @blockId";
 
-            await connection.ExecuteAsync(query, new {blockId});
+            await _connection.ExecuteAsync(query, new {blockId});
         }
 
-        private static async Task<IReadOnlyCollection<UnspentCoin>> ExcludeExistingInDb(
-            string schema,
-            NpgsqlConnection connection,
-            IReadOnlyCollection<UnspentCoin> coins)
+        private async Task<IReadOnlyCollection<UnspentCoin>> ExcludeExistingInDb(IReadOnlyCollection<UnspentCoin> coins)
         {
             if (!coins.Any())
             {
                 return Array.Empty<UnspentCoin>();
             }
 
-            var existingEntities = await connection.QueryInList<UnspentCoinEntity, UnspentCoin>(
-                schema,
+            var existingEntities = await _connection.QueryInList<UnspentCoinEntity, UnspentCoin>(
+                _schema,
                 TableNames.UnspentCoins,
                 coins,
                 columnsToSelect: "transaction_id, number ",
                 listColumns: "transaction_id, number",
-                x => $"('{x.Id.TransactionId}', {x.Id.Number})",
+                x => $"'{x.Id.TransactionId}', {x.Id.Number}",
                 knownSourceLength: coins.Count);
             
             var existing = existingEntities
@@ -172,6 +179,7 @@ namespace Indexer.Common.Persistence.Entities.UnspentCoins
                 new CoinId(entity.transaction_id, entity.number),
                 new Unit(entity.asset_id, entity.amount),
                 entity.address,
+                entity.script_pub_key,
                 entity.tag,
                 (DestinationTagType?) entity.tag_type);
         }

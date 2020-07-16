@@ -1,13 +1,12 @@
 ﻿using System;
 using GreenPipes;
+using Indexer.Common.Configuration;
 using MassTransit;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Indexer.Common.Configuration;
 using Indexer.Common.Domain;
 using Indexer.Common.HostedServices;
-using Indexer.Common.Messaging.InMemoryBus;
 using Indexer.Common.Persistence;
 using Indexer.Common.Telemetry;
 using Indexer.Worker.HostedServices;
@@ -28,7 +27,7 @@ namespace Indexer.Worker
             base.ConfigureServicesExt(services);
 
             services.AddHttpClient();
-            services.AddPersistence(Config.Db.ConnectionString);
+            services.AddPersistence(Config.CommonDb.ConnectionString);
             services.AddDomain();
             services.AddJobs();
             services.AddMessageConsumers();
@@ -42,19 +41,6 @@ namespace Indexer.Worker
             services.AddHostedService<DbVersionValidationHost>();
             services.AddHostedService<MigrationHost>();
             
-            services.AddInMemoryBus((provider, cfg) =>
-            {
-                cfg.SetLoggerFactory(provider.GetRequiredService<ILoggerFactory>());
-
-                cfg.ReceiveEndpoint("first-pass-block-detected", e =>
-                {
-                    // This is for all blockchains
-                    e.UseConcurrencyLimit(8);
-
-                    e.Consumer(provider.GetRequiredService<FirstPassBlockDetectedConsumer>);
-                });
-            });
-
             services.AddMassTransit(x =>
             {
                 x.AddBus(provider => Bus.Factory.CreateUsingRabbitMq(cfg =>

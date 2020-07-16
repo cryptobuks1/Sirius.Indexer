@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.1</TargetFramework>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
     <AssemblyName>Swisschain.Sirius.Indexer.ApiContract</AssemblyName>
     <PackageId>Swisschain.Sirius.Indexer.ApiContract</PackageId>
     <RootNamespace>Swisschain.Sirius.Indexer.ApiContract</RootNamespace>
@@ -10,17 +10,25 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="nonces.proto" />
+    <None Remove="unspent-coins.proto" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Google.Protobuf" Version="3.11.4" />
     <PackageReference Include="Grpc.Net.Client" Version="2.27.0" />
     <PackageReference Include="Grpc.Tools" Version="2.27.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="Swisschain.Sirius.Sdk" Version="5.0.0-beta.12" />
   </ItemGroup>
 
   <ItemGroup>
-    <Protobuf Include="observedOperations.proto" />
-    <Protobuf Include="isalive.proto" />
+    <Protobuf Include="nonces.proto" />
+    <Protobuf Include="unspent-coins.proto" />
+    <Protobuf Include="observed-operations.proto" />
+    <Protobuf Include="monitoring.proto" />
     <Protobuf Include="common.proto" />
   </ItemGroup>
 

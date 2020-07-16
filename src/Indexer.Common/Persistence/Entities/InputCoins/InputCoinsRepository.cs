@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Dapper;
-using Indexer.Common.Domain.Transactions.Transfers;
+using Indexer.Common.Domain.Transactions.Transfers.Coins;
 using Npgsql;
 using NpgsqlTypes;
 using Swisschain.Sirius.Sdk.Primitives;
@@ -13,24 +13,23 @@ namespace Indexer.Common.Persistence.Entities.InputCoins
 {
     internal sealed class InputCoinsRepository : IInputCoinsRepository
     {
-        private readonly Func<Task<NpgsqlConnection>> _connectionFactory;
+        private readonly NpgsqlConnection _connection;
+        private readonly string _schema;
 
-        public InputCoinsRepository(Func<Task<NpgsqlConnection>> connectionFactory)
+        public InputCoinsRepository(NpgsqlConnection connection, string schema)
         {
-            _connectionFactory = connectionFactory;
+            _connection = connection;
+            _schema = schema;
         }
 
-        public async Task InsertOrIgnore(string blockchainId, string blockId, IReadOnlyCollection<InputCoin> coins)
+        public async Task InsertOrIgnore(IReadOnlyCollection<InputCoin> coins)
         {
             if (!coins.Any())
             {
                 return;
             }
             
-            await using var connection = await _connectionFactory.Invoke();
-            
-            var schema = DbSchema.GetName(blockchainId);
-            var copyHelper = new PostgreSQLCopyHelper<InputCoin>(schema, TableNames.InputCoins)
+            var copyHelper = new PostgreSQLCopyHelper<InputCoin>(_schema, TableNames.InputCoins)
                 .UsePostgresQuoting()
                 .MapVarchar(nameof(InputCoinEntity.transaction_id), x => x.Id.TransactionId)
                 .MapInteger(nameof(InputCoinEntity.number), x => x.Id.Number)
@@ -40,31 +39,28 @@ namespace Indexer.Common.Persistence.Entities.InputCoins
 
             try
             {
-                await copyHelper.SaveAllAsync(connection, coins);
+                await copyHelper.SaveAllAsync(_connection, coins);
             }
             catch (PostgresException e) when (e.IsPrimaryKeyViolationException())
             {
-                var notExisted = await ExcludeExistingInDb(schema, connection, coins);
+                var notExisted = await ExcludeExistingInDb(coins);
 
                 if (notExisted.Any())
                 {
-                    await copyHelper.SaveAllAsync(connection, notExisted);
+                    await copyHelper.SaveAllAsync(_connection, notExisted);
                 }
             }
         }
 
-        public async Task<IReadOnlyCollection<InputCoin>> GetByBlock(string blockchainId, string blockId)
+        public async Task<IReadOnlyCollection<InputCoin>> GetByBlock(string blockId)
         {
-            await using var connection = await _connectionFactory.Invoke();
-
-            var schema = DbSchema.GetName(blockchainId);
             var query = $@"
                 select c.* 
-                from {schema}.{TableNames.InputCoins} c
-                join {schema}.{TableNames.TransactionHeaders} t on t.id = c.transaction_id
+                from {_schema}.{TableNames.InputCoins} c
+                join {_schema}.{TableNames.TransactionHeaders} t on t.id = c.transaction_id
                 where t.block_id = @blockId";
 
-            var entities = await connection.QueryAsync<InputCoinEntity>(query, new {blockId});
+            var entities = await _connection.QueryAsync<InputCoinEntity>(query, new {blockId});
 
             return entities
                 .Select(x => new InputCoin(
@@ -76,39 +72,33 @@ namespace Indexer.Common.Persistence.Entities.InputCoins
                 .ToArray();
         }
 
-        public async Task RemoveByBlock(string blockchainId, string blockId)
+        public async Task RemoveByBlock(string blockId)
         {
-            await using var connection = await _connectionFactory.Invoke();
-
-            var schema = DbSchema.GetName(blockchainId);
             var query = $@"
                 delete 
-                from {schema}.{TableNames.InputCoins} c
-                using {schema}.{TableNames.TransactionHeaders} t
+                from {_schema}.{TableNames.InputCoins} c
+                using {_schema}.{TableNames.TransactionHeaders} t
                 where 
                     t.id = c.transaction_id and
                     t.block_id = @blockId";
 
-            await connection.ExecuteAsync(query, new {blockId});
+            await _connection.ExecuteAsync(query, new {blockId});
         }
 
-        private static async Task<IReadOnlyCollection<InputCoin>> ExcludeExistingInDb(
-            string schema,
-            NpgsqlConnection connection,
-            IReadOnlyCollection<InputCoin> coins)
+        private async Task<IReadOnlyCollection<InputCoin>> ExcludeExistingInDb(IReadOnlyCollection<InputCoin> coins)
         {
             if (!coins.Any())
             {
                 return Array.Empty<InputCoin>();
             }
             
-            var existingEntities = await connection.QueryInList<InputCoinEntity, InputCoin>(
-                schema,
+            var existingEntities = await _connection.QueryInList<InputCoinEntity, InputCoin>(
+                _schema,
                 TableNames.InputCoins,
                 coins,
                 columnsToSelect: "transaction_id, number ",
                 listColumns: "transaction_id, number",
-                x => $"('{x.Id.TransactionId}', {x.Id.Number})",
+                x => $"'{x.Id.TransactionId}', {x.Id.Number}",
                 knownSourceLength: coins.Count);
 
             var existing = existingEntities

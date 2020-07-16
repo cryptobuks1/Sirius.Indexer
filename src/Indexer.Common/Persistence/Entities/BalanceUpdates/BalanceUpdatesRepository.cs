@@ -11,11 +11,13 @@ namespace Indexer.Common.Persistence.Entities.BalanceUpdates
 {
     internal sealed class BalanceUpdatesRepository : IBalanceUpdatesRepository
     {
-        private readonly Func<Task<NpgsqlConnection>> _connectionFactory;
+        private readonly NpgsqlConnection _connection;
+        private readonly string _schema;
 
-        public BalanceUpdatesRepository(Func<Task<NpgsqlConnection>> connectionFactory)
+        public BalanceUpdatesRepository(NpgsqlConnection connection, string schema)
         {
-            _connectionFactory = connectionFactory;
+            _connection = connection;
+            _schema = schema;
         }
 
         /// <summary>
@@ -23,119 +25,61 @@ namespace Indexer.Common.Persistence.Entities.BalanceUpdates
         /// Only balance updates from the same block should be in the list.
         /// It's not checked due to performance reason
         /// </summary>
-        public async Task InsertOrIgnore(string blockchainId, IReadOnlyCollection<BalanceUpdate> balanceUpdates)
+        public async Task InsertOrIgnore(IReadOnlyCollection<BalanceUpdate> balanceUpdates)
         {
             if (!balanceUpdates.Any())
             {
                 return;
             }
             
-            await using var connection = await _connectionFactory.Invoke();
-            var transaction = await connection.BeginTransactionAsync();
-            
-            var schema = DbSchema.GetName(blockchainId);
-            var copyHelper = new PostgreSQLCopyHelper<BalanceUpdate>(schema, TableNames.BalanceUpdates)
+            var copyHelper = new PostgreSQLCopyHelper<BalanceUpdate>(_schema, TableNames.BalanceUpdates)
                 .UsePostgresQuoting()
                 .MapVarchar(nameof(BalanceUpdateEntity.address), x => x.Address)
                 .MapBigInt(nameof(BalanceUpdateEntity.asset_id), x => x.AssetId)
                 .MapVarchar(nameof(BalanceUpdateEntity.block_id), x => x.BlockId)
                 .MapBigInt(nameof(BalanceUpdateEntity.block_number), x => x.BlockNumber)
                 .MapTimeStamp(nameof(BalanceUpdateEntity.block_mined_at), x => x.BlockMinedAt)
-                .MapNumeric(nameof(BalanceUpdateEntity.amount), x => x.Amount)
-                .MapNumeric(nameof(BalanceUpdateEntity.total), x => x.Total);
+                .MapNumeric(nameof(BalanceUpdateEntity.amount), x => x.Amount);
 
             try
             {
-                try
-                {
-                    await copyHelper.SaveAllAsync(connection, balanceUpdates);
-                }
-                catch (PostgresException e) when (e.IsPrimaryKeyViolationException())
-                {
-                    await transaction.RollbackAsync();
-                    await transaction.DisposeAsync();
-
-                    transaction = await connection.BeginTransactionAsync();
-
-                    var notExisted = await ExcludeExistingInDb(schema, connection, balanceUpdates);
-
-                    if (notExisted.Any())
-                    {
-                        await copyHelper.SaveAllAsync(connection, notExisted);
-                    }
-                }
-
-                await UpdateTotalBalance(connection, schema, balanceUpdates);
-
-                await transaction.CommitAsync();
+                await copyHelper.SaveAllAsync(_connection, balanceUpdates);
             }
-            catch
+            catch (PostgresException e) when (e.IsPrimaryKeyViolationException())
             {
-                await transaction.RollbackAsync();
+                var notExisted = await ExcludeExistingInDb(balanceUpdates);
 
-                throw;
+                if (notExisted.Any())
+                {
+                    await copyHelper.SaveAllAsync(_connection, notExisted);
+                }
             }
-            finally
-            {
-                await transaction.DisposeAsync();
-            }
         }
 
-        public async Task RemoveByBlock(string blockchainId, string blockId)
+        public async Task RemoveByBlock(string blockId)
         {
-            await using var connection = await _connectionFactory.Invoke();
+            var query = $@"delete from {_schema}.{TableNames.BalanceUpdates} where block_id = @blockId";
 
-            var schema = DbSchema.GetName(blockchainId);
-            var query = $@"delete from {schema}.{TableNames.BalanceUpdates} where block_id = @blockId";
-
-            await connection.ExecuteAsync(query, new {blockId});
+            await _connection.ExecuteAsync(query, new {blockId});
         }
 
-        private static Task UpdateTotalBalance(NpgsqlConnection connection, 
-            string schema,
-            IReadOnlyCollection<BalanceUpdate> balanceUpdates)
-        {
-            var blockNumber = balanceUpdates.First().BlockNumber;
-            var query = $@"
-                update {schema}.{TableNames.BalanceUpdates} as cur
-	            set total = amount + 
-	            (
-		            select prev_total from coalesce 
-		            (
-			            (
-                            select total from {schema}.{TableNames.BalanceUpdates} as prev
-				            where 
-			 		            prev.address = cur.address and
-			 		            prev.asset_id = cur.asset_id and
-			 		            prev.block_number < cur.block_number
-				            order by prev.block_number desc
-				            limit 1
-                        ),
-			            0
-		            ) as prev_total
-	            )
-	            where block_number = @blockNumber";
+        // TODO: to get a balance at a specified block number
+        // select sum(amount) from bitcoin.balance_updates where address='1VayNert3x1KzbpzMGt2qdqrAThiRovi8' and block_number<=232985
 
-            return connection.ExecuteAsync(query, new {blockNumber});
-        }
-
-        private static async Task<IReadOnlyCollection<BalanceUpdate>> ExcludeExistingInDb(
-            string schema,
-            NpgsqlConnection connection,
-            IReadOnlyCollection<BalanceUpdate> balanceUpdates)
+        private async Task<IReadOnlyCollection<BalanceUpdate>> ExcludeExistingInDb(IReadOnlyCollection<BalanceUpdate> balanceUpdates)
         {
             if (!balanceUpdates.Any())
             {
                 return Array.Empty<BalanceUpdate>();
             }
 
-            var existingEntities = await connection.QueryInList<BalanceUpdateEntity, BalanceUpdate>(
-                schema,
+            var existingEntities = await _connection.QueryInList<BalanceUpdateEntity, BalanceUpdate>(
+                _schema,
                 TableNames.BalanceUpdates,
                 balanceUpdates,
                 columnsToSelect: "address, asset_id, block_number",
                 listColumns: "address, asset_id, block_number",
-                x => $"('{x.Address}', {x.AssetId}, {x.BlockNumber})",
+                x => $"'{x.Address}', {x.AssetId}, {x.BlockNumber}",
                 knownSourceLength: balanceUpdates.Count);
 
             var existing = existingEntities

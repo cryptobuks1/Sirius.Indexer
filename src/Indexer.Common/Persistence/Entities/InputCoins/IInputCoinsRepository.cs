@@ -1,13 +1,13 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
-using Indexer.Common.Domain.Transactions.Transfers;
+using Indexer.Common.Domain.Transactions.Transfers.Coins;
 
 namespace Indexer.Common.Persistence.Entities.InputCoins
 {
     public interface IInputCoinsRepository
     {
-        Task InsertOrIgnore(string blockchainId, string blockId, IReadOnlyCollection<InputCoin> coins);
-        Task<IReadOnlyCollection<InputCoin>> GetByBlock(string blockchainId, string blockId);
-        Task RemoveByBlock(string blockchainId, string blockId);
+        Task InsertOrIgnore(IReadOnlyCollection<InputCoin> coins);
+        Task<IReadOnlyCollection<InputCoin>> GetByBlock(string blockId);
+        Task RemoveByBlock(string blockId);
     }
 }

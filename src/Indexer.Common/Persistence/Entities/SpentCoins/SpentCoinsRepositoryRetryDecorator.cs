@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
-using Indexer.Common.Domain.Transactions.Transfers;
+using Indexer.Common.Domain.Transactions.Transfers.Coins;
 using Indexer.Common.Durability;
 using Polly.Retry;
 
@@ -17,19 +17,19 @@ namespace Indexer.Common.Persistence.Entities.SpentCoins
             _retryPolicy = RetryPolicies.DefaultRepositoryRetryPolicy();
         }
 
-        public Task InsertOrIgnore(string blockchainId, IReadOnlyCollection<SpentCoin> coins)
+        public Task InsertOrIgnore(IReadOnlyCollection<SpentCoin> coins)
         {
-            return _retryPolicy.ExecuteAsync(() => _impl.InsertOrIgnore(blockchainId, coins));
+            return _retryPolicy.ExecuteAsync(() => _impl.InsertOrIgnore(coins));
         }
 
-        public Task<IReadOnlyCollection<SpentCoin>> GetSpentByBlock(string blockchainId, string blockId)
+        public Task<IReadOnlyCollection<SpentCoin>> GetSpentByBlock(string blockId)
         {
-            return _impl.GetSpentByBlock(blockchainId, blockId);
+            return _impl.GetSpentByBlock(blockId);
         }
 
-        public Task RemoveSpentByBlock(string blockchainId, string blockId)
+        public Task RemoveSpentByBlock(string blockId)
         {
-            return _impl.RemoveSpentByBlock(blockchainId, blockId);
+            return _impl.RemoveSpentByBlock(blockId);
         }
     }
 }

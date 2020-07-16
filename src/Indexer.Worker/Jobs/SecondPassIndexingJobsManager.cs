@@ -3,10 +3,8 @@ using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
 using Indexer.Common.Configuration;
-using Indexer.Common.Domain.Indexing.Common.CoinBlocks;
-using Indexer.Common.Persistence.Entities.BlockHeaders;
+using Indexer.Common.Persistence;
 using Indexer.Common.Persistence.Entities.SecondPassIndexers;
-using Indexer.Common.Telemetry;
 using Microsoft.Extensions.Logging;
 
 namespace Indexer.Worker.Jobs
@@ -16,28 +14,24 @@ namespace Indexer.Worker.Jobs
         private readonly ILoggerFactory _loggerFactory;
         private readonly AppConfig _appConfig;
         private readonly ISecondPassIndexersRepository _indexersRepository;
-        private readonly IBlockHeadersRepository _blockHeadersRepository;
+        private readonly IBlockchainDbUnitOfWorkFactory _blockchainDbUnitOfWorkFactory;
         private readonly OngoingIndexingJobsManager _ongoingIndexingJobsManager;
-        private readonly IAppInsight _appInsight;
         private readonly SemaphoreSlim _lock;
         private readonly ConcurrentDictionary<string, SecondPassIndexingJob> _jobs;
-        private readonly CoinsSecondaryBlockProcessor _secondaryBlockProcessor;
+        
 
         public SecondPassIndexingJobsManager(ILoggerFactory loggerFactory, 
             AppConfig appConfig,
             ISecondPassIndexersRepository indexersRepository,
-            IBlockHeadersRepository blockHeadersRepository,
-            OngoingIndexingJobsManager ongoingIndexingJobsManager,
-            IAppInsight appInsight,
-            CoinsSecondaryBlockProcessor secondaryBlockProcessor)
+            IBlockchainDbUnitOfWorkFactory blockchainDbUnitOfWorkFactory,
+            OngoingIndexingJobsManager ongoingIndexingJobsManager)
         {
             _loggerFactory = loggerFactory;
             _appConfig = appConfig;
             _indexersRepository = indexersRepository;
-            _blockHeadersRepository = blockHeadersRepository;
+            _blockchainDbUnitOfWorkFactory = blockchainDbUnitOfWorkFactory;
             _ongoingIndexingJobsManager = ongoingIndexingJobsManager;
-            _appInsight = appInsight;
-            _secondaryBlockProcessor = secondaryBlockProcessor;
+            
 
             _lock = new SemaphoreSlim(1, 1);
             _jobs = new ConcurrentDictionary<string, SecondPassIndexingJob>();
@@ -51,18 +45,16 @@ namespace Indexer.Worker.Jobs
             {
                 if (!_jobs.ContainsKey(blockchainId))
                 {
-                    var blockchainConfig = _appConfig.Indexing.Blockchains[blockchainId];
+                    var blockchainConfig = _appConfig.Blockchains[blockchainId];
 
                     var job = new SecondPassIndexingJob(
                         _loggerFactory.CreateLogger<SecondPassIndexingJob>(),
                         _loggerFactory,
                         blockchainId,
-                        blockchainConfig.LastHistoricalBlockNumber,
+                        blockchainConfig.Indexing.LastHistoricalBlockNumber,
                         _indexersRepository,
-                        _blockHeadersRepository,
-                        _ongoingIndexingJobsManager,
-                        _appInsight,
-                        _secondaryBlockProcessor);
+                        _blockchainDbUnitOfWorkFactory,
+                        _ongoingIndexingJobsManager);
 
                     _jobs.TryAdd(blockchainId, job);
 

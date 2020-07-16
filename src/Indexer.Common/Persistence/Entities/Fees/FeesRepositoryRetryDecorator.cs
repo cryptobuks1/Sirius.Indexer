@@ -13,14 +13,14 @@ namespace Indexer.Common.Persistence.Entities.Fees
             _impl = impl;
         }
 
-        public Task InsertOrIgnore(string blockchainId, IReadOnlyCollection<Fee> fees)
+        public Task InsertOrIgnore(IReadOnlyCollection<Fee> fees)
         {
-            return _impl.InsertOrIgnore(blockchainId, fees);
+            return _impl.InsertOrIgnore(fees);
         }
 
-        public Task RemoveByBlock(string blockchainId, string blockId)
+        public Task RemoveByBlock(string blockId)
         {
-            return _impl.RemoveByBlock(blockchainId, blockId);
+            return _impl.RemoveByBlock(blockId);
         }
     }
 }

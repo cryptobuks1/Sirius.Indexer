@@ -2,57 +2,45 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Indexer.Common.Domain.Blocks;
-using Indexer.Common.Domain.Indexing.Common;
-using Indexer.Common.Domain.Indexing.Common.CoinBlocks;
 using Indexer.Common.Domain.Indexing.FirstPass;
-using Indexer.Common.Messaging.InMemoryBus;
 using Indexer.Common.Persistence.Entities.FirstPassIndexers;
+using Indexer.Common.ReadModel.Blockchains;
 using Indexer.Common.Telemetry;
 using Microsoft.Extensions.Logging;
+using Swisschain.Sirius.Sdk.Primitives;
 
 namespace Indexer.Worker.Jobs
 {
     internal sealed class FirstPassIndexingJob : IDisposable
     {
         private readonly ILogger<FirstPassIndexingJob> _logger;
-        private readonly ILoggerFactory _loggerFactory;
         private readonly FirstPassIndexerId _indexerId;
         private readonly long _stopBlock;
+        private readonly BlockchainMetamodel _blockchainMetamodel;
         private readonly IFirstPassIndexersRepository _indexersRepository;
-        private readonly IBlocksReader _blocksReader;
-        private readonly PrimaryBlockProcessor _primaryBlockProcessor;
-        private readonly CoinsPrimaryBlockProcessor _coinsPrimaryBlockProcessor;
-        private readonly IInMemoryBus _inMemoryBus;
-        private readonly SecondPassIndexingJobsManager _secondPassIndexingJobsManager;
         private readonly IAppInsight _appInsight;
         private readonly BackgroundJob _job;
         private FirstPassIndexer _indexer;
-        
+        private readonly FirstPassIndexingStrategyFactory _firstPassIndexingStrategyFactory;
+        private readonly OngoingIndexingJobsManager _ongoingIndexingJobsManager;
 
         public FirstPassIndexingJob(ILogger<FirstPassIndexingJob> logger,
-            ILoggerFactory loggerFactory,
             FirstPassIndexerId indexerId,
             long stopBlock,
+            BlockchainMetamodel blockchainMetamodel,
             IFirstPassIndexersRepository indexersRepository,
-            IBlocksReader blocksReader,
-            IInMemoryBus inMemoryBus,
-            SecondPassIndexingJobsManager secondPassIndexingJobsManager,
             IAppInsight appInsight,
-            PrimaryBlockProcessor primaryBlockProcessor,
-            CoinsPrimaryBlockProcessor coinsPrimaryBlockProcessor)
+            FirstPassIndexingStrategyFactory firstPassIndexingStrategyFactory,
+            OngoingIndexingJobsManager ongoingIndexingJobsManager)
         {
             _logger = logger;
-            _loggerFactory = loggerFactory;
             _indexerId = indexerId;
             _stopBlock = stopBlock;
+            _blockchainMetamodel = blockchainMetamodel;
             _indexersRepository = indexersRepository;
-            _blocksReader = blocksReader;
-            _inMemoryBus = inMemoryBus;
-            _secondPassIndexingJobsManager = secondPassIndexingJobsManager;
             _appInsight = appInsight;
-            _primaryBlockProcessor = primaryBlockProcessor;
-            _coinsPrimaryBlockProcessor = coinsPrimaryBlockProcessor;
+            _firstPassIndexingStrategyFactory = firstPassIndexingStrategyFactory;
+            _ongoingIndexingJobsManager = ongoingIndexingJobsManager;
 
             _job = new BackgroundJob(
                 _logger,
@@ -100,8 +88,6 @@ namespace Indexer.Worker.Jobs
                 while (!_job.IsCancellationRequested &&
                        _indexer.NextBlock - batchInitialBlock < 100)
                 {
-                    // TODO: Add some delay in case of an error to reduce workload on the integration and DB
-
                     var indexingResult = await IndexNextBlock();
 
                     if (indexingResult == FirstPassIndexingResult.IndexingCompleted)
@@ -116,7 +102,7 @@ namespace Indexer.Worker.Jobs
 
                         _indexer = await _indexersRepository.Update(_indexer);
 
-                        await StartSecondPassIndexerJobIfFirstPassDone();
+                        await StartOngoingIndexingIfNeeded();
 
                         Stop();
 
@@ -143,6 +129,28 @@ namespace Indexer.Worker.Jobs
             }
         }
 
+        private async Task StartOngoingIndexingIfNeeded()
+        {
+            if (_blockchainMetamodel.Protocol.DoubleSpendingProtectionType != DoubleSpendingProtectionType.Nonce)
+            {
+                return;
+            }
+
+            var firstPassIndexers = await _indexersRepository.GetByBlockchain(_indexerId.BlockchainId);
+
+            if (firstPassIndexers.All(x => x.IsCompleted))
+            {
+                _logger.LogInformation("All first-pass indexing jobs are completed {@context}",
+                    new
+                    {
+                        BlockchainId = _indexerId.BlockchainId,
+                        StopBlock = _stopBlock
+                    });
+
+                await _ongoingIndexingJobsManager.EnsureStarted(_indexerId.BlockchainId);
+            }
+        }
+
         private async Task<FirstPassIndexingResult> IndexNextBlock()
         {
             var telemetry = _appInsight.StartRequest("First-pass block indexing",
@@ -155,12 +163,7 @@ namespace Indexer.Worker.Jobs
 
             try
             {
-                var result = await _indexer.IndexNextBlock(
-                    _loggerFactory.CreateLogger<FirstPassIndexer>(),
-                    _blocksReader,
-                    _primaryBlockProcessor,
-                    _coinsPrimaryBlockProcessor,
-                    _inMemoryBus);
+                var result = await _indexer.IndexNextBlock(_firstPassIndexingStrategyFactory);
 
                 telemetry.ResponseCode = result.ToString();
 
@@ -175,16 +178,6 @@ namespace Indexer.Worker.Jobs
             finally
             {
                 telemetry.Stop();
-            }
-        }
-
-        private async Task StartSecondPassIndexerJobIfFirstPassDone()
-        {
-            var indexers = await _indexersRepository.GetByBlockchain(_indexerId.BlockchainId);
-
-            if (indexers.All(x => x.IsCompleted))
-            {
-                await _secondPassIndexingJobsManager.EnsureStarted(_indexerId.BlockchainId);
             }
         }
     }

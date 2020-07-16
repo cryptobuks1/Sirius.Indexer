@@ -6,7 +6,7 @@ namespace Indexer.Common.Persistence.Entities.Fees
 {
     public interface IFeesRepository
     {
-        Task InsertOrIgnore(string blockchainId, IReadOnlyCollection<Fee> fees);
-        Task RemoveByBlock(string blockchainId, string blockId);
+        Task InsertOrIgnore(IReadOnlyCollection<Fee> fees);
+        Task RemoveByBlock(string blockId);
     }
 }

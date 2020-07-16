@@ -3,15 +3,13 @@ using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
 using Indexer.Common.Configuration;
-using Indexer.Common.Domain.Blocks;
-using Indexer.Common.Domain.Indexing.Common;
-using Indexer.Common.Domain.Indexing.Common.CoinBlocks;
+using Indexer.Common.Domain.Blockchains;
 using Indexer.Common.Domain.Indexing.Ongoing;
+using Indexer.Common.Domain.Indexing.Ongoing.BlockCancelling;
+using Indexer.Common.Domain.Indexing.Ongoing.BlockIndexing;
 using Indexer.Common.Persistence.Entities.Blockchains;
-using Indexer.Common.Persistence.Entities.ObservedOperations;
 using Indexer.Common.Persistence.Entities.OngoingIndexers;
 using Indexer.Common.Telemetry;
-using MassTransit;
 using Microsoft.Extensions.Logging;
 
 namespace Indexer.Worker.Jobs
@@ -22,45 +20,33 @@ namespace Indexer.Worker.Jobs
         private readonly AppConfig _appConfig;
         private readonly IBlockchainSchemaBuilder _blockchainSchemaBuilder;
         private readonly IOngoingIndexersRepository _indexersRepository;
-        private readonly PrimaryBlockProcessor _primaryBlockProcessor;
-        private readonly CoinsPrimaryBlockProcessor _coinsPrimaryBlockProcessor;
-        private readonly CoinsSecondaryBlockProcessor _coinsSecondaryBlockProcessor;
-        private readonly CoinsBlockCanceler _coinsBlockCanceler;
-        private readonly IBlockReadersProvider _blockReadersProvider;
+        private readonly IBlockchainMetamodelProvider _blockchainMetamodelProvider;
         private readonly ChainWalker _chainWalker;
-        private readonly IPublishEndpoint _publisher;
         private readonly IAppInsight _appInsight;
         private readonly SemaphoreSlim _lock;
         private readonly ConcurrentDictionary<string, OngoingIndexingJob> _jobs;
-        private readonly IObservedOperationsRepository _observedOperationsRepository;
+        private readonly OngoingIndexingStrategyFactory _ongoingIndexingStrategyFactory;
+        private readonly BlockCancelerFactory _blockCancelerFactory;
 
         public OngoingIndexingJobsManager(ILoggerFactory loggerFactory, 
             AppConfig appConfig,
             IBlockchainSchemaBuilder blockchainSchemaBuilder,
             IOngoingIndexersRepository indexersRepository,
-            PrimaryBlockProcessor primaryBlockProcessor,
-            CoinsPrimaryBlockProcessor coinsPrimaryBlockProcessor,
-            CoinsSecondaryBlockProcessor coinsSecondaryBlockProcessor,
-            CoinsBlockCanceler coinsBlockCanceler,
-            IObservedOperationsRepository observedOperationsRepository,
-            IBlockReadersProvider blockReadersProvider,
+            IBlockchainMetamodelProvider blockchainMetamodelProvider,
             ChainWalker chainWalker,
-            IPublishEndpoint publisher,
-            IAppInsight appInsight)
+            IAppInsight appInsight,
+            OngoingIndexingStrategyFactory ongoingIndexingStrategyFactory,
+            BlockCancelerFactory blockCancelerFactory)
         {
             _loggerFactory = loggerFactory;
             _appConfig = appConfig;
             _blockchainSchemaBuilder = blockchainSchemaBuilder;
             _indexersRepository = indexersRepository;
-            _primaryBlockProcessor = primaryBlockProcessor;
-            _coinsPrimaryBlockProcessor = coinsPrimaryBlockProcessor;
-            _coinsSecondaryBlockProcessor = coinsSecondaryBlockProcessor;
-            _coinsBlockCanceler = coinsBlockCanceler;
-            _observedOperationsRepository = observedOperationsRepository;
-            _blockReadersProvider = blockReadersProvider;
+            _blockchainMetamodelProvider = blockchainMetamodelProvider;
             _chainWalker = chainWalker;
-            _publisher = publisher;
             _appInsight = appInsight;
+            _ongoingIndexingStrategyFactory = ongoingIndexingStrategyFactory;
+            _blockCancelerFactory = blockCancelerFactory;
 
             _lock = new SemaphoreSlim(1, 1);
             _jobs = new ConcurrentDictionary<string, OngoingIndexingJob>();
@@ -74,25 +60,21 @@ namespace Indexer.Worker.Jobs
             {
                 if (!_jobs.ContainsKey(blockchainId))
                 {
-                    var blockchainConfig = _appConfig.Indexing.Blockchains[blockchainId];
-                    var blocksReader = await _blockReadersProvider.Get(blockchainId);
+                    var blockchainConfig = _appConfig.Blockchains[blockchainId];
+                    var blockchainMetadata = await _blockchainMetamodelProvider.Get(blockchainId);
 
                     var job = new OngoingIndexingJob(
                         _loggerFactory.CreateLogger<OngoingIndexingJob>(),
                         _loggerFactory,
                         blockchainId,
-                        blockchainConfig.DelayOnBlockNotFound,
+                        blockchainMetadata.Protocol.DoubleSpendingProtectionType,
+                        blockchainConfig.Indexing.DelayOnBlockNotFound,
                         _blockchainSchemaBuilder,
                         _indexersRepository,
-                        _primaryBlockProcessor,
-                        _coinsPrimaryBlockProcessor,
-                        _coinsSecondaryBlockProcessor,
-                        _coinsBlockCanceler,
-                        _observedOperationsRepository,
-                        blocksReader,
                         _chainWalker,
-                        _publisher,
-                        _appInsight);
+                        _appInsight,
+                        _ongoingIndexingStrategyFactory,
+                        _blockCancelerFactory);
 
                     _jobs.TryAdd(blockchainId, job);
 

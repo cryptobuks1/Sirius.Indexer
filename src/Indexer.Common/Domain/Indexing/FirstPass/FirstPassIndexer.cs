@@ -1,12 +1,5 @@
 ﻿using System;
-using System.Linq;
 using System.Threading.Tasks;
-using Indexer.Common.Configuration;
-using Indexer.Common.Domain.Blocks;
-using Indexer.Common.Domain.Indexing.Common;
-using Indexer.Common.Domain.Indexing.Common.CoinBlocks;
-using Indexer.Common.Messaging.InMemoryBus;
-using Microsoft.Extensions.Logging;
 
 namespace Indexer.Common.Domain.Indexing.FirstPass
 {
@@ -73,41 +66,19 @@ namespace Indexer.Common.Domain.Indexing.FirstPass
                 version);
         }
 
-        public async Task<FirstPassIndexingResult> IndexNextBlock(ILogger<FirstPassIndexer> logger,
-            IBlocksReader blocksReader,
-            PrimaryBlockProcessor primaryBlockProcessor,
-            CoinsPrimaryBlockProcessor coinsPrimaryBlockProcessor,
-            IInMemoryBus inMemoryBus)
+        public async Task<FirstPassIndexingResult> IndexNextBlock(FirstPassIndexingStrategyFactory indexingStrategyFactory)
         {
             if (IsCompleted)
             {
                 return FirstPassIndexingResult.IndexingCompleted;
             }
 
-            var block = await blocksReader.ReadCoinsBlockOrDefault(NextBlock);
+            var indexingStrategy = await indexingStrategyFactory.Create(BlockchainId);
 
-            if (block == null)
-            {
-                logger.LogWarning($"First-pass indexer has not found the block. Likely `{nameof(BlockchainIndexingConfig.LastHistoricalBlockNumber)}` should be decreased. It should be existing block {{@context}}", new
-                {
-                    BlockchainId = BlockchainId,
-                    StartBlock = StartBlock,
-                    NextBlock = NextBlock
-                });
-
-                throw new InvalidOperationException($"First-pass indexer {Id} has not found the block {NextBlock}.");
-            }
-
-            await primaryBlockProcessor.Process(block.Header, block.Transfers.Select(x => x.Header).ToArray());
-            await coinsPrimaryBlockProcessor.Process(block);
+            await indexingStrategy.IndexNextBlock(this);
 
             NextBlock += StepSize;
             UpdatedAt = DateTime.UtcNow;
-
-            await inMemoryBus.Publish(new FirstPassBlockDetected
-            {
-                BlockchainId = BlockchainId
-            });
             
             return IsCompleted ? FirstPassIndexingResult.IndexingCompleted : FirstPassIndexingResult.BlockIndexed;
         }

@@ -11,10 +11,10 @@ namespace Indexer.Worker.HostedServices
     public class MigrationHost : IHostedService
     {
         private readonly ILogger<MigrationHost> _logger;
-        private readonly Func<DatabaseContext> _contextFactory;
+        private readonly Func<CommonDatabaseContext> _contextFactory;
 
         public MigrationHost(ILogger<MigrationHost> logger, 
-            Func<DatabaseContext> contextFactory)
+            Func<CommonDatabaseContext> contextFactory)
         {
             _logger = logger;
             _contextFactory = contextFactory;
