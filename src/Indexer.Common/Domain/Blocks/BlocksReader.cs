@@ -163,7 +163,7 @@ namespace Indexer.Common.Domain.Blocks
                         var address = _addressFormatter.NormalizeOrPassThrough(nonceUpdate.Address, _blockchainMetamodel.NetworkType);
 
                         return address != null 
-                            ? new NonceUpdate(address, tx.Header.Id, nonceUpdate.Nonce)
+                            ? new NonceUpdate(address, blockHeader.Id, nonceUpdate.Nonce)
                             : null;
                     })
                     .Where(x => x != null)

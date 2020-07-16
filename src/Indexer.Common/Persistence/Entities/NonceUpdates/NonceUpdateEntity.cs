@@ -4,7 +4,7 @@
     {
         // ReSharper disable InconsistentNaming
         public string address { get; set; }
-        public string transaction_id { get; set; }
+        public string block_id { get; set; }
         public long nonce { get; set; }
     }
 }

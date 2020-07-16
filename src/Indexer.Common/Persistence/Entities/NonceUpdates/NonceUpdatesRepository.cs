@@ -30,8 +30,8 @@ namespace Indexer.Common.Persistence.Entities.NonceUpdates
             var copyHelper = new PostgreSQLCopyHelper<NonceUpdate>(_schema, TableNames.NonceUpdates)
                 .UsePostgresQuoting()
                 .MapVarchar(nameof(NonceUpdateEntity.address), x => x.Address)
-                .MapVarchar(nameof(NonceUpdateEntity.transaction_id), x => x.TransactionId)
-                .MapBigInt(nameof(NonceUpdateEntity.nonce), x => (int) x.Nonce);
+                .MapVarchar(nameof(NonceUpdateEntity.block_id), x => x.BlockId)
+                .MapBigInt(nameof(NonceUpdateEntity.nonce), x => x.Nonce);
 
             try
             {
@@ -54,8 +54,7 @@ namespace Indexer.Common.Persistence.Entities.NonceUpdates
                 ? $@"
                     select n.*
                     from {_schema}.{TableNames.NonceUpdates} n
-                    join {_schema}.{TableNames.TransactionHeaders} t on t.id = n.transaction_id
-                    join {_schema}.{TableNames.BlockHeaders} b on b.id = t.block_id
+                    join {_schema}.{TableNames.BlockHeaders} b on b.id = n.block_id
                     where 
                         n.address = @address and
                         b.number <= @asAtBlockNumber
@@ -63,8 +62,7 @@ namespace Indexer.Common.Persistence.Entities.NonceUpdates
                 : $@"
                     select n.*
                     from {_schema}.{TableNames.NonceUpdates} n
-                    join {_schema}.{TableNames.TransactionHeaders} t on t.id = n.transaction_id
-                    join {_schema}.{TableNames.BlockHeaders} b on b.id = t.block_id
+                    join {_schema}.{TableNames.BlockHeaders} b on b.id = n.block_id
                     where 
                         n.address = @address
                     order by b.number desc limit 1";
@@ -76,19 +74,14 @@ namespace Indexer.Common.Persistence.Entities.NonceUpdates
 
         public async Task RemoveByBlock(string blockId)
         {
-            var query = $@"
-                delete from {_schema}.{TableNames.NonceUpdates} n
-                using {_schema}.{TableNames.TransactionHeaders} t
-                where 
-	                t.id = n.transaction_id and
-	                t.block_id = @blockId";
+            var query = $"delete from {_schema}.{TableNames.NonceUpdates} where block_id = @blockId";
 
             await _connection.ExecuteAsync(query, new {blockId});
         }
 
         private static NonceUpdate MapToDomain(NonceUpdateEntity entity)
         {
-            return new NonceUpdate(entity.address, entity.transaction_id, entity.nonce);
+            return new NonceUpdate(entity.address, entity.block_id, entity.nonce);
         }
 
         private async Task<IReadOnlyCollection<NonceUpdate>> ExcludeExistingInDb(IReadOnlyCollection<NonceUpdate> nonceUpdates)
@@ -102,16 +95,16 @@ namespace Indexer.Common.Persistence.Entities.NonceUpdates
                 _schema,
                 TableNames.NonceUpdates,
                 nonceUpdates,
-                columnsToSelect: "address, transaction_id",
-                listColumns: "address, transaction_id",
-                x => $"'{x.Address}', '{x.TransactionId}'",
+                columnsToSelect: "address, block_id",
+                listColumns: "address, block_id",
+                x => $"'{x.Address}', '{x.BlockId}'",
                 knownSourceLength: nonceUpdates.Count);
 
             var existing = existingEntities
-                .Select(x => (x.address, x.transaction_id))
+                .Select(x => (x.address, x.block_id))
                 .ToHashSet();
 
-            return nonceUpdates.Where(x => !existing.Contains((x.Address, x.TransactionId))).ToArray();
+            return nonceUpdates.Where(x => !existing.Contains((x.Address, x.BlockId))).ToArray();
         }
     }
 }

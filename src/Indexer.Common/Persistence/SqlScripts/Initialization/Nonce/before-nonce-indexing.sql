@@ -9,11 +9,11 @@ set search_path to @schemaName;
 create unlogged table nonce_updates
 (
     address             varchar(256) not null,
-    transaction_id      varchar(256) not null,
+    block_id            varchar(256) not null,
     nonce               bigint not null,    
 
-    constraint pk_nonce_updates primary key (address, transaction_id)
-) partition by hash (address, transaction_id);
+    constraint pk_nonce_updates primary key (address, block_id)
+) partition by hash (address, block_id);
 
 create table nonce_updates_0 partition of nonce_updates for values with (modulus 20, remainder 0);
 create table nonce_updates_1 partition of nonce_updates for values with (modulus 20, remainder 1);
