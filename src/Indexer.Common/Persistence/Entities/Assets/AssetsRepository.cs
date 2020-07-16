@@ -110,9 +110,9 @@ namespace Indexer.Common.Persistence.Entities.Assets
             async Task<IEnumerable<AssetEntity>> ReadBatch(IReadOnlyCollection<BlockchainAssetId> batch)
             {
                 var idsWithAddress = batch.Where(x => x.Address != null).ToArray();
-                var inListWithAddress = string.Join(", ", idsWithAddress.Select(x => $"('{x.Symbol}', '{x.Address}')"));
+                var inListWithAddress = string.Join(", ", idsWithAddress.Select(x => $"('{SqlString.Escape(x.Symbol)}', '{x.Address}')"));
                 var idsWithoutAddress = batch.Where(x => x.Address == null).ToArray();
-                var inListWithoutAddress = string.Join(", ", idsWithoutAddress.Select(x => $"('{x.Symbol}')"));
+                var inListWithoutAddress = string.Join(", ", idsWithoutAddress.Select(x => $"('{SqlString.Escape(x.Symbol)}')"));
 
                 var queryBuilder = new StringBuilder();
 
