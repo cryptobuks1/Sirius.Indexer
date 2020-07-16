@@ -60,16 +60,15 @@ namespace Indexer.Common.Domain.Indexing.Ongoing.BlockIndexing
                 .GroupBy(x => new
                 {
                     x.Address,
-                    x.TransactionId
+                    x.BlockId
                 })
                 .Select(g => new NonceUpdate(
                     g.Key.Address,
-                    g.Key.TransactionId,
+                    g.Key.BlockId,
                     g.Max(x => x.Nonce)))
                 .ToArray();
 
             // TODO: Save operations
-            // TODO: Nonce update PK should be (address, block_id)
 
             await unitOfWork.NonceUpdates.InsertOrIgnore(nonceUpdates);
 

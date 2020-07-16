@@ -2,15 +2,15 @@
 {
     public sealed class NonceUpdate
     {
-        public NonceUpdate(string address, string transactionId, long nonce)
+        public NonceUpdate(string address, string blockId, long nonce)
         {
             Address = address;
-            TransactionId = transactionId;
+            BlockId = blockId;
             Nonce = nonce;
         }
 
         public string Address { get; }
-        public string TransactionId { get; }
+        public string BlockId { get; }
         public long Nonce { get; }
     }
 }
