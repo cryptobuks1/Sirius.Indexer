@@ -67,69 +67,92 @@ namespace Indexer.Worker.HostedServices
 
         public async Task StartAsync(CancellationToken cancellationToken)
         {
-            _logger.LogInformation("Indexing is being started...");
-
-            foreach (var (blockchainId, blockchainConfig) in _config?.Blockchains ?? new Dictionary<string, BlockchainConfig>())
+            try
             {
-                _logger.LogInformation(@"Blockchain indexing is being provisioned {@context}...",
-                    new
-                    {
-                        BlockchainId = blockchainId,
-                        BlockchainConfig = blockchainConfig.Indexing
-                    });
+                _logger.LogInformation("Indexing is being started...");
 
-                var blockchainMetamodel = await _blockchainsRepository.GetOrDefaultAsync(blockchainId);
-
-                if (blockchainMetamodel == null)
+                foreach (var (blockchainId, blockchainConfig) in _config?.Blockchains ?? new Dictionary<string, BlockchainConfig>())
                 {
-                    _logger.LogWarning(@"Blockchain metamodel not found. Indexing for this blockchain couldn't be started {@context}",
+                    _logger.LogInformation(@"Blockchain indexing is being provisioned {@context}...",
                         new
                         {
                             BlockchainId = blockchainId,
                             BlockchainConfig = blockchainConfig.Indexing
                         });
 
-                    continue;
+                    var blockchainMetamodel = await _blockchainsRepository.GetOrDefaultAsync(blockchainId);
+
+                    if (blockchainMetamodel == null)
+                    {
+                        _logger.LogWarning(@"Blockchain metamodel not found. Indexing for this blockchain couldn't be started {@context}",
+                            new
+                            {
+                                BlockchainId = blockchainId,
+                                BlockchainConfig = blockchainConfig.Indexing
+                            });
+
+                        continue;
+                    }
+
+                    await ProvisionDbSchema(blockchainMetamodel);
+                    var firstPassIndexers = await ProvisionFirstPassIndexers(
+                        blockchainId,
+                        blockchainConfig.Indexing,
+                        blockchainMetamodel);
+                    var secondPassIndexer = await ProvisionSecondPassIndexerOrDefault(
+                        blockchainId,
+                        blockchainConfig.Indexing,
+                        blockchainMetamodel);
+                    var ongoingIndexer = await ProvisionOngoingIndexer(
+                        blockchainId, 
+                        blockchainConfig.Indexing, 
+                        blockchainMetamodel);
+
+                    await StartFirstPassIndexingJobs(firstPassIndexers, blockchainMetamodel);
+                    await StartSecondPassIndexingJob(secondPassIndexer);
+                    await StartOngoingIndexingJob(
+                        firstPassIndexers,
+                        secondPassIndexer,
+                        ongoingIndexer,
+                        blockchainMetamodel);
                 }
 
-                await ProvisionDbSchema(blockchainMetamodel);
-                var firstPassIndexers = await ProvisionFirstPassIndexers(blockchainId, blockchainConfig.Indexing, blockchainMetamodel);
-                var secondPassIndexer = await ProvisionSecondPassIndexerOrDefault(blockchainId, blockchainConfig.Indexing, blockchainMetamodel);
-                var ongoingIndexer = await ProvisionOngoingIndexer(blockchainId, blockchainConfig.Indexing, blockchainMetamodel);
-                
-                await StartFirstPassIndexingJobs(firstPassIndexers, blockchainMetamodel);
-                await StartSecondPassIndexingJob(secondPassIndexer);
-                await StartOngoingIndexingJob(
-                    firstPassIndexers,
-                    secondPassIndexer,
-                    ongoingIndexer,
-                    blockchainMetamodel);
+                _logger.LogInformation("Indexing has been started.");
             }
-
-            _logger.LogInformation("Indexing has been started.");
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to start indexing");
+            }
         }
 
         public async Task StopAsync(CancellationToken cancellationToken)
         {
-            _logger.LogInformation("Indexing is being stopped...");
-
-            foreach (var job in _firstPassIndexingJobs)
+            try
             {
-                job.Stop();
+                _logger.LogInformation("Indexing is being stopped...");
+
+                foreach (var job in _firstPassIndexingJobs)
+                {
+                    job.Stop();
+                }
+
+                _secondPassIndexingJobsManager.Stop();
+                _ongoingIndexingJobsManager.Stop();
+
+                foreach (var job in _firstPassIndexingJobs)
+                {
+                    await job.Wait();
+                }
+
+                await _secondPassIndexingJobsManager.Wait();
+                _ongoingIndexingJobsManager.Wait();
+
+                _logger.LogInformation("Indexing has been stopped.");
             }
-
-            _secondPassIndexingJobsManager.Stop();
-            _ongoingIndexingJobsManager.Stop();
-
-            foreach (var job in _firstPassIndexingJobs)
+            catch (Exception ex)
             {
-                await job.Wait();
+                _logger.LogError(ex, "Failed to stop indexing");
             }
-
-            await _secondPassIndexingJobsManager.Wait();
-            _ongoingIndexingJobsManager.Wait();
-
-            _logger.LogInformation("Indexing has been stopped.");
         }
 
         public void Dispose()

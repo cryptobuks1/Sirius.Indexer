@@ -67,6 +67,16 @@ namespace Indexer.Worker.Jobs
 
         public void Dispose()
         {
+            if (!_cts.IsCancellationRequested)
+            {
+                Stop();
+            }
+
+            if (_task != null && !_task.IsCompleted)
+            {
+                Wait().GetAwaiter().GetResult();
+            }
+
             _cts.Dispose();
             _task?.Dispose();
         }
