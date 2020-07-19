@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging;
 using Indexer.Common.HostedServices;
 using Indexer.Common.Persistence;
 using Indexer.Common.ServiceFunctions;
+using Indexer.Common.Telemetry;
 using Indexer.GrpcServices;
 using Indexer.HostedServices;
 using Swisschain.Sdk.Server.Common;
@@ -24,8 +25,15 @@ namespace Indexer
         protected override void ConfigureServicesExt(IServiceCollection services)
         {
             base.ConfigureServicesExt(services);
-
             services.AddPersistence(Config.CommonDb.ConnectionString);
+
+            services.AddAppInsight(options =>
+            {
+                options.SetInstrumentationKey(ConfigRoot["APPINSIGHTS_INSTRUMENTATIONKEY"]);
+                options.AddDefaultProperty("host-name", ApplicationEnvironment.HostName);
+                options.AddDefaultProperty("app-version", ApplicationInformation.AppVersion);
+            });
+
             services.AddHostedService<DbSchemaValidationHost>();
 
             services.AddMassTransit(x =>
