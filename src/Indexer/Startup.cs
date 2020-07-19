@@ -10,6 +10,7 @@ using Indexer.Common.HostedServices;
 using Indexer.Common.Persistence;
 using Indexer.Common.ServiceFunctions;
 using Indexer.GrpcServices;
+using Indexer.HostedServices;
 using Swisschain.Sdk.Server.Common;
 
 namespace Indexer
@@ -25,6 +26,7 @@ namespace Indexer
             base.ConfigureServicesExt(services);
 
             services.AddPersistence(Config.CommonDb.ConnectionString);
+            services.AddHostedService<DbSchemaValidationHost>();
 
             services.AddMassTransit(x =>
             {

@@ -1,4 +1,5 @@
-﻿using System.Threading;
+﻿using System;
+using System.Threading;
 using System.Threading.Tasks;
 using MassTransit;
 using Microsoft.Extensions.Hosting;
@@ -19,20 +20,34 @@ namespace Indexer.Common.HostedServices
 
         public async Task StartAsync(CancellationToken cancellationToken)
         {
-            _logger.LogInformation("Bus host being started...");
+            try
+            {
+                _logger.LogInformation("Bus host being started...");
 
-            await _busControl.StartAsync(cancellationToken);
+                await _busControl.StartAsync(cancellationToken);
 
-            _logger.LogInformation("Bus host has been started");
+                _logger.LogInformation("Bus host has been started");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to start Bus");
+            }
         }
 
         public async Task StopAsync(CancellationToken cancellationToken)
         {
-            _logger.LogInformation("Bus host being stopped...");
+            try
+            {
+                _logger.LogInformation("Bus host being stopped...");
 
-            await _busControl.StopAsync(cancellationToken);
+                await _busControl.StopAsync(cancellationToken);
 
-            _logger.LogInformation("Bus host has been stopped");
+                _logger.LogInformation("Bus host has been stopped");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to stop Bus");
+            }
         }
     }
 }

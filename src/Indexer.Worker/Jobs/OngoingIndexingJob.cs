@@ -117,6 +117,16 @@ namespace Indexer.Worker.Jobs
 
         public void Dispose()
         {
+            if (!_cts.IsCancellationRequested)
+            {
+                Stop();
+            }
+
+            if (!_done.IsSet)
+            {
+                Wait();
+            }
+
             _timer.Dispose();
             _cts.Dispose();
             _done.Dispose();
