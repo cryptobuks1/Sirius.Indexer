@@ -8,6 +8,7 @@ using Npgsql;
 using NpgsqlTypes;
 using Swisschain.Sirius.Sdk.Primitives;
 using PostgreSQLCopyHelper;
+using Swisschain.Extensions.Postgres;
 
 namespace Indexer.Common.Persistence.Entities.InputCoins
 {

@@ -58,21 +58,21 @@ namespace Indexer.Worker
                             TimeSpan.FromMilliseconds(10_000),
                             TimeSpan.FromMilliseconds(100)));
 
-                    cfg.SetLoggerFactory(provider.GetRequiredService<ILoggerFactory>());
+                    cfg.SetLoggerFactory(provider.Container.GetRequiredService<ILoggerFactory>());
 
                     cfg.ReceiveEndpoint("sirius-indexer-publish-all-assets", e =>
                         {
-                            e.Consumer(provider.GetRequiredService<PublishAllAssetsConsumer>);
+                            e.Consumer(provider.Container.GetRequiredService<PublishAllAssetsConsumer>);
                         });
 
                     cfg.ReceiveEndpoint("sirius-indexer-publish-asset", e =>
                         {
-                            e.Consumer(provider.GetRequiredService<PublishAssetConsumer>);
+                            e.Consumer(provider.Container.GetRequiredService<PublishAssetConsumer>);
                         });
 
                     cfg.ReceiveEndpoint("sirius-indexer-blockchain-updates", e =>
                         {
-                            e.Consumer(provider.GetRequiredService<BlockchainUpdatesConsumer>);
+                            e.Consumer(provider.Container.GetRequiredService<BlockchainUpdatesConsumer>);
                         });
                 }));
 

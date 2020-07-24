@@ -7,6 +7,7 @@ using Indexer.Common.Domain.Transactions;
 using Npgsql;
 using NpgsqlTypes;
 using PostgreSQLCopyHelper;
+using Swisschain.Extensions.Postgres;
 
 namespace Indexer.Common.Persistence.Entities.TransactionHeaders
 {

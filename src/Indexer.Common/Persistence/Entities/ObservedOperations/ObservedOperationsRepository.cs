@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Dapper;
 using Indexer.Common.Domain.ObservedOperations;
 using Npgsql;
+using Swisschain.Extensions.Postgres;
 
 namespace Indexer.Common.Persistence.Entities.ObservedOperations
 {
