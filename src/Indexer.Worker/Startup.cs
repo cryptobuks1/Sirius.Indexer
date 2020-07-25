@@ -28,7 +28,7 @@ namespace Indexer.Worker
 
             services.AddHttpClient();
             services.AddPersistence(Config.CommonDb.ConnectionString);
-            services.AddDomain();
+            services.AddWorkerDomain();
             services.AddJobs();
             services.AddMessageConsumers();
             services.AddAppInsight(options =>

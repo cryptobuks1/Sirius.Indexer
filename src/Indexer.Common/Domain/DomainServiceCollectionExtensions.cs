@@ -13,7 +13,14 @@ namespace Indexer.Common.Domain
 {
     public static class DomainServiceCollectionExtensions
     {
-        public static IServiceCollection AddDomain(this IServiceCollection services)
+        public static IServiceCollection AddApiDomain(this IServiceCollection services)
+        {
+            services.AddSingleton<IBlockchainMetamodelProvider, BlockchainMetamodelProvider>();
+
+            return services;
+        }
+
+        public static IServiceCollection AddWorkerDomain(this IServiceCollection services)
         {
             services.AddTransient<ChainWalker>();
             services.AddSingleton<IBlockReadersProvider, BlockReadersProvider>();

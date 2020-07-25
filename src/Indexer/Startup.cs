@@ -1,5 +1,6 @@
 ﻿using System;
 using Indexer.Common.Configuration;
+using Indexer.Common.Domain;
 using MassTransit;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
@@ -25,6 +26,8 @@ namespace Indexer
         protected override void ConfigureServicesExt(IServiceCollection services)
         {
             base.ConfigureServicesExt(services);
+
+            services.AddApiDomain();
             services.AddPersistence(Config.CommonDb.ConnectionString);
 
             services.AddAppInsight(options =>
