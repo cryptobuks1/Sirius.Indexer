@@ -1,8 +1,7 @@
 ﻿using System;
-using System.IO;
-using System.Reflection;
 using System.Threading.Tasks;
 using Dapper;
+using Indexer.Common.Persistence.SqlScripts;
 using Microsoft.Extensions.Logging;
 using Npgsql;
 using Swisschain.Sirius.Sdk.Primitives;
@@ -175,18 +174,7 @@ namespace Indexer.Common.Persistence.Entities.Blockchains
 
         private static async Task<string> LoadScript(string fileName)
         {
-            var assembly = Assembly.GetExecutingAssembly();
-            var resourceName = $"Indexer.Common.Persistence.SqlScripts.Initialization.{fileName}";
-
-            await using var stream = assembly.GetManifestResourceStream(resourceName);
-
-            if (stream == null)
-            {
-                throw new InvalidOperationException($"Resource {resourceName} is not found");
-            }
-
-            using var reader = new StreamReader(stream);
-            return reader.ReadToEnd();
+            return await SqlScriptsLoader.Load($"Initialization.{fileName}");
         }
     }
 }

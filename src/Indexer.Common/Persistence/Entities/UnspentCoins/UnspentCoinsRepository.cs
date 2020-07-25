@@ -7,6 +7,7 @@ using Indexer.Common.Domain.Transactions.Transfers.Coins;
 using Npgsql;
 using NpgsqlTypes;
 using PostgreSQLCopyHelper;
+using Swisschain.Extensions.Postgres;
 using Swisschain.Sirius.Sdk.Primitives;
 
 namespace Indexer.Common.Persistence.Entities.UnspentCoins

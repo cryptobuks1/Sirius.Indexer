@@ -6,6 +6,7 @@ using Dapper;
 using Indexer.Common.Domain.Transactions.Transfers.Nonce;
 using Npgsql;
 using PostgreSQLCopyHelper;
+using Swisschain.Extensions.Postgres;
 
 namespace Indexer.Common.Persistence.Entities.NonceUpdates
 {

@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 using Indexer.Common.Persistence;
 using Npgsql;
 
-namespace IndexerTests.Sdk.Mocks
+namespace IndexerTests.Sdk.Mocks.Persistence
 {
     public class TestBlockchainDbConnectionFactory : IBlockchainDbConnectionFactory
     {

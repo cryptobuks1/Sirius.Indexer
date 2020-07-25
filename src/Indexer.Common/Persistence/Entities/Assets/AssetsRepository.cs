@@ -11,6 +11,7 @@ using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using Swisschain.Sirius.Sdk.Primitives;
 using PostgreSQLCopyHelper;
+using Swisschain.Extensions.Postgres;
 
 namespace Indexer.Common.Persistence.Entities.Assets
 {
@@ -73,8 +74,8 @@ namespace Indexer.Common.Persistence.Entities.Assets
             {
                 await copyHelper.SaveAllAsync(connection, blockchainAssets);
             }
-            catch (PostgresException e) when (e.IsUniqueIndexViolationException("ix_assets_symbol") ||
-                                              e.IsUniqueIndexViolationException("ix_assets_symbol_address"))
+            catch (PostgresException e) when (e.IsUniqueConstraintViolationException("ix_assets_symbol") ||
+                                              e.IsUniqueConstraintViolationException("ix_assets_symbol_address"))
             {
                 var notExisting = await ExcludeExistingInDb(connection, blockchainAssets);
 
