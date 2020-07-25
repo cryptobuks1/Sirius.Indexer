@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 using Indexer.Common.Persistence;
 using Indexer.Common.Persistence.Entities.Blockchains;
 using IndexerTests.Sdk.Containers.Postgres;
-using IndexerTests.Sdk.Mocks;
+using IndexerTests.Sdk.Mocks.Persistence;
 using Microsoft.Extensions.Logging.Abstractions;
 using Npgsql;
 using Xunit;

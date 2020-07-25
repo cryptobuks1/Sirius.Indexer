@@ -22,6 +22,8 @@
     <None Remove="Persistence\SqlScripts\Initialization\Coins\before-coins-ongoing-indexing.sql" />
     <None Remove="Persistence\SqlScripts\Initialization\Nonce\before-nonce-indexing.sql" />
     <None Remove="Persistence\SqlScripts\Initialization\Nonce\before-nonce-ongoing-indexing.sql" />
+    <None Remove="Persistence\SqlScripts\Migrations\add-migrations.sql" />
+    <None Remove="Persistence\SqlScripts\Migrations\Coins\convert-coins-script-pub-key-to-text.sql" />
   </ItemGroup>
 
   <ItemGroup>
@@ -31,6 +33,8 @@
     <EmbeddedResource Include="Persistence\SqlScripts\Initialization\Coins\before-coins-ongoing-indexing.sql" />
     <EmbeddedResource Include="Persistence\SqlScripts\Initialization\Nonce\before-nonce-indexing.sql" />
     <EmbeddedResource Include="Persistence\SqlScripts\Initialization\Nonce\before-nonce-ongoing-indexing.sql" />
+    <EmbeddedResource Include="Persistence\SqlScripts\Migrations\add-migrations.sql" />
+    <EmbeddedResource Include="Persistence\SqlScripts\Migrations\Coins\convert-coins-script-pub-key-to-text.sql" />
   </ItemGroup>
 
   <ItemGroup>
@@ -68,10 +72,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Indexer.MessagingContract\Indexer.MessagingContract.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Persistence\SqlScripts\Migrations\" />
   </ItemGroup>
 
 </Project>

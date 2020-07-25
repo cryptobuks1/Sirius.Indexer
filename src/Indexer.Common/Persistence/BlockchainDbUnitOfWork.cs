@@ -27,7 +27,7 @@ namespace Indexer.Common.Persistence
         private readonly Lazy<ISpentCoinsRepository> _spentCoins;
         private readonly Lazy<IInputCoinsRepository> _inputCoins;
         
-        private readonly Lazy<INonceUpdatesRepository> _nonces;
+        private readonly Lazy<INonceUpdatesRepository> _nonceUpdates;
 
         public BlockchainDbUnitOfWork(NpgsqlConnection connection, string blockchainId)
         {
@@ -61,7 +61,7 @@ namespace Indexer.Common.Persistence
                 new InputCoinsRepositoryRetryDecorator(
                     new InputCoinsRepository(connection, schema)));
 
-            _nonces = new Lazy<INonceUpdatesRepository>(() =>
+            _nonceUpdates = new Lazy<INonceUpdatesRepository>(() =>
                 new NonceUpdatesRepository(connection, schema));
         }
 
@@ -75,7 +75,7 @@ namespace Indexer.Common.Persistence
         public ISpentCoinsRepository SpentCoins => _spentCoins.Value;
         public IInputCoinsRepository InputCoins => _inputCoins.Value;
 
-        public INonceUpdatesRepository NonceUpdates => _nonces.Value;
+        public INonceUpdatesRepository NonceUpdates => _nonceUpdates.Value;
 
         public virtual async ValueTask DisposeAsync()
         {

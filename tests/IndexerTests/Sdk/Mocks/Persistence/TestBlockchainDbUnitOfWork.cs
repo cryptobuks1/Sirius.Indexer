@@ -10,7 +10,7 @@ using Indexer.Common.Persistence.Entities.SpentCoins;
 using Indexer.Common.Persistence.Entities.TransactionHeaders;
 using Indexer.Common.Persistence.Entities.UnspentCoins;
 
-namespace IndexerTests.Sdk.Mocks
+namespace IndexerTests.Sdk.Mocks.Persistence
 {
     public class TestBlockchainDbUnitOfWork : IBlockchainDbUnitOfWork
     {

@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using Indexer.Common.Domain.Blocks;
 using Indexer.Common.Domain.Indexing.Ongoing;
 using Indexer.Common.Persistence.Entities.BlockHeaders;
-using IndexerTests.Sdk.Mocks;
+using IndexerTests.Sdk.Mocks.Persistence;
 using Microsoft.Extensions.Logging.Abstractions;
 using Shouldly;
 using Xunit;

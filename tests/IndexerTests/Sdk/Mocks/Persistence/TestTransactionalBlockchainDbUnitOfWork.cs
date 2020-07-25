@@ -1,7 +1,7 @@
 ﻿using System.Threading.Tasks;
 using Indexer.Common.Persistence;
 
-namespace IndexerTests.Sdk.Mocks
+namespace IndexerTests.Sdk.Mocks.Persistence
 {
     public class TestTransactionalBlockchainDbUnitOfWork : TestBlockchainDbUnitOfWork, ITransactionalBlockchainDbUnitOfWork
     {

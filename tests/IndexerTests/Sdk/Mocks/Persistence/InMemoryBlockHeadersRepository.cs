@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using Indexer.Common.Domain.Blocks;
 using Indexer.Common.Persistence.Entities.BlockHeaders;
 
-namespace IndexerTests.Sdk.Mocks
+namespace IndexerTests.Sdk.Mocks.Persistence
 {
     public class InMemoryBlockHeadersRepository : IBlockHeadersRepository
     {

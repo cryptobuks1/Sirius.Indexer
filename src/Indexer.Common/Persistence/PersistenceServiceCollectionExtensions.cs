@@ -1,4 +1,5 @@
 ﻿using System;
+using Indexer.Common.Persistence.BlockchainDbMigrations;
 using Indexer.Common.Persistence.Entities.Assets;
 using Indexer.Common.Persistence.Entities.Blockchains;
 using Indexer.Common.Persistence.Entities.FirstPassIndexers;
@@ -58,8 +59,11 @@ namespace Indexer.Common.Persistence
             services.AddSingleton<IBlockchainDbConnectionFactory, BlockchainDbConnectionFactory>();
             services.AddSingleton<IBlockchainDbUnitOfWorkFactory, BlockchainDbUnitOfWorkFactory>();
 
+            services.AddSingleton(c => BlockchainDbMigrationsRegistryFactory.Create());
+            services.AddTransient<IBlockchainDbMigrationsManager, BlockchainDbMigrationManager>();
+            
             // TODO: Consider using services.AddDbContextPooling
-
+            
             return services;
         }
     }

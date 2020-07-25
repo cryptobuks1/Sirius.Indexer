@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 using Indexer.Common.Domain.Indexing.SecondPass;
 using Indexer.Common.Persistence.Entities.SecondPassIndexers;
 
-namespace IndexerTests.Sdk.Mocks
+namespace IndexerTests.Sdk.Mocks.Persistence
 {
     internal sealed class InMemorySecondPassIndexersRepository : ISecondPassIndexersRepository
     {
