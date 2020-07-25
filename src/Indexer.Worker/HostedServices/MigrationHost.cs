@@ -38,12 +38,12 @@ namespace Indexer.Worker.HostedServices
 
                 await context.Database.MigrateAsync(cancellationToken);
 
-                _logger.LogInformation("DB schema migration has been completed.");
-
                 foreach (var (blockchainId, _) in _config.Blockchains)
                 {
                     await _blockchainDbMigrationsManager.Migrate(blockchainId);
                 }
+
+                _logger.LogInformation("DB schema migration has been completed.");
             }
             catch (Exception ex)
             {
