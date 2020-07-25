@@ -73,48 +73,14 @@ namespace Indexer.Worker.HostedServices
 
                 foreach (var (blockchainId, blockchainConfig) in _config?.Blockchains ?? new Dictionary<string, BlockchainConfig>())
                 {
-                    _logger.LogInformation(@"Blockchain indexing is being provisioned {@context}...",
-                        new
-                        {
-                            BlockchainId = blockchainId,
-                            BlockchainConfig = blockchainConfig.Indexing
-                        });
-
-                    var blockchainMetamodel = await _blockchainsRepository.GetOrDefaultAsync(blockchainId);
-
-                    if (blockchainMetamodel == null)
+                    try
                     {
-                        _logger.LogWarning(@"Blockchain metamodel not found. Indexing for this blockchain couldn't be started {@context}",
-                            new
-                            {
-                                BlockchainId = blockchainId,
-                                BlockchainConfig = blockchainConfig.Indexing
-                            });
-
-                        continue;
+                        await StartBlockchainIndexing(blockchainId, blockchainConfig);
                     }
-
-                    await ProvisionDbSchema(blockchainMetamodel);
-                    var firstPassIndexers = await ProvisionFirstPassIndexers(
-                        blockchainId,
-                        blockchainConfig.Indexing,
-                        blockchainMetamodel);
-                    var secondPassIndexer = await ProvisionSecondPassIndexerOrDefault(
-                        blockchainId,
-                        blockchainConfig.Indexing,
-                        blockchainMetamodel);
-                    var ongoingIndexer = await ProvisionOngoingIndexer(
-                        blockchainId, 
-                        blockchainConfig.Indexing, 
-                        blockchainMetamodel);
-
-                    await StartFirstPassIndexingJobs(firstPassIndexers, blockchainMetamodel);
-                    await StartSecondPassIndexingJob(secondPassIndexer);
-                    await StartOngoingIndexingJob(
-                        firstPassIndexers,
-                        secondPassIndexer,
-                        ongoingIndexer,
-                        blockchainMetamodel);
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Failed to start {blockchainId} indexing", blockchainId);
+                    }
                 }
 
                 _logger.LogInformation("Indexing has been started.");
@@ -164,6 +130,53 @@ namespace Indexer.Worker.HostedServices
             
             _secondPassIndexingJobsManager.Dispose();
             _ongoingIndexingJobsManager.Dispose();
+        }
+
+        private async Task StartBlockchainIndexing(string blockchainId, BlockchainConfig blockchainConfig)
+        {
+            _logger.LogInformation(@"Blockchain indexing is being provisioned {@context}...",
+                new
+                {
+                    BlockchainId = blockchainId,
+                    BlockchainConfig = blockchainConfig.Indexing
+                });
+
+            var blockchainMetamodel = await _blockchainsRepository.GetOrDefaultAsync(blockchainId);
+
+            if (blockchainMetamodel == null)
+            {
+                _logger.LogWarning(
+                    @"Blockchain metamodel not found. Indexing for this blockchain couldn't be started {@context}",
+                    new
+                    {
+                        BlockchainId = blockchainId,
+                        BlockchainConfig = blockchainConfig.Indexing
+                    });
+
+                return;
+            }
+
+            await ProvisionDbSchema(blockchainMetamodel);
+            var firstPassIndexers = await ProvisionFirstPassIndexers(
+                blockchainId,
+                blockchainConfig.Indexing,
+                blockchainMetamodel);
+            var secondPassIndexer = await ProvisionSecondPassIndexerOrDefault(
+                blockchainId,
+                blockchainConfig.Indexing,
+                blockchainMetamodel);
+            var ongoingIndexer = await ProvisionOngoingIndexer(
+                blockchainId,
+                blockchainConfig.Indexing,
+                blockchainMetamodel);
+
+            await StartFirstPassIndexingJobs(firstPassIndexers, blockchainMetamodel);
+            await StartSecondPassIndexingJob(secondPassIndexer);
+            await StartOngoingIndexingJob(
+                firstPassIndexers,
+                secondPassIndexer,
+                ongoingIndexer,
+                blockchainMetamodel);
         }
 
         private async Task ProvisionDbSchema(BlockchainMetamodel blockchainMetamodel)
