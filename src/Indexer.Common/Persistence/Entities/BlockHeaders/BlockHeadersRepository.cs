@@ -92,6 +92,13 @@ namespace Indexer.Common.Persistence.Entities.BlockHeaders
             return MapFromEntity(entity);
         }
 
+        public async Task<long> GetCount()
+        {
+            var query = $"select count(*) from {_schema}.{TableNames.BlockHeaders}";
+
+            return await _connection.ExecuteScalarAsync<long>(query);
+        }
+
         private BlockHeader MapFromEntity(BlockHeaderEntity entity)
         {
             return new BlockHeader(

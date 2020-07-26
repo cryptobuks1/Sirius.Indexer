@@ -40,7 +40,12 @@ namespace Indexer.Common.Persistence.Entities.BlockHeaders
 
         public Task<BlockHeader> GetLast()
         {
-            return _impl.GetLast();
+            return _retryPolicy.ExecuteAsync(() => _impl.GetLast());
+        }
+
+        public Task<long> GetCount()
+        {
+            return _retryPolicy.ExecuteAsync(() => _impl.GetCount());
         }
     }
 }

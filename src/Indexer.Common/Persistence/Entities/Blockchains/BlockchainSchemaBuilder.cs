@@ -20,7 +20,7 @@ namespace Indexer.Common.Persistence.Entities.Blockchains
             _connectionFactory = connectionFactory;
         }
 
-        public async Task<bool> ProvisionForIndexing(string blockchainId, DoubleSpendingProtectionType blockchainDoubleSpendingProtectionType)
+        public async Task<bool> Provision(string blockchainId, DoubleSpendingProtectionType blockchainDoubleSpendingProtectionType)
         {
             _logger.LogInformation("DB schema for {@blockchainId} is being provisioned...", blockchainId);
 

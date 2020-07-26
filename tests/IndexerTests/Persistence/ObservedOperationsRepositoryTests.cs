@@ -19,7 +19,8 @@ namespace IndexerTests.Persistence
         [InlineData(DoubleSpendingProtectionType.Nonce)]
         public async Task CanAddOperationSeveralTimes(DoubleSpendingProtectionType doubleSpendingProtectionType)
         {
-            await Fixture.SchemaBuilder.ProvisionForIndexing("test", doubleSpendingProtectionType);
+            await Fixture.SchemaBuilder.Provision("test", doubleSpendingProtectionType);
+            await Fixture.SchemaBuilder.UpgradeToOngoingIndexing("test", doubleSpendingProtectionType);
 
             await using var dbUnitOfWork = await Fixture.BlockchainDbUnitOfWorkFactory.Start("test");
 
