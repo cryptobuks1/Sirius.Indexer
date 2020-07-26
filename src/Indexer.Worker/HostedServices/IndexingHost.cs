@@ -7,6 +7,7 @@ using Indexer.Common.Configuration;
 using Indexer.Common.Domain.Indexing.FirstPass;
 using Indexer.Common.Domain.Indexing.Ongoing;
 using Indexer.Common.Domain.Indexing.SecondPass;
+using Indexer.Common.Persistence;
 using Indexer.Common.Persistence.Entities.Blockchains;
 using Indexer.Common.Persistence.Entities.FirstPassIndexers;
 using Indexer.Common.Persistence.Entities.OngoingIndexers;
@@ -25,11 +26,11 @@ namespace Indexer.Worker.HostedServices
         private readonly ILogger<IndexingHost> _logger;
         private readonly ILoggerFactory _loggerFactory;
         private readonly AppConfig _config;
-        private readonly IBlockchainSchemaBuilder _blockchainSchemaBuilder;
         private readonly IBlockchainsRepository _blockchainsRepository;
         private readonly IFirstPassIndexersRepository _firstPassIndexersRepository;
         private readonly ISecondPassIndexersRepository _secondPassIndexersRepository;
         private readonly IOngoingIndexersRepository _ongoingIndexersRepository;
+        private readonly IBlockchainDbUnitOfWorkFactory _blockchainDbUnitOfWorkFactory;
         private readonly SecondPassIndexingJobsManager _secondPassIndexingJobsManager;
         private readonly OngoingIndexingJobsManager _ongoingIndexingJobsManager;
         private readonly IAppInsight _appInsight;
@@ -39,11 +40,11 @@ namespace Indexer.Worker.HostedServices
         public IndexingHost(ILogger<IndexingHost> logger,
             ILoggerFactory loggerFactory,
             AppConfig config,
-            IBlockchainSchemaBuilder blockchainSchemaBuilder,
             IBlockchainsRepository blockchainsRepository,
             IFirstPassIndexersRepository firstPassIndexersRepository,
             ISecondPassIndexersRepository secondPassIndexersRepository,
             IOngoingIndexersRepository ongoingIndexersRepository,
+            IBlockchainDbUnitOfWorkFactory blockchainDbUnitOfWorkFactory,
             SecondPassIndexingJobsManager secondPassIndexingJobsManager,
             OngoingIndexingJobsManager ongoingIndexingJobsManager,
             IAppInsight appInsight,
@@ -52,11 +53,11 @@ namespace Indexer.Worker.HostedServices
             _logger = logger;
             _loggerFactory = loggerFactory;
             _config = config;
-            _blockchainSchemaBuilder = blockchainSchemaBuilder;
             _blockchainsRepository = blockchainsRepository;
             _firstPassIndexersRepository = firstPassIndexersRepository;
             _secondPassIndexersRepository = secondPassIndexersRepository;
             _ongoingIndexersRepository = ongoingIndexersRepository;
+            _blockchainDbUnitOfWorkFactory = blockchainDbUnitOfWorkFactory;
             _secondPassIndexingJobsManager = secondPassIndexingJobsManager;
             _ongoingIndexingJobsManager = ongoingIndexingJobsManager;
             _appInsight = appInsight;
@@ -181,9 +182,11 @@ namespace Indexer.Worker.HostedServices
 
         private async Task ProvisionDbSchema(BlockchainMetamodel blockchainMetamodel)
         {
-            if (await _blockchainSchemaBuilder.ProvisionForIndexing(blockchainMetamodel.Id, blockchainMetamodel.Protocol.DoubleSpendingProtectionType))
+            await using var unitOfWork = await _blockchainDbUnitOfWorkFactory.Start(blockchainMetamodel.Id);
+
+            if (await unitOfWork.BlockHeaders.GetCount() == 0)
             {
-                _logger.LogInformation("Cleaning {@blockchainId} indexers up since schema was just created...", blockchainMetamodel.Id);
+                _logger.LogInformation("Cleaning {@blockchainId} indexers up since there are no indexed blocks found...", blockchainMetamodel.Id);
 
                 await _firstPassIndexersRepository.Remove(blockchainMetamodel.Id);
                 await _secondPassIndexersRepository.Remove(blockchainMetamodel.Id);

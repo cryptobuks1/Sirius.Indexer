@@ -3,6 +3,7 @@ using Indexer.Common.Persistence.Entities.Blockchains;
 using IndexerTests.Sdk;
 using IndexerTests.Sdk.Fixtures;
 using Microsoft.Extensions.Logging.Abstractions;
+using Shouldly;
 using Swisschain.Sirius.Sdk.Primitives;
 using Xunit;
 
@@ -22,7 +23,9 @@ namespace IndexerTests.Persistence
         {
             var schemaBuilder = new BlockchainSchemaBuilder(NullLogger<BlockchainSchemaBuilder>.Instance, Fixture.BlockchainDbConnectionFactory);
 
-            await schemaBuilder.ProvisionForIndexing(blockchainId, doubleSpendingProtectionType);
+            var provisionResult = await schemaBuilder.Provision(blockchainId, doubleSpendingProtectionType);
+
+            provisionResult.ShouldBeTrue();
         }
 
         [Theory]
@@ -31,6 +34,10 @@ namespace IndexerTests.Persistence
         public async Task CanUpgradeCoinsSchemaToOngoingIndexing(string blockchainId, DoubleSpendingProtectionType doubleSpendingProtectionType)
         {
             var schemaBuilder = new BlockchainSchemaBuilder(NullLogger<BlockchainSchemaBuilder>.Instance, Fixture.BlockchainDbConnectionFactory);
+
+            var provisionResult = await schemaBuilder.Provision(blockchainId, doubleSpendingProtectionType);
+
+            provisionResult.ShouldBeTrue();
 
             await schemaBuilder.UpgradeToOngoingIndexing(blockchainId, doubleSpendingProtectionType);
         }

@@ -23,7 +23,8 @@ namespace IndexerTests.Persistence
         [Fact]
         public async Task CanReadAndRemoveMoreThan1000CoinsByIdsList()
         {
-            await Fixture.SchemaBuilder.ProvisionForIndexing("test", DoubleSpendingProtectionType.Coins);
+            await Fixture.SchemaBuilder.Provision("test", DoubleSpendingProtectionType.Coins);
+            await Fixture.SchemaBuilder.UpgradeToOngoingIndexing("test", DoubleSpendingProtectionType.Coins);
 
             await using var dbUnitOfWork = await Fixture.BlockchainDbUnitOfWorkFactory.Start("test");
 
@@ -54,7 +55,7 @@ namespace IndexerTests.Persistence
         [Fact]
         public async Task CanGetByAddress()
         {
-            await Fixture.SchemaBuilder.ProvisionForIndexing("test", DoubleSpendingProtectionType.Coins);
+            await Fixture.SchemaBuilder.Provision("test", DoubleSpendingProtectionType.Coins);
             await Fixture.SchemaBuilder.UpgradeToOngoingIndexing("test", DoubleSpendingProtectionType.Coins);
 
             await using var dbUnitOfWork = await Fixture.BlockchainDbUnitOfWorkFactory.Start("test");
@@ -81,7 +82,7 @@ namespace IndexerTests.Persistence
         [Fact]
         public async Task CanGetByAddressWithAsAtBlockNumber()
         {
-            await Fixture.SchemaBuilder.ProvisionForIndexing("test-1", DoubleSpendingProtectionType.Coins);
+            await Fixture.SchemaBuilder.Provision("test-1", DoubleSpendingProtectionType.Coins);
             await Fixture.SchemaBuilder.UpgradeToOngoingIndexing("test-1", DoubleSpendingProtectionType.Coins);
 
             await using var dbUnitOfWork = await Fixture.BlockchainDbUnitOfWorkFactory.Start("test-1");

@@ -64,5 +64,13 @@ namespace IndexerTests.Sdk.Mocks.Persistence
                 return Task.FromResult(_store.Values.OrderByDescending(x => x.Number).First());
             }
         }
+
+        public Task<long> GetCount()
+        {
+            lock (_store)
+            {
+                return Task.FromResult<long>(_store.Count);
+            }
+        }
     }
 }

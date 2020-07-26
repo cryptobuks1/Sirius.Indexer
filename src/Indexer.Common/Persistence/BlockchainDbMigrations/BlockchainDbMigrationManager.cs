@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Dapper;
 using Indexer.Common.Domain.Blockchains;
 using Indexer.Common.Persistence.Entities.BlockchainDbMigrations;
+using Indexer.Common.Persistence.Entities.Blockchains;
 using Indexer.Common.Persistence.SqlScripts;
 using Microsoft.Extensions.Logging;
 using Npgsql;
@@ -15,17 +16,20 @@ namespace Indexer.Common.Persistence.BlockchainDbMigrations
         private readonly ILogger<BlockchainDbMigrationManager> _logger;
         private readonly IBlockchainDbConnectionFactory _blockchainDbConnectionFactory;
         private readonly IBlockchainMetamodelProvider _blockchainMetamodelProvider;
+        private readonly IBlockchainSchemaBuilder _blockchainSchemaBuilder;
         private readonly BlockchainDbMigrationsRegistry _registry;
 
         public BlockchainDbMigrationManager(
             ILogger<BlockchainDbMigrationManager> logger,
             IBlockchainDbConnectionFactory blockchainDbConnectionFactory,
             IBlockchainMetamodelProvider blockchainMetamodelProvider,
+            IBlockchainSchemaBuilder blockchainSchemaBuilder,
             BlockchainDbMigrationsRegistry registry)
         {
             _logger = logger;
             _blockchainDbConnectionFactory = blockchainDbConnectionFactory;
             _blockchainMetamodelProvider = blockchainMetamodelProvider;
+            _blockchainSchemaBuilder = blockchainSchemaBuilder;
             _registry = registry;
         }
 
@@ -40,6 +44,14 @@ namespace Indexer.Common.Persistence.BlockchainDbMigrations
             var migrationsRepository = new BlockchainDbMigrationsRepository(connection, schema);
 
             var currentVersion = await migrationsRepository.GetMaxVersion();
+
+            if (currentVersion == 0)
+            {
+                await _blockchainSchemaBuilder.Provision(
+                    blockchainId,
+                    blockchainMetamodel.Protocol.DoubleSpendingProtectionType);
+            }
+
             var pendingMigrations = _registry.GetPending(currentVersion, blockchainMetamodel.Protocol.DoubleSpendingProtectionType);
 
             foreach (var pendingMigration in pendingMigrations)

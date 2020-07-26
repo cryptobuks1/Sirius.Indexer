@@ -11,5 +11,6 @@ namespace Indexer.Common.Persistence.Entities.BlockHeaders
         Task Remove(string id);
         Task<IEnumerable<BlockHeader>> GetBatch(long startBlockNumber, int limit);
         Task<BlockHeader> GetLast();
+        Task<long> GetCount();
     }
 }

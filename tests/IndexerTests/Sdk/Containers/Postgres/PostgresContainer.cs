@@ -34,7 +34,7 @@ namespace IndexerTests.Sdk.Containers.Postgres
                 .ExposePort(hostPort, _containerRpcPort)
                 .WaitForPort($"{_containerRpcPort}/tcp", TimeSpan.FromMinutes(2))
                 .WithEnvironment(
-                    "POSTGRES_DB=test_db",
+                    "POSTGRES_DB=main_db",
                     $"POSTGRES_USER={user}",
                     $"POSTGRES_PASSWORD={password}");
 
@@ -50,13 +50,13 @@ namespace IndexerTests.Sdk.Containers.Postgres
             _containerService = builder.Build();
         }
 
-        public string ConnectionString => $"Server=localhost;Database=test_db;Port={_hostPort};User Id={_user};Password={_password};Ssl Mode=Disable;";
+        public string MainDbConnectionString => GetConnectionString("main_db");
 
         public async Task Start()
         {
             _containerService.Start();
 
-            var probe = new PostgresProbe(ConnectionString, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(30));
+            var probe = new PostgresProbe(MainDbConnectionString, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(30));
             
             await probe.InitializeAsync();
         }
@@ -67,5 +67,9 @@ namespace IndexerTests.Sdk.Containers.Postgres
             _containerService.Remove();
         }
 
+        public string GetConnectionString(string database)
+        {
+            return $"Server=localhost;Database={database};Port={_hostPort};User Id={_user};Password={_password};Ssl Mode=Disable;Pooling=false";
+        }
     }
 }

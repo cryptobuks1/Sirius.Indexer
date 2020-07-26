@@ -1,10 +1,13 @@
-﻿using IndexerTests.Sdk.Fixtures;
+﻿using System.Threading.Tasks;
+using IndexerTests.Sdk.Fixtures;
 using Xunit;
 
 namespace IndexerTests.Sdk
 {
     [Collection(nameof(PersistenceTests))]
-    public abstract class PersistenceTests : IClassFixture<PersistenceFixture>
+    public abstract class PersistenceTests : 
+        IClassFixture<PersistenceFixture>,
+        IAsyncLifetime
     {
         public PersistenceTests(PersistenceFixture fixture)
         {
@@ -12,5 +15,15 @@ namespace IndexerTests.Sdk
         }
 
         public PersistenceFixture Fixture { get; }
+
+        public async Task InitializeAsync()
+        {
+            await Fixture.CreateTestDb();
+        }
+
+        public async Task DisposeAsync()
+        {
+            await Fixture.DropTestDb();
+        }
     }
 }
