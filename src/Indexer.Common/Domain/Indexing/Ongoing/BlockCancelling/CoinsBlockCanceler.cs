@@ -26,35 +26,26 @@ namespace Indexer.Common.Domain.Indexing.Ongoing.BlockCancelling
 
         public async Task Cancel(OngoingIndexer indexer, BlockHeader blockHeader)
         {
-            await using var unitOfWork = await _blockchainDbUnitOfWorkFactory.StartTransactional(blockHeader.BlockchainId);
+            await using var unitOfWork = await _blockchainDbUnitOfWorkFactory.Start(blockHeader.BlockchainId);
 
-            try
+            var lastBlock = await unitOfWork.BlockHeaders.GetLast();
+
+            if (lastBlock.Id != blockHeader.Id)
             {
-                var lastBlock = await unitOfWork.BlockHeaders.GetLast();
+                _logger.LogError("Can't cancel the block - it's not the last one {@context}",
+                    new
+                    {
+                        BlockchainId = blockHeader.BlockchainId,
+                        BlockId = blockHeader.Id,
+                        BlockNumber = blockHeader.Number,
+                        LastBlockId = lastBlock.Id,
+                        LastBlockNumber = lastBlock.Number
+                    });
 
-                if (lastBlock.Id != blockHeader.Id)
-                {
-                    _logger.LogError("Can't cancel the block - it's not the last one {@context}",
-                        new
-                        {
-                            BlockchainId = blockHeader.BlockchainId,
-                            BlockId = blockHeader.Id,
-                            BlockNumber = blockHeader.Number,
-                            LastBlockId = lastBlock.Id,
-                            LastBlockNumber = lastBlock.Number
-                        });
-
-                    throw new InvalidOperationException($"Can't cancel the block {blockHeader.BlockchainId}:{blockHeader.Id} ({blockHeader.Number}) - it's not the last one. The last one block is {lastBlock.Id} ({lastBlock.Number})");
-                }
-
-                await CancelBlock(blockHeader, unitOfWork);
-                await unitOfWork.Commit();
+                throw new InvalidOperationException($"Can't cancel the block {blockHeader.BlockchainId}:{blockHeader.Id} ({blockHeader.Number}) - it's not the last one. The last one block is {lastBlock.Id} ({lastBlock.Number})");
             }
-            catch
-            {
-                await unitOfWork.Rollback();
-                throw;
-            }
+
+            await CancelBlock(blockHeader, unitOfWork);
 
             await _publisher.Publish(new BlockCancelled
             {
@@ -65,7 +56,7 @@ namespace Indexer.Common.Domain.Indexing.Ongoing.BlockCancelling
             });
         }
 
-        private static async Task CancelBlock(BlockHeader blockHeader, ITransactionalBlockchainDbUnitOfWork unitOfWork)
+        private static async Task CancelBlock(BlockHeader blockHeader, IBlockchainDbUnitOfWork unitOfWork)
         {
             await unitOfWork.BlockHeaders.Remove(blockHeader.Id);
             await unitOfWork.TransactionHeaders.RemoveByBlock(blockHeader.Id);
