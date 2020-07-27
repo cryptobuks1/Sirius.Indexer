@@ -5,17 +5,11 @@ namespace IndexerTests.Sdk.Mocks.Persistence
 {
     public class TestBlockchainDbUnitOfWorkFactory : IBlockchainDbUnitOfWorkFactory
     {
-        public IBlockchainDbUnitOfWork UnitOfWork { get; set; } = new TestBlockchainDbUnitOfWork();
-        public ITransactionalBlockchainDbUnitOfWork TransactionalUnitOfWork { get; set; } = new TestTransactionalBlockchainDbUnitOfWork();
+        public IBlockchainDbUnitOfWork UnitOfWork { get; } = new TestBlockchainDbUnitOfWork();
         
         public Task<IBlockchainDbUnitOfWork> Start(string blockchainId)
         {
             return Task.FromResult(UnitOfWork);
-        }
-
-        public Task<ITransactionalBlockchainDbUnitOfWork> StartTransactional(string blockchainId)
-        {
-            return Task.FromResult(TransactionalUnitOfWork);
         }
     }
 }

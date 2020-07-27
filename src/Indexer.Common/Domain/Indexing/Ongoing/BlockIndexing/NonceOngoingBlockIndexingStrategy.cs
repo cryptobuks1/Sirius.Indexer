@@ -39,18 +39,8 @@ namespace Indexer.Common.Domain.Indexing.Ongoing.BlockIndexing
 
         public async Task ApplyBlock(OngoingIndexer indexer)
         {
-            await using var unitOfWork = await _blockchainDbUnitOfWorkFactory.StartTransactional(_block.Header.BlockchainId);
-
-            try
-            {
-                await ApplyBlock(indexer, unitOfWork);
-                await unitOfWork.Commit();
-            }
-            catch
-            {
-                await unitOfWork.Rollback();
-                throw;
-            }
+            await using var unitOfWork = await _blockchainDbUnitOfWorkFactory.Start(_block.Header.BlockchainId);
+            await ApplyBlock(indexer, unitOfWork);
         }
 
         public async Task ApplyBlock(OngoingIndexer indexer, IBlockchainDbUnitOfWork unitOfWork)
