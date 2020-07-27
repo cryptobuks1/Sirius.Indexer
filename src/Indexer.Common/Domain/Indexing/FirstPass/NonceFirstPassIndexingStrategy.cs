@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Indexer.Common.Configuration;
 using Indexer.Common.Domain.Blocks;
 using Indexer.Common.Domain.Indexing.Common;
+using Indexer.Common.Domain.Transactions.Transfers.Nonce;
 using Indexer.Common.Persistence;
 using Microsoft.Extensions.Logging;
 
@@ -45,7 +46,18 @@ namespace Indexer.Common.Domain.Indexing.FirstPass
 
             await using var unitOfWork = await _blockchainDbUnitOfWorkFactory.Start(indexer.BlockchainId);
 
-            var nonceUpdates = block.Transfers.SelectMany(tx => tx.NonceUpdates).ToArray();
+            var nonceUpdates = block.Transfers
+                .SelectMany(tx => tx.NonceUpdates)
+                .GroupBy(x => new
+                {
+                    x.Address,
+                    x.BlockId
+                })
+                .Select(g => new NonceUpdate(
+                    g.Key.Address,
+                    g.Key.BlockId,
+                    g.Max(x => x.Nonce)))
+                .ToArray();
 
             // TODO: Save operations
 
