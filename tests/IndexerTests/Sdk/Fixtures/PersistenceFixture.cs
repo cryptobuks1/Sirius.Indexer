@@ -1,10 +1,14 @@
-﻿using System.Collections.Concurrent;
+﻿using System;
+using System.Collections.Concurrent;
 using System.Threading.Tasks;
 using Dapper;
 using Indexer.Common.Persistence;
 using Indexer.Common.Persistence.Entities.Blockchains;
+using Indexer.Common.Persistence.EntityFramework;
+using Indexer.Common.Telemetry;
 using IndexerTests.Sdk.Containers.Postgres;
 using IndexerTests.Sdk.Mocks.Persistence;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Npgsql;
 using Xunit;
@@ -25,6 +29,7 @@ namespace IndexerTests.Sdk.Fixtures
         public IBlockchainDbConnectionFactory BlockchainDbConnectionFactory { get; private set; }
         public IBlockchainDbUnitOfWorkFactory BlockchainDbUnitOfWorkFactory { get; private set; }
         public IBlockchainSchemaBuilder SchemaBuilder { get; private set; }
+        public Func<CommonDatabaseContext> CommonDbContextFactory { get; private set; }
 
         public async Task<NpgsqlConnection> CreateConnection()
         {
@@ -43,6 +48,7 @@ namespace IndexerTests.Sdk.Fixtures
             BlockchainDbConnectionFactory = new TestBlockchainDbConnectionFactory(CreateConnectionInternal);
             BlockchainDbUnitOfWorkFactory = new BlockchainDbUnitOfWorkFactory(BlockchainDbConnectionFactory);
             SchemaBuilder = new BlockchainSchemaBuilder(NullLogger<BlockchainSchemaBuilder>.Instance, BlockchainDbConnectionFactory);
+            CommonDbContextFactory = CreateCommonDbContextFactory();
         }
 
         public async Task DropTestDb()
@@ -93,6 +99,26 @@ namespace IndexerTests.Sdk.Fixtures
             _testDbConnections.Add(connection);
 
             return connection;
+        }
+
+        private Func<CommonDatabaseContext> CreateCommonDbContextFactory()
+        {
+            
+            var optionsBuilder = new DbContextOptionsBuilder<CommonDatabaseContext>();
+
+            optionsBuilder
+                .UseNpgsql(_container.GetConnectionString("test_db"),
+                    builder =>
+                        builder.MigrationsHistoryTable(
+                            CommonDatabaseContext.MigrationHistoryTable,
+                            CommonDatabaseContext.SchemaName));
+
+            CommonDatabaseContext CreateDatabaseContext()
+            {
+                return new CommonDatabaseContext(optionsBuilder.Options, new TurnedOffAppInsight());
+            }
+                
+            return CreateDatabaseContext;
         }
     }
 }
