@@ -44,7 +44,7 @@ namespace Indexer.Common.Persistence.Entities.Assets
                 await connection.OpenAsync();
             }
 
-            var entities = await GetInList(connection, blockchainAssetIds);
+            var entities = await GetInList(connection, blockchainId, blockchainAssetIds);
 
             return entities.Select(MapToDomain).ToArray();
         }
@@ -77,7 +77,7 @@ namespace Indexer.Common.Persistence.Entities.Assets
             catch (PostgresException e) when (e.IsUniqueConstraintViolationException("ix_assets_symbol") ||
                                               e.IsUniqueConstraintViolationException("ix_assets_symbol_address"))
             {
-                var notExisting = await ExcludeExistingInDb(connection, blockchainAssets);
+                var notExisting = await ExcludeExistingInDb(connection, blockchainId, blockchainAssets);
 
                 if (notExisting.Any())
                 {
@@ -87,6 +87,7 @@ namespace Indexer.Common.Persistence.Entities.Assets
         }
 
         private static async Task<IReadOnlyCollection<BlockchainAsset>> ExcludeExistingInDb(NpgsqlConnection connection, 
+            string blockchainId,
             IReadOnlyCollection<BlockchainAsset> blockchainAssets)
         {
             if (!blockchainAssets.Any())
@@ -94,7 +95,7 @@ namespace Indexer.Common.Persistence.Entities.Assets
                 return Array.Empty<BlockchainAsset>();
             }
 
-            var existingEntities = await GetInList(connection, blockchainAssets.Select(x => x.Id).ToArray());
+            var existingEntities = await GetInList(connection, blockchainId, blockchainAssets.Select(x => x.Id).ToArray());
 
             var existingIds = existingEntities
                 .Select(x => new BlockchainAssetId(x.Symbol, x.Address))
@@ -104,6 +105,7 @@ namespace Indexer.Common.Persistence.Entities.Assets
         }
 
         private static async Task<IEnumerable<AssetEntity>> GetInList(NpgsqlConnection connection,
+            string blockchainId,
             IReadOnlyCollection<BlockchainAssetId> blockchainAssetIds)
         {
             const int batchSize = 1000;
@@ -117,7 +119,7 @@ namespace Indexer.Common.Persistence.Entities.Assets
 
                 var queryBuilder = new StringBuilder();
 
-                queryBuilder.AppendLine($"select * from {CommonDatabaseContext.SchemaName}.{TableNames.Assets} where");
+                queryBuilder.AppendLine($"select * from {CommonDatabaseContext.SchemaName}.{TableNames.Assets} where \"BlockchainId\" = @blockchainId and");
 
                 if (idsWithAddress.Any())
                 {
@@ -138,7 +140,11 @@ namespace Indexer.Common.Persistence.Entities.Assets
 
                 var query = queryBuilder.ToString();
 
-                return await connection.QueryAsync<AssetEntity>(query, new {limit = batchSize});
+                return await connection.QueryAsync<AssetEntity>(query, new
+                {
+                    blockchainId = blockchainId,
+                    limit = batchSize
+                });
             }
 
             var entities = new List<AssetEntity>(blockchainAssetIds.Count);

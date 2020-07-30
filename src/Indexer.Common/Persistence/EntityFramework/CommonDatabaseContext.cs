@@ -65,19 +65,24 @@ namespace Indexer.Common.Persistence.EntityFramework
                 e.HasIndex(x => x.BlockchainId)
                     .HasName("ix_assets_blockchain_id");
 
-                e.HasIndex(x => x.Symbol)
+                e.HasIndex(x => new
+                    {
+                        x.BlockchainId, 
+                        x.Symbol
+                    })
                     .IsUnique()
                     .HasFilter($"\"{nameof(AssetEntity.Address)}\" is null")
-                    .HasName("ix_assets_symbol");
+                    .HasName("ix_assets_blockchainId_symbol");
 
                 e.HasIndex(x => new
                     {
+                        x.BlockchainId,
                         x.Symbol,
                         x.Address
                     })
                     .IsUnique()
                     .HasFilter($"\"{nameof(AssetEntity.Address)}\" is not null")
-                    .HasName("ix_assets_symbol_address");
+                    .HasName("ix_assets_blockchainId_symbol_address");
             });
         }
 
