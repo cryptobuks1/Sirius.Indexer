@@ -80,7 +80,6 @@ namespace Indexer.Common.Domain.Blocks
                         x.Number,
                         x.Unit,
                         _addressFormatter.NormalizeOrPassThrough(x.Address, _blockchainMetamodel.NetworkType),
-                        x.ScriptPubKey,
                         x.Tag,
                         DestinationTagTypeMapper.ToDomain(x.TagType)))
                     .ToArray();

@@ -43,5 +43,4 @@ message UnspentCoin {
     common.CoinId id = 1;
     common.Unit unit = 2;
     string address = 3;
-    string scriptPubKey = 4;
 }

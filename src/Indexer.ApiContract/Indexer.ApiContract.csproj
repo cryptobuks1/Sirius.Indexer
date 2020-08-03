@@ -21,7 +21,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Swisschain.Sirius.Sdk" Version="5.0.0-beta.12" />
+    <PackageReference Include="Swisschain.Sirius.Sdk" Version="5.0.0-beta.13" />
   </ItemGroup>
 
   <ItemGroup>
