@@ -7,7 +7,6 @@ namespace Indexer.Common.Domain.Transactions.Transfers.Coins
         public SpentCoin(CoinId id,
             Unit unit,
             string address,
-            string scriptPubKey,
             string tag,
             DestinationTagType? tagType,
             CoinId spentByCoinId)
@@ -15,7 +14,6 @@ namespace Indexer.Common.Domain.Transactions.Transfers.Coins
             Id = id;
             Unit = unit;
             Address = address;
-            ScriptPubKey = scriptPubKey;
             Tag = tag;
             TagType = tagType;
             SpentByCoinId = spentByCoinId;
@@ -24,7 +22,6 @@ namespace Indexer.Common.Domain.Transactions.Transfers.Coins
         public CoinId Id { get; }
         public Unit Unit { get; }
         public string Address { get; }
-        public string ScriptPubKey { get; }
         public string Tag { get; }
         public DestinationTagType? TagType { get; }
         public CoinId SpentByCoinId { get; }
@@ -35,7 +32,6 @@ namespace Indexer.Common.Domain.Transactions.Transfers.Coins
                 Id,
                 Unit,
                 Address,
-                ScriptPubKey,
                 Tag,
                 TagType);
         }
