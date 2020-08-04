@@ -10,13 +10,13 @@ namespace Indexer.Common.Persistence.Entities.Assets
     internal sealed class AssetsRepositoryCacheDecorator : IAssetsRepository
     {
         private readonly IAssetsRepository _impl;
-        private readonly ConcurrentDictionary<BlockchainAssetId, Asset> _cache;
+        private readonly ConcurrentDictionary<(string BlockchainId, BlockchainAssetId BlockchainAssetId), Asset> _cache;
 
         public AssetsRepositoryCacheDecorator(IAssetsRepository impl)
         {
             _impl = impl;
             // TODO: RLE cache with the limited size
-            _cache = new ConcurrentDictionary<BlockchainAssetId, Asset>();
+            _cache = new ConcurrentDictionary<(string BlockchainId, BlockchainAssetId BlockchainAssetId), Asset>();
         }
 
         public Task<IReadOnlyCollection<Asset>> GetAllAsync(string blockchainId)
@@ -30,7 +30,7 @@ namespace Indexer.Common.Persistence.Entities.Assets
             var cachedAssets = blockchainAssetIds
                 .Select(x =>
                 {
-                    _cache.TryGetValue(x, out var asset);
+                    _cache.TryGetValue((BlockchainId: blockchainId, BlockchainAssetId: x), out var asset);
 
                     return asset;
                 })
@@ -54,7 +54,7 @@ namespace Indexer.Common.Persistence.Entities.Assets
 
             foreach (var asset in readAssets)
             {
-                _cache.TryAdd(asset.GetBlockchainAssetId(), asset);
+                _cache.TryAdd((BlockchainId: blockchainId, BlockchainAssetId: asset.GetBlockchainAssetId()), asset);
             }
 
             return cachedAssets.Concat(readAssets).ToArray();
@@ -65,7 +65,7 @@ namespace Indexer.Common.Persistence.Entities.Assets
             var cachedAssets = blockchainAssets
                 .Select(x =>
                 {
-                    _cache.TryGetValue(x.Id, out var asset);
+                    _cache.TryGetValue((BlockchainId: blockchainId, BlockchainAssetId: x.Id), out var asset);
 
                     return asset;
                 })
