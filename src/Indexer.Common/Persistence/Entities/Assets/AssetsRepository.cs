@@ -66,7 +66,7 @@ namespace Indexer.Common.Persistence.Entities.Assets
             var copyHelper = new PostgreSQLCopyHelper<BlockchainAsset>(CommonDatabaseContext.SchemaName, TableNames.Assets)
                 .UsePostgresQuoting()
                 .MapVarchar(nameof(AssetEntity.BlockchainId), p => blockchainId)
-                .MapVarchar(nameof(AssetEntity.Symbol), p => SqlString.EscapeCopy(p.Id.Symbol))
+                .MapVarchar(nameof(AssetEntity.Symbol), p => p.Id.Symbol)
                 .MapVarchar(nameof(AssetEntity.Address), p => p.Id.Address)
                 .MapInteger(nameof(AssetEntity.Accuracy), p => p.Accuracy);
 
