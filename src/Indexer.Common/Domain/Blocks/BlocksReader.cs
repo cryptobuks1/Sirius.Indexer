@@ -9,6 +9,7 @@ using Swisschain.Sirius.Sdk.Crypto.AddressFormatting;
 using Swisschain.Sirius.Sdk.Integrations.Client;
 using Swisschain.Sirius.Sdk.Integrations.Contract.Blocks;
 using Swisschain.Sirius.Sdk.Integrations.Contract.Transactions.Transfers;
+using Swisschain.Sirius.Sdk.Primitives;
 using CoinId = Swisschain.Sirius.Sdk.Primitives.CoinId;
 using CoinsTransferTransaction = Indexer.Common.Domain.Transactions.Transfers.Coins.CoinsTransferTransaction;
 using OutputCoin = Indexer.Common.Domain.Transactions.Transfers.Coins.OutputCoin;
@@ -78,7 +79,7 @@ namespace Indexer.Common.Domain.Blocks
                 var outputCoins = tx.OutputCoins
                     .Select(x => new OutputCoin(
                         x.Number,
-                        x.Unit,
+                        GetBlockchainUnit(x.Unit),
                         _addressFormatter.NormalizeOrPassThrough(x.Address, _blockchainMetamodel.NetworkType),
                         x.Tag,
                         DestinationTagTypeMapper.ToDomain(x.TagType)))
@@ -133,7 +134,7 @@ namespace Indexer.Common.Domain.Blocks
                                 return address != null
                                     ? new TransferSource(
                                         new Sender(address),
-                                        source.Unit)
+                                        GetBlockchainUnit(source.Unit))
                                     : null;
                             })
                             .Where(x => x != null)
@@ -149,7 +150,7 @@ namespace Indexer.Common.Domain.Blocks
                                             address,
                                             destination.Tag,
                                             DestinationTagTypeMapper.ToDomain(destination.TagType)),
-                                        destination.Unit)
+                                        GetBlockchainUnit(destination.Unit))
                                     : null;
                             })
                             .Where(x => x != null)
@@ -189,6 +190,17 @@ namespace Indexer.Common.Domain.Blocks
             });
 
             return new NonceBlock(blockHeader, transfers.ToArray());
+        }
+
+        private static BlockchainUnit GetBlockchainUnit(BlockchainUnit value)
+        {
+            return new BlockchainUnit(
+                new BlockchainAsset(
+                    new BlockchainAssetId(
+                        StringUtils.TrimControl(value.Asset.Id.Symbol),
+                        value.Asset.Id.Address),
+                    value.Asset.Accuracy),
+                value.Amount);
         }
 
         private BlockHeader MapBlockHeader(Swisschain.Sirius.Sdk.Integrations.Contract.Blocks.BlockHeader blockHeader)

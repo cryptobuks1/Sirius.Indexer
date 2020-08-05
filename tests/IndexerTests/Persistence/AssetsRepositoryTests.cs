@@ -18,7 +18,6 @@ namespace IndexerTests.Persistence
         }
 
         [Theory]
-        [InlineData("zOPT0000007\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000", "zOPT0000007", "0x4C198D12F83226be4cfa44362509cB4a387a09C2")]
         [InlineData("aa\"bb", "aa\"bb", "0x4C198D12F83226be4cfa44362509cB4a387a09C2")]
         [InlineData("aa'bb", "aa'bb", "0x4C198D12F83226be4cfa44362509cB4a387a09C2")]
         public async Task CanAddAndGetAssetWithControlCharactersInSymbol(string symbol, string expectedSymbol, string address)
