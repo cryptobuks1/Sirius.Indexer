@@ -37,7 +37,6 @@ namespace Indexer.Common.Domain.Indexing.Common
                     new CoinId(tx.Header.Id, coin.Number),
                     new Unit(blockAssets[coin.Unit.Asset.Id].Id, coin.Unit.Amount),
                     coin.Address,
-                    coin.ScriptPubKey,
                     coin.Tag,
                     coin.TagType)))
                 .ToArray();

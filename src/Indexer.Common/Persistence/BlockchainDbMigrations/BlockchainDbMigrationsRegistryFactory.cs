@@ -8,6 +8,7 @@
 
             registry.Add(MigrationTargetBlockchainType.All, "add-migrations.sql");
             registry.Add(MigrationTargetBlockchainType.Coins, "Coins.convert-coins-script-pub-key-to-text.sql");
+            registry.Add(MigrationTargetBlockchainType.Coins, "Coins.remove-coins-script-pub-key.sql");
 
             return registry;
         }
