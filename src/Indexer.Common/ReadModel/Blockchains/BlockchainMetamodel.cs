@@ -1,4 +1,5 @@
-﻿using Swisschain.Sirius.Sdk.Primitives;
+﻿using System;
+using Swisschain.Sirius.Sdk.Primitives;
 
 namespace Indexer.Common.ReadModel.Blockchains
 {
@@ -10,5 +11,8 @@ namespace Indexer.Common.ReadModel.Blockchains
         public string Name { get; set; }
         public NetworkType NetworkType { get; set; }
         public string IntegrationUrl { get; set; }
+        public DateTimeOffset CreatedAt { get; set; }
+
+        public DateTimeOffset UpdatedAt { get; set; }
     }
 }

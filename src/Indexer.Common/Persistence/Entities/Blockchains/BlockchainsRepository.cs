@@ -5,6 +5,9 @@ using System.Threading.Tasks;
 using Indexer.Common.Persistence.EntityFramework;
 using Indexer.Common.ReadModel.Blockchains;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
+using Swisschain.Sirius.Sdk.Integrations.Contract.Integration;
+using Z.EntityFramework.Plus;
 
 namespace Indexer.Common.Persistence.Entities.Blockchains
 {
@@ -35,21 +38,41 @@ namespace Indexer.Common.Persistence.Entities.Blockchains
                 .ToListAsync();
         }
 
-        public async Task AddOrReplaceAsync(BlockchainMetamodel blockchainMetamodel)
+        public async Task Upsert(BlockchainMetamodel blockchainMetamodel)
         {
+            int affectedRowsCount = 0;
             await using var context = _contextFactory.Invoke();
 
-            try
+            if (blockchainMetamodel.CreatedAt != blockchainMetamodel.UpdatedAt)
             {
-                context.Blockchains.Add(blockchainMetamodel);
-
-                await context.SaveChangesAsync();
+                affectedRowsCount = await context.Blockchains
+                    .Where(x => x.Id == blockchainMetamodel.Id &&
+                                x.UpdatedAt <= blockchainMetamodel.UpdatedAt)
+                    .UpdateAsync(x => new BlockchainMetamodel
+                    {
+                       Protocol = blockchainMetamodel.Protocol,
+                       NetworkType = blockchainMetamodel.NetworkType,
+                       CreatedAt = blockchainMetamodel.CreatedAt,
+                       Id = blockchainMetamodel.Id,
+                       IntegrationUrl = blockchainMetamodel.IntegrationUrl,
+                       Name = blockchainMetamodel.Name,
+                       TenantId = blockchainMetamodel.TenantId,
+                       UpdatedAt = blockchainMetamodel.UpdatedAt
+                    });
             }
-            catch (DbUpdateException e) when (e.IsPrimaryKeyViolationException())
-            {
-                context.Blockchains.Update(blockchainMetamodel);
 
-                await context.SaveChangesAsync();
+            if (affectedRowsCount == 0)
+            {
+                try
+                {
+                    context.Blockchains.Add(blockchainMetamodel);
+                    await context.SaveChangesAsync();
+                }
+                catch (DbUpdateException e) when (e.InnerException is PostgresException pgEx
+                                                  && pgEx.SqlState == PostgresErrorCodes.UniqueViolation)
+                {
+                    //Swallow error: the entity was already added
+                }
             }
         }
 

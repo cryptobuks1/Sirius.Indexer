@@ -29,7 +29,7 @@ namespace Indexer.Worker.MessageConsumers
                 return;
             }
 
-            await _blockchainsRepository.AddOrReplaceAsync(new BlockchainMetamodel
+            await _blockchainsRepository.Upsert(new BlockchainMetamodel
             {
                 Id = evt.BlockchainId,
                 Name = evt.Name,
